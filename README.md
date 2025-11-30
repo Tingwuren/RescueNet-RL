@@ -43,7 +43,7 @@ python train.py \
   --rollout-steps 512 \
   --log-interval 1 \
   --eval-interval 1 \
-  --eval-episodes 5
+  --eval-episodes 3
 ```
 
 ## 训练流程
@@ -57,28 +57,19 @@ python train.py \
 7. **产出 Artifact**：
    - `artifacts/ppo_policy.pt`：训练后的策略参数。
    - `artifacts/training_metrics.json`：episode 奖励、覆盖率、时间步及配置快照。
-   - `artifacts/training_coverage_curve.png`：由 `eval.py` 生成的覆盖率曲线。
+   - `artifacts/training_coverage_curve.png`：训练脚本根据每次评估 `avg_final_coverage` 自动绘制的曲线。
 
 ## 评估与可视化
 
-运行：
+若需要在训练完成后复现策略表现，可运行：
 
 ```bash
 python eval.py \
   --checkpoint artifacts/ppo_policy.pt \
-  --metrics artifacts/training_metrics.json \
-  --episodes 10 \
-  --coverage-plot artifacts/training_coverage_curve.png/
-  --plot-skip 50
+  --episodes 10
 ```
 
-该脚本将：
-
-1. 加载配置与训练好的策略权重。
-2. 以确定性动作执行指定数量的 episode，输出平均奖励与最终覆盖率。
-3. 根据 `training_metrics.json` 绘制训练过程中覆盖率随时间步的变化曲线。
-
-可通过 `--render` 选项输出逐步部署情况，便于调试策略。
+脚本会加载训练好的策略，针对同一环境配置随机生成的新灾情执行确定性 rollout，并给出平均奖励与最终覆盖率。若需要逐步观测部署情况，可追加 `--render` 输出以打印每个部署动作。训练期间生成的 `artifacts/training_coverage_curve.png` 仍由 `train.py` 自动输出，无需在评估阶段读取 `training_metrics.json`。
 
 ## 实验建议
 
@@ -105,4 +96,4 @@ for step in range(5):
 PY
 ```
 
-该脚本可快速验证动作空间、奖励和终止条件是否匹配预期。训练前建议先执行一次，确保环境与依赖安装完好。***
+该脚本可快速验证动作空间、奖励和终止条件是否匹配预期。训练前建议先执行一次，确保环境与依赖安装完好。

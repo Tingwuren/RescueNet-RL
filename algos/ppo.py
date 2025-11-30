@@ -42,6 +42,7 @@ class PPOTrainer:
         self.episode_rewards: list[float] = []
         self.episode_coverages: list[float] = []
         self.episode_timesteps: list[int] = []
+        self.eval_history: list[Dict[str, float]] = []
 
         self.current_episode_return = 0.0
         self.current_episode_length = 0
@@ -88,6 +89,13 @@ class PPOTrainer:
 
             if update_idx % eval_interval == 0:
                 eval_reward, eval_cov = self.evaluate(episodes=eval_episodes)
+                self.eval_history.append(
+                    {
+                        "step": float(self.global_step),
+                        "avg_reward": float(eval_reward),
+                        "avg_coverage": float(eval_cov),
+                    }
+                )
                 print(
                     f"    Eval -> avg_reward={eval_reward:.2f} | avg_final_coverage={eval_cov:.2%}"
                 )
@@ -96,6 +104,7 @@ class PPOTrainer:
             "episode_rewards": self.episode_rewards,
             "episode_coverages": self.episode_coverages,
             "episode_timesteps": self.episode_timesteps,
+            "eval_history": self.eval_history,
             "config": self.config,
         }
         self._save_artifacts(metrics)
