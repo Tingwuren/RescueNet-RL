@@ -6,13 +6,15 @@
 
 ```
 RescueNet-RL/
-├── envs/                    # 灾区环境定义
-├── models/                  # Actor-Critic 策略网络
-├── algos/                   # PPO 算法实现
-├── configs/default_config.py# 统一超参/环境配置
-├── train.py                 # 训练入口
-├── eval.py                  # 评估与可视化
-└── artifacts/               # 训练输出（模型、日志、曲线）
+├── data/                       # 极端灾害通信资源数据集
+├── envs/                       # 灾区环境定义
+├── models/                     # Actor-Critic 策略网络
+├── planning/broadcast_arch...  # 广播/通信组网架构输出
+├── algos/                      # PPO 算法实现
+├── configs/default_config.py   # 统一超参/环境配置
+├── train.py                    # 训练入口
+├── eval.py                     # 评估与可视化
+└── artifacts/                  # 训练输出（模型、日志、曲线、组网方案）
 ```
 
 ## 环境设定概述
@@ -23,14 +25,20 @@ RescueNet-RL/
 - **奖励**：`reward = coverage_reward * newly_covered - deployment_cost`，按新增覆盖用户数加分，同时支付部署成本。
 - **终止条件**：达到 `max_steps`、预算用尽或覆盖率达到 100%。
 
-详细实现位于 `envs/disaster_cellular_env.py`，并在注释中说明可扩展到多类型基站或多智能体。
+详细实现位于 `envs/disaster_cellular_env.py`，并在注释中说明可扩展到多类型基站或多智能体。若需要调度多制式通信/广播资源，请切换到 `envs/multimodal_comm_env.py`，该环境会读取 `data/scenarios.json` 中定义的极端灾害场景，包含≥4 种通信制式、广播方式及残余/无残余网络的切换逻辑。
+
+## 数据集与组网架构
+
+- `data/scenarios.json`：覆盖台风、洪水、地震等场景，每个场景包含通信制式 ≥4、广播方式 ≥2 的时间序列资源变化数据（可扩展）。
+- `data/resource_dataset.py`：数据访问与校验工具，保障多制式指标满足 ≥4 的硬约束。
+- `planning/broadcast_architecture.py`：基于场景数据自动生成“残余网络/无残余网络”双方案的智能广播与通信组网架构（含单用户理论带宽、资源利用率等指标），训练完成后会将方案导出至 `artifacts/broadcast_architecture_<scenario>.json`。
 
 ## 配置说明
 
 所有实验配置集中在 `configs/default_config.py`：
 
 - `env`：网格大小、用户数、候选点数量、奖励系数等。
-- `model`：MLP Actor-Critic 的隐层宽度。
+- `model`：`hidden_sizes` 用于基础 PPO；`multimodal_hidden_sizes`（默认为 `[1024, 1024, 512, 512]`）驱动 >100 万参数的强化学习模型，满足“模型参数规模 ≥100 万”的指标，实际参数量 >2M。
 - `ppo`：学习率、折扣 γ、GAE λ、Clip 系数、更新轮数、熵/价值损失权重等。
 - `train`：总步数、每次 rollout 步数、日志/评估间隔、评估 episode 数、设备。
 - `logging`：输出目录（默认 `artifacts/`）。
@@ -71,6 +79,17 @@ python eval.py \
 
 脚本会加载训练好的策略，针对同一环境配置随机生成的新灾情执行确定性 rollout，并给出平均奖励与最终覆盖率。若需要逐步观测部署情况，可追加 `--render` 输出以打印每个部署动作。训练期间生成的 `artifacts/training_coverage_curve.png` 仍由 `train.py` 自动输出，无需在评估阶段读取 `training_metrics.json`。
 
+> **提示（多制式环境）**：联合通信/广播环境的策略在训练时依赖随机采样来探索巨大的组合动作空间。如果使用默认的贪心评估（`deterministic`），会因为始终选择同一组合动作而难以复现训练期表现。请在多制式场景评估时追加 `--stochastic-eval`，或在训练命令中使用 `--stochastic-eval` 让 `train.py` 的内部评估也采样动作：
+
+```bash
+python eval.py \
+  --env-type multimodal \
+  --scenario-name typhoon_residual \
+  --checkpoint artifacts/ppo_policy.pt \
+  --episodes 5 \
+  --stochastic-eval
+```
+
 ## 实验建议
 
 - **收敛性**：推荐 `total_timesteps ≥ 50k`，并适当提高 `rollout_steps` 以获得更平稳的优势估计。
@@ -97,3 +116,19 @@ PY
 ```
 
 该脚本可快速验证动作空间、奖励和终止条件是否匹配预期。训练前建议先执行一次，确保环境与依赖安装完好。
+若需启动多制式/广播一体化训练并完成至少 1 种极端场景的训练，可执行：
+
+```bash
+python train.py \
+  --env-type multimodal \
+  --scenario-name typhoon_residual \
+  --total-timesteps 12000 \
+  --stochastic-eval
+```
+
+该流程会：
+
+1. 从数据集中加载指定场景；
+2. 启动 `MultimodalPolicy`（参数量 >1M）训练；
+3. 训练完成后在 `artifacts/` 中生成 `training_coverage_curve.png`、`ppo_policy.pt` 以及 `broadcast_architecture_typhoon_residual.json`，用于技术进展报告及专家评审。
+   - `--stochastic-eval` 会让 `train.py` 在周期性评估时同样采用采样动作，避免“贪心动作重复部署”导致的覆盖率偏低。

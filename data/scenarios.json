@@ -1,0 +1,247 @@
+{
+  "scenarios": [
+    {
+      "name": "typhoon_residual",
+      "disaster_type": "typhoon",
+      "grid_size": 12,
+      "num_users": 60,
+      "candidate_sites": 30,
+      "max_steps": 30,
+      "has_residual_network": true,
+      "communication_modes": [
+        "5G_600MHz",
+        "5G_700MHz",
+        "Satellite_Ka",
+        "WiFi6",
+        "Shortwave_HF"
+      ],
+      "broadcast_modes": [
+        "terrestrial_dtv",
+        "satellite_broadcast",
+        "digital_audio"
+      ],
+      "mode_profiles": {
+        "5G_600MHz": {"coverage_radius": 3.5, "max_bandwidth": 180.0, "recovery_speed": 0.6},
+        "5G_700MHz": {"coverage_radius": 3.0, "max_bandwidth": 200.0, "recovery_speed": 0.7},
+        "Satellite_Ka": {"coverage_radius": 5.0, "max_bandwidth": 90.0, "recovery_speed": 0.9},
+        "WiFi6": {"coverage_radius": 2.0, "max_bandwidth": 120.0, "recovery_speed": 0.4},
+        "Shortwave_HF": {"coverage_radius": 6.0, "max_bandwidth": 20.0, "recovery_speed": 0.3}
+      },
+      "broadcast_profiles": {
+        "terrestrial_dtv": {"max_bandwidth": 80.0, "latency_ms": 80},
+        "satellite_broadcast": {"max_bandwidth": 150.0, "latency_ms": 250},
+        "digital_audio": {"max_bandwidth": 40.0, "latency_ms": 60}
+      },
+      "user_clusters": [
+        {"center": [3, 4], "radius": 2.0, "density": 0.35, "demand_mbps": 15.0},
+        {"center": [8, 9], "radius": 3.0, "density": 0.4, "demand_mbps": 20.0},
+        {"center": [6, 2], "radius": 2.5, "density": 0.25, "demand_mbps": 8.0}
+      ],
+      "time_series": [
+        {
+          "time": 0,
+          "mode_metrics": {
+            "5G_600MHz": {"available_bandwidth": 90.0, "availability": 0.4},
+            "5G_700MHz": {"available_bandwidth": 120.0, "availability": 0.35},
+            "Satellite_Ka": {"available_bandwidth": 60.0, "availability": 0.9},
+            "WiFi6": {"available_bandwidth": 20.0, "availability": 0.25},
+            "Shortwave_HF": {"available_bandwidth": 15.0, "availability": 0.8}
+          },
+          "broadcast_metrics": {
+            "terrestrial_dtv": {"available_bandwidth": 40.0, "coverage": 0.4},
+            "satellite_broadcast": {"available_bandwidth": 120.0, "coverage": 0.95},
+            "digital_audio": {"available_bandwidth": 30.0, "coverage": 0.55}
+          }
+        },
+        {
+          "time": 1,
+          "mode_metrics": {
+            "5G_600MHz": {"available_bandwidth": 120.0, "availability": 0.55},
+            "5G_700MHz": {"available_bandwidth": 160.0, "availability": 0.5},
+            "Satellite_Ka": {"available_bandwidth": 70.0, "availability": 0.95},
+            "WiFi6": {"available_bandwidth": 60.0, "availability": 0.45},
+            "Shortwave_HF": {"available_bandwidth": 16.0, "availability": 0.85}
+          },
+          "broadcast_metrics": {
+            "terrestrial_dtv": {"available_bandwidth": 60.0, "coverage": 0.6},
+            "satellite_broadcast": {"available_bandwidth": 130.0, "coverage": 0.97},
+            "digital_audio": {"available_bandwidth": 35.0, "coverage": 0.7}
+          }
+        },
+        {
+          "time": 2,
+          "mode_metrics": {
+            "5G_600MHz": {"available_bandwidth": 150.0, "availability": 0.75},
+            "5G_700MHz": {"available_bandwidth": 180.0, "availability": 0.72},
+            "Satellite_Ka": {"available_bandwidth": 80.0, "availability": 0.98},
+            "WiFi6": {"available_bandwidth": 100.0, "availability": 0.6},
+            "Shortwave_HF": {"available_bandwidth": 18.0, "availability": 0.9}
+          },
+          "broadcast_metrics": {
+            "terrestrial_dtv": {"available_bandwidth": 70.0, "coverage": 0.75},
+            "satellite_broadcast": {"available_bandwidth": 140.0, "coverage": 0.98},
+            "digital_audio": {"available_bandwidth": 38.0, "coverage": 0.82}
+          }
+        }
+      ]
+    },
+    {
+      "name": "flood_no_residual",
+      "disaster_type": "flood",
+      "grid_size": 10,
+      "num_users": 55,
+      "candidate_sites": 28,
+      "max_steps": 28,
+      "has_residual_network": false,
+      "communication_modes": [
+        "5G_700MHz",
+        "Satellite_Ka",
+        "WiFi6",
+        "Shortwave_HF",
+        "Mesh_UAV"
+      ],
+      "broadcast_modes": ["digital_audio", "emergency_loudspeaker"],
+      "mode_profiles": {
+        "5G_700MHz": {"coverage_radius": 3.2, "max_bandwidth": 160.0, "recovery_speed": 0.65},
+        "Satellite_Ka": {"coverage_radius": 5.5, "max_bandwidth": 85.0, "recovery_speed": 0.85},
+        "WiFi6": {"coverage_radius": 2.2, "max_bandwidth": 130.0, "recovery_speed": 0.5},
+        "Shortwave_HF": {"coverage_radius": 6.5, "max_bandwidth": 18.0, "recovery_speed": 0.35},
+        "Mesh_UAV": {"coverage_radius": 4.0, "max_bandwidth": 60.0, "recovery_speed": 0.55}
+      },
+      "broadcast_profiles": {
+        "digital_audio": {"max_bandwidth": 35.0, "latency_ms": 70},
+        "emergency_loudspeaker": {"max_bandwidth": 10.0, "latency_ms": 20}
+      },
+      "user_clusters": [
+        {"center": [2, 2], "radius": 2.5, "density": 0.4, "demand_mbps": 12.0},
+        {"center": [7, 8], "radius": 2.2, "density": 0.32, "demand_mbps": 14.0},
+        {"center": [5, 4], "radius": 2.0, "density": 0.28, "demand_mbps": 9.0}
+      ],
+      "time_series": [
+        {
+          "time": 0,
+          "mode_metrics": {
+            "5G_700MHz": {"available_bandwidth": 80.0, "availability": 0.3},
+            "Satellite_Ka": {"available_bandwidth": 70.0, "availability": 0.88},
+            "WiFi6": {"available_bandwidth": 10.0, "availability": 0.2},
+            "Shortwave_HF": {"available_bandwidth": 12.0, "availability": 0.75},
+            "Mesh_UAV": {"available_bandwidth": 40.0, "availability": 0.5}
+          },
+          "broadcast_metrics": {
+            "digital_audio": {"available_bandwidth": 20.0, "coverage": 0.5},
+            "emergency_loudspeaker": {"available_bandwidth": 8.0, "coverage": 0.4}
+          }
+        },
+        {
+          "time": 1,
+          "mode_metrics": {
+            "5G_700MHz": {"available_bandwidth": 110.0, "availability": 0.45},
+            "Satellite_Ka": {"available_bandwidth": 75.0, "availability": 0.9},
+            "WiFi6": {"available_bandwidth": 40.0, "availability": 0.35},
+            "Shortwave_HF": {"available_bandwidth": 14.0, "availability": 0.8},
+            "Mesh_UAV": {"available_bandwidth": 55.0, "availability": 0.65}
+          },
+          "broadcast_metrics": {
+            "digital_audio": {"available_bandwidth": 28.0, "coverage": 0.62},
+            "emergency_loudspeaker": {"available_bandwidth": 9.0, "coverage": 0.5}
+          }
+        },
+        {
+          "time": 2,
+          "mode_metrics": {
+            "5G_700MHz": {"available_bandwidth": 140.0, "availability": 0.6},
+            "Satellite_Ka": {"available_bandwidth": 80.0, "availability": 0.93},
+            "WiFi6": {"available_bandwidth": 90.0, "availability": 0.5},
+            "Shortwave_HF": {"available_bandwidth": 16.0, "availability": 0.82},
+            "Mesh_UAV": {"available_bandwidth": 60.0, "availability": 0.7}
+          },
+          "broadcast_metrics": {
+            "digital_audio": {"available_bandwidth": 30.0, "coverage": 0.7},
+            "emergency_loudspeaker": {"available_bandwidth": 9.5, "coverage": 0.55}
+          }
+        }
+      ]
+    },
+    {
+      "name": "earthquake_residual",
+      "disaster_type": "earthquake",
+      "grid_size": 11,
+      "num_users": 65,
+      "candidate_sites": 32,
+      "max_steps": 32,
+      "has_residual_network": true,
+      "communication_modes": [
+        "5G_600MHz",
+        "5G_mmWave",
+        "Satellite_Ku",
+        "WiFi6",
+        "Shortwave_HF"
+      ],
+      "broadcast_modes": ["satellite_broadcast", "digital_audio", "emergency_loudspeaker"],
+      "mode_profiles": {
+        "5G_600MHz": {"coverage_radius": 3.8, "max_bandwidth": 170.0, "recovery_speed": 0.7},
+        "5G_mmWave": {"coverage_radius": 1.5, "max_bandwidth": 500.0, "recovery_speed": 0.5},
+        "Satellite_Ku": {"coverage_radius": 4.5, "max_bandwidth": 120.0, "recovery_speed": 0.9},
+        "WiFi6": {"coverage_radius": 2.0, "max_bandwidth": 140.0, "recovery_speed": 0.55},
+        "Shortwave_HF": {"coverage_radius": 7.0, "max_bandwidth": 18.0, "recovery_speed": 0.4}
+      },
+      "broadcast_profiles": {
+        "satellite_broadcast": {"max_bandwidth": 160.0, "latency_ms": 220},
+        "digital_audio": {"max_bandwidth": 32.0, "latency_ms": 70},
+        "emergency_loudspeaker": {"max_bandwidth": 12.0, "latency_ms": 25}
+      },
+      "user_clusters": [
+        {"center": [4, 5], "radius": 2.5, "density": 0.33, "demand_mbps": 16.0},
+        {"center": [9, 8], "radius": 2.8, "density": 0.3, "demand_mbps": 18.0},
+        {"center": [5, 2], "radius": 2.0, "density": 0.25, "demand_mbps": 10.0}
+      ],
+      "time_series": [
+        {
+          "time": 0,
+          "mode_metrics": {
+            "5G_600MHz": {"available_bandwidth": 70.0, "availability": 0.35},
+            "5G_mmWave": {"available_bandwidth": 200.0, "availability": 0.2},
+            "Satellite_Ku": {"available_bandwidth": 90.0, "availability": 0.92},
+            "WiFi6": {"available_bandwidth": 30.0, "availability": 0.3},
+            "Shortwave_HF": {"available_bandwidth": 14.0, "availability": 0.78}
+          },
+          "broadcast_metrics": {
+            "satellite_broadcast": {"available_bandwidth": 120.0, "coverage": 0.9},
+            "digital_audio": {"available_bandwidth": 24.0, "coverage": 0.55},
+            "emergency_loudspeaker": {"available_bandwidth": 9.0, "coverage": 0.35}
+          }
+        },
+        {
+          "time": 1,
+          "mode_metrics": {
+            "5G_600MHz": {"available_bandwidth": 110.0, "availability": 0.55},
+            "5G_mmWave": {"available_bandwidth": 300.0, "availability": 0.35},
+            "Satellite_Ku": {"available_bandwidth": 100.0, "availability": 0.95},
+            "WiFi6": {"available_bandwidth": 70.0, "availability": 0.45},
+            "Shortwave_HF": {"available_bandwidth": 16.0, "availability": 0.82}
+          },
+          "broadcast_metrics": {
+            "satellite_broadcast": {"available_bandwidth": 140.0, "coverage": 0.95},
+            "digital_audio": {"available_bandwidth": 30.0, "coverage": 0.7},
+            "emergency_loudspeaker": {"available_bandwidth": 10.5, "coverage": 0.5}
+          }
+        },
+        {
+          "time": 2,
+          "mode_metrics": {
+            "5G_600MHz": {"available_bandwidth": 150.0, "availability": 0.75},
+            "5G_mmWave": {"available_bandwidth": 420.0, "availability": 0.5},
+            "Satellite_Ku": {"available_bandwidth": 120.0, "availability": 0.98},
+            "WiFi6": {"available_bandwidth": 110.0, "availability": 0.6},
+            "Shortwave_HF": {"available_bandwidth": 18.0, "availability": 0.87}
+          },
+          "broadcast_metrics": {
+            "satellite_broadcast": {"available_bandwidth": 150.0, "coverage": 0.97},
+            "digital_audio": {"available_bandwidth": 32.0, "coverage": 0.8},
+            "emergency_loudspeaker": {"available_bandwidth": 11.0, "coverage": 0.58}
+          }
+        }
+      ]
+    }
+  ]
+}

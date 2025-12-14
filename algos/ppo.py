@@ -88,7 +88,10 @@ class PPOTrainer:
                 )
 
             if update_idx % eval_interval == 0:
-                eval_reward, eval_cov = self.evaluate(episodes=eval_episodes)
+                eval_reward, eval_cov = self.evaluate(
+                    episodes=eval_episodes,
+                    deterministic=self.train_cfg.get("eval_deterministic", True),
+                )
                 self.eval_history.append(
                     {
                         "step": float(self.global_step),
@@ -238,7 +241,7 @@ class PPOTrainer:
 
         return {"policy_loss": policy_loss_val, "value_loss": value_loss_val}
 
-    def evaluate(self, episodes: int = 5) -> Tuple[float, float]:
+    def evaluate(self, episodes: int = 5, deterministic: bool = True) -> Tuple[float, float]:
         """Roll out the current policy deterministically for reporting."""
         rewards = []
         coverages = []
@@ -248,7 +251,7 @@ class PPOTrainer:
             total_reward = 0.0
             final_cov = 0.0
             while not done:
-                action, _, _ = self.policy.act(obs, deterministic=True)
+                action, _, _ = self.policy.act(obs, deterministic=deterministic)
                 obs, reward, terminated, truncated, info = self.eval_env.step(action)
                 done = bool(terminated or truncated)
                 total_reward += reward

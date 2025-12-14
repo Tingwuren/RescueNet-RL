@@ -10,19 +10,30 @@ import torch
 
 from algos.ppo import PPOTrainer
 from configs.default_config import get_default_config
-from envs import DisasterCellularEnv
+from envs import DisasterCellularEnv, MultiModalCommEnv
 from models.policy_network import MLPActorCritic
+from models.multimodal_policy import MultimodalPolicy
+from planning.broadcast_architecture import export_architecture
 
 
-def make_env(env_config: Dict[str, float]) -> DisasterCellularEnv:
+def make_env(config: Dict[str, Dict], env_type: str):
     """Factory helper to keep train/eval envs in sync."""
-    return DisasterCellularEnv(**env_config)
+    if env_type == "multimodal":
+        return MultiModalCommEnv(**config["multimodal_env"])
+    return DisasterCellularEnv(**config["env"])
 
 
-def build_policy(env: DisasterCellularEnv, model_config: Dict[str, object], device: str) -> MLPActorCritic:
+def build_policy(env, model_config: Dict[str, object], env_type: str, device: str):
     """Instantiate the actor-critic network that matches the environment."""
     obs_dim = env.observation_space.shape[0]
     action_dim = env.action_space.n
+    if env_type == "multimodal":
+        return MultimodalPolicy(
+            obs_dim=obs_dim,
+            action_dim=action_dim,
+            hidden_sizes=model_config.get("multimodal_hidden_sizes", [1024, 1024, 512, 512]),
+            device=device,
+        )
     return MLPActorCritic(
         obs_dim=obs_dim,
         action_dim=action_dim,
@@ -39,6 +50,29 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--log-interval", type=int, default=None, help="How many PPO updates between logging.")
     parser.add_argument("--eval-interval", type=int, default=None, help="How many updates between eval runs.")
     parser.add_argument("--eval-episodes", type=int, default=None, help="Episodes per eval run.")
+    parser.add_argument(
+        "--env-type",
+        type=str,
+        choices=["baseline", "multimodal"],
+        default=None,
+        help="Select between baseline and multimodal joint environment.",
+    )
+    parser.add_argument(
+        "--scenario-name",
+        type=str,
+        default=None,
+        help="Choose scenario from the dataset when env-type=multimodal.",
+    )
+    parser.add_argument(
+        "--deterministic-eval",
+        action="store_true",
+        help="Force evaluation rollouts to use greedy actions.",
+    )
+    parser.add_argument(
+        "--stochastic-eval",
+        action="store_true",
+        help="Sample actions during evaluation (recommended for multimodal envs).",
+    )
     return parser.parse_args()
 
 
@@ -56,15 +90,24 @@ def main() -> None:
         config["train"]["eval_interval"] = max(1, args.eval_interval)
     if args.eval_episodes:
         config["train"]["eval_episodes"] = max(1, args.eval_episodes)
+    if args.env_type:
+        config["experiment"]["env_type"] = args.env_type
+    env_type = config["experiment"].get("env_type", "baseline")
+    if args.scenario_name:
+        config["multimodal_env"]["scenario_name"] = args.scenario_name
+    if args.deterministic_eval:
+        config["train"]["eval_deterministic"] = True
+    elif args.stochastic_eval:
+        config["train"]["eval_deterministic"] = False
 
     artifact_dir = Path(config["logging"]["artifact_dir"])
     artifact_dir.mkdir(parents=True, exist_ok=True)
 
-    env = make_env(config["env"])
-    eval_env = make_env(config["env"])
+    env = make_env(config, env_type)
+    eval_env = make_env(config, env_type)
 
     device = config["train"].get("device", "auto")
-    policy = build_policy(env, config["model"], device=device)
+    policy = build_policy(env, config["model"], env_type=env_type, device=device)
 
     torch.manual_seed(config["train"]["seed"])
 
@@ -73,6 +116,12 @@ def main() -> None:
 
     coverage_plot_path = artifact_dir / "training_coverage_curve.png"
     plot_training_metrics(metrics, coverage_plot_path, skip=1)
+
+    if env_type == "multimodal":
+        scenario_name = config["multimodal_env"]["scenario_name"]
+        dataset_path = config["multimodal_env"]["dataset_path"]
+        architecture_path = artifact_dir / f"broadcast_architecture_{scenario_name}.json"
+        export_architecture(dataset_path, scenario_name, architecture_path)
 
 
 def plot_training_metrics(metrics: Dict, output_path: Path, skip: int = 1) -> None:
