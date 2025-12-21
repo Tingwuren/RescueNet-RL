@@ -340,6 +340,33 @@ class MultiModalCommEnv(gym.Env):
         )
         return obs
 
+    def apply_custom_user_state(self, users: List[Dict[str, float]]) -> Tuple[np.ndarray, Dict[str, float]]:
+        """Override sampled users with externally provided positions/demands."""
+        if not users:
+            observation = self._get_observation()
+            info = self._info_dict()
+            return observation, info
+
+        limit = min(len(users), self.num_users)
+        self.user_connected[:] = False
+        self.broadcast_served[:] = False
+
+        for idx in range(limit):
+            entry = users[idx]
+            x = int(np.clip(entry.get("x", self.user_positions[idx, 0]), 0, self.grid_size - 1))
+            y = int(np.clip(entry.get("y", self.user_positions[idx, 1]), 0, self.grid_size - 1))
+            demand = float(entry.get("demand", self.user_demands[idx]))
+            connected = bool(entry.get("connected", False))
+            broadcast = bool(entry.get("broadcast_served", False))
+            self.user_positions[idx] = (x, y)
+            self.user_demands[idx] = np.clip(demand, 0.5, 100.0)
+            self.user_connected[idx] = connected
+            self.broadcast_served[idx] = broadcast
+
+        observation = self._get_observation()
+        info = self._info_dict()
+        return observation, info
+
     def render(self) -> None:
         print(
             f"[MultiModalRender] step={self.current_step} coverage={self._coverage_ratio():.2%} "

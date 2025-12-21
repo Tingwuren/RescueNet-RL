@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple
 
 import numpy as np
 import torch
@@ -25,6 +25,7 @@ class PPOTrainer:
         eval_env: DisasterCellularEnv,
         policy: MLPActorCritic,
         config: Dict[str, Dict[str, Any]],
+        progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
     ) -> None:
         self.env = env
         self.eval_env = eval_env
@@ -51,6 +52,7 @@ class PPOTrainer:
 
         self.artifact_dir = Path(self.log_cfg.get("artifact_dir", "artifacts"))
         self.artifact_dir.mkdir(parents=True, exist_ok=True)
+        self.progress_callback = progress_callback
 
     def train(self) -> Dict[str, Any]:
         """Main PPO training loop."""
@@ -86,6 +88,17 @@ class PPOTrainer:
                     f"mean_reward={mean_reward:.2f} | mean_coverage={mean_coverage:.2%} | "
                     f"loss_pi={loss_info['policy_loss']:.3f} | loss_v={loss_info['value_loss']:.3f}"
                 )
+                self._emit_progress(
+                    "update",
+                    {
+                        "update": update_idx,
+                        "step": self.global_step,
+                        "mean_reward": float(mean_reward),
+                        "mean_coverage": float(mean_coverage),
+                        "loss_pi": float(loss_info["policy_loss"]),
+                        "loss_v": float(loss_info["value_loss"]),
+                    },
+                )
 
             if update_idx % eval_interval == 0:
                 eval_reward, eval_cov = self.evaluate(
@@ -102,6 +115,14 @@ class PPOTrainer:
                 print(
                     f"    Eval -> avg_reward={eval_reward:.2f} | avg_final_coverage={eval_cov:.2%}"
                 )
+                self._emit_progress(
+                    "evaluation",
+                    {
+                        "step": self.global_step,
+                        "avg_reward": float(eval_reward),
+                        "avg_coverage": float(eval_cov),
+                    },
+                )
 
         metrics = {
             "episode_rewards": self.episode_rewards,
@@ -111,7 +132,23 @@ class PPOTrainer:
             "config": self.config,
         }
         self._save_artifacts(metrics)
+        self._emit_progress(
+            "completed",
+            {
+                "step": self.global_step,
+                "episodes": self.completed_episodes,
+                "total_timesteps": int(self.train_cfg["total_timesteps"]),
+            },
+        )
         return metrics
+
+    def _emit_progress(self, event_type: str, payload: Dict[str, Any]) -> None:
+        if not self.progress_callback:
+            return
+        try:
+            self.progress_callback({"type": event_type, "payload": payload})
+        except Exception as exc:
+            print(f"[PPOTrainer] progress callback error: {exc}")
 
     def _collect_rollout(
         self, start_obs: np.ndarray, steps: int
@@ -148,6 +185,16 @@ class PPOTrainer:
                         f"reward={self.current_episode_return:.2f} | coverage={coverage:.2%} | reason={reason}"
                     )
                     self.env.render()
+                self._emit_progress(
+                    "episode",
+                    {
+                        "episode": self.completed_episodes,
+                        "steps": self.current_episode_length,
+                        "reward": float(self.current_episode_return),
+                        "coverage": coverage,
+                        "reason": info.get("reason", "episode_end"),
+                    },
+                )
                 self.current_episode_return = 0.0
                 self.current_episode_length = 0
                 next_obs, _ = self.env.reset()

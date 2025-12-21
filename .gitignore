@@ -21,3 +21,17 @@ env/
 
 # Project outputs
 artifacts/
+
+# Frontend build artifacts
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.env.local
+frontend/.env.*
+
+# FastAPI/server artifacts
+.uvicorn.log
+
+# OS files
+.DS_Store
+Thumbs.db

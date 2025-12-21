@@ -132,3 +132,28 @@ python train.py \
 2. 启动 `MultimodalPolicy`（参数量 >1M）训练；
 3. 训练完成后在 `artifacts/` 中生成 `training_coverage_curve.png`、`ppo_policy.pt` 以及 `broadcast_architecture_typhoon_residual.json`，用于技术进展报告及专家评审。
    - `--stochastic-eval` 会让 `train.py` 在周期性评估时同样采用采样动作，避免“贪心动作重复部署”导致的覆盖率偏低。
+
+## Web 仪表盘（Vue + FastAPI）
+
+为了让非命令行用户也能操作训练和测试流程，新增了一个基于 FastAPI + Vue3 的前端界面：
+
+1. **启动后端 API**
+   ```bash
+   conda activate pytorch
+   pip install -r requirements.txt
+   uvicorn server.api:app --reload --port 8000
+   ```
+   - `/api/train` 支持选择 `typhoon_residual`、`flood_no_residual`、`earthquake_residual` 等场景触发 PPO 训练；
+   - `EventSource` (`/api/train/{run_id}/stream`) 会实时推送 episode/update/eval 事件，前端即可监控训练过程；
+   - `/api/simulate` 接收自定义设备清单，载入训练好的策略，输出逐步组网策略和恢复状态。
+
+2. **启动前端（Vue 3 + Vite）**
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+   - “灾害场景训练” 面板：选择台风/洪水/地震场景、配置训练步数、实时查看训练事件。
+   - “自定义环境测试” 面板：自由添加受灾设备（坐标/需求/初始状态），并查看模型在该环境中的组网策略与设备恢复情况。
+
+> 默认 `VITE_API_BASE=http://localhost:8000/api`，若后端端口不同，可通过 `.env.local` 覆写。
