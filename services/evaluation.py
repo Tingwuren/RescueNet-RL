@@ -51,6 +51,15 @@ def apply_custom_user_state(env, user_state: Optional[List[Dict[str, Any]]]) -> 
     raise AttributeError("Environment does not support custom user state overrides.")
 
 
+def configure_custom_base_stations(env, base_stations: Optional[List[Dict[str, Any]]]) -> None:
+    """Configure custom residual base stations when supported."""
+    if not hasattr(env, "set_custom_base_stations"):
+        if base_stations:
+            raise AttributeError("Environment does not support residual base-station overrides.")
+        return
+    env.set_custom_base_stations(base_stations)
+
+
 def evaluate_policy(
     env,
     policy,
@@ -58,11 +67,14 @@ def evaluate_policy(
     deterministic: bool = True,
     render: bool = False,
     custom_user_state: Optional[List[Dict[str, Any]]] = None,
+    custom_base_stations: Optional[List[Dict[str, Any]]] = None,
 ) -> Tuple[List[float], List[float], List[Dict[str, Any]]]:
     """Run rollouts and return rewards, coverages, and structured episode reports."""
     rewards: List[float] = []
     coverages: List[float] = []
     reports: List[Dict[str, Any]] = []
+    if custom_base_stations is not None:
+        configure_custom_base_stations(env, custom_base_stations)
     scenario_meta = _describe_scenario(env)
     for episode in range(episodes):
         obs, info = env.reset()
@@ -219,15 +231,27 @@ def _describe_scenario(env) -> Dict[str, Any]:
         "disaster_type": getattr(scenario, "disaster_type", None) if scenario else None,
         "num_users": getattr(env, "num_users", None),
         "max_steps": getattr(env, "max_steps", None),
+        "reward_mode": getattr(env, "reward_mode", None),
+        "reward_label": getattr(getattr(env, "reward_profile", None), "label", None)
+        if getattr(env, "reward_profile", None)
+        else None,
+        "reward_description": getattr(getattr(env, "reward_profile", None), "description", None)
+        if getattr(env, "reward_profile", None)
+        else None,
     }
 
 
-def _capture_network_state(env, info: Dict[str, float]) -> Dict[str, Any]:
+def _capture_network_state(env, info: Dict[str, Any]) -> Dict[str, Any]:
     snapshot = {
         "coverage_ratio": float(info.get("coverage_ratio", 0.0)),
         "broadcast_ratio": float(info.get("broadcast_ratio", 0.0)),
         "remaining_budget": float(info.get("remaining_budget", getattr(env, "remaining_budget", 0.0))),
         "total_users": getattr(env, "num_users", None),
+        "avg_user_throughput": float(info.get("avg_user_throughput", 0.0)),
+        "recent_throughput": float(info.get("recent_throughput", 0.0)),
+        "device_cost": float(info.get("device_cost", 0.0)),
+        "bandwidth_cost": float(info.get("bandwidth_cost", 0.0)),
+        "residual_base_stations": info.get("residual_base_stations", []),
     }
 
     user_details = _extract_user_details(env)

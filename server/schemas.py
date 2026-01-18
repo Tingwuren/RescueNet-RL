@@ -12,6 +12,9 @@ class TrainRequest(BaseModel):
     env_type: Literal["baseline", "multimodal"] = Field("multimodal", description="Environment variant to train")
     total_timesteps: Optional[int] = Field(None, ge=1000, description="Override PPO total timesteps")
     stochastic_eval: bool = Field(True, description="Use stochastic actions during eval")
+    reward_mode: Optional[str] = Field(
+        None, description="Reward profile key to override scenario defaults when env-type=multimodal."
+    )
 
 
 class TrainResponse(BaseModel):
@@ -23,6 +26,7 @@ class TrainingStatus(BaseModel):
     status: str
     scenario_name: str
     env_type: str
+    reward_mode: Optional[str] = None
     started_at: float
     updated_at: float
     error: Optional[str] = None
@@ -36,6 +40,15 @@ class CustomDevice(BaseModel):
     broadcast_served: bool = Field(False, description="Initial broadcast coverage flag")
 
 
+class CustomBaseStation(BaseModel):
+    x: int = Field(..., description="Grid X coordinate for the residual base station")
+    y: int = Field(..., description="Grid Y coordinate for the residual base station")
+    base_station: str = Field(..., description="Base-station profile key defined in the scenario dataset.")
+    mode: Optional[str] = Field(
+        None, description="Communication mode to activate; defaults to the first supported mode of the base-station type."
+    )
+
+
 class SimulationRequest(BaseModel):
     scenario_name: str = Field("typhoon_residual", description="Scenario to use as baseline.")
     checkpoint_path: str = Field("artifacts/ppo_policy.pt", description="Policy checkpoint to load.")
@@ -43,6 +56,10 @@ class SimulationRequest(BaseModel):
     episodes: int = Field(1, ge=1, description="Evaluation episodes to run.")
     stochastic_eval: bool = Field(True, description="Sample actions during evaluation.")
     custom_devices: List[CustomDevice] = Field(default_factory=list, description="Custom device definitions.")
+    custom_base_stations: Optional[List[CustomBaseStation]] = Field(
+        default=None,
+        description="Residual base-station deployments; empty list means fully damaged with no residual network.",
+    )
 
 
 class SimulationResponse(BaseModel):

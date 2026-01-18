@@ -2,7 +2,7 @@
   <div class="tester">
     <h2>自定义环境测试</h2>
     <p class="subtitle">
-      输入受灾设备（坐标、带宽需求、初始状态），让训练好的模型输出组网策略，并查看恢复结果。
+      选择残余基站并设置位置，模拟部分基础设施仍然可用的场景；若不添加则表示完全受灾。
     </p>
     <form class="tester__form" @submit.prevent="runSimulation">
       <label>
@@ -15,33 +15,38 @@
       </label>
       <div class="devices">
         <div class="devices__header">
-          <p>设备列表</p>
-          <button type="button" @click="addDevice">添加设备</button>
+          <div>
+            <p>基站列表</p>
+            <small>未添加即表示无残余基站。</small>
+          </div>
+          <button type="button" @click="addBaseStation" :disabled="!baseStationOptions.length">
+            添加基站
+          </button>
         </div>
-        <div class="device-row" v-for="(device, index) in devices" :key="index">
+        <div class="device-row" v-for="(station, index) in baseStations" :key="index">
+          <label>
+            基站类型
+            <select v-model="station.base_station" @change="() => syncStationMode(station)">
+              <option v-for="option in baseStationOptions" :key="option.name" :value="option.name">
+                {{ option.label }}
+              </option>
+            </select>
+          </label>
           <label>
             X
-            <input type="number" min="0" max="20" v-model.number="device.x" />
+            <input type="number" min="0" :max="gridLimit" v-model.number="station.x" />
           </label>
           <label>
             Y
-            <input type="number" min="0" max="20" v-model.number="device.y" />
+            <input type="number" min="0" :max="gridLimit" v-model.number="station.y" />
           </label>
-          <label>
-            需求(Mbps)
-            <input type="number" min="1" max="50" step="1" v-model.number="device.demand" />
-          </label>
-          <label class="checkbox-inline">
-            <input type="checkbox" v-model="device.connected" />
-            已连接
-          </label>
-          <label class="checkbox-inline">
-            <input type="checkbox" v-model="device.broadcast_served" />
-            享受广播
-          </label>
-          <button type="button" class="remove-btn" @click="removeDevice(index)">移除</button>
+          <div class="station-meta">
+            <p>支持模式：{{ formatModes(station.base_station) }}</p>
+            <p>激活模式：{{ station.mode || resolveDefaultMode(station.base_station) || "自动" }}</p>
+          </div>
+          <button type="button" class="remove-btn" @click="removeBaseStation(index)">移除</button>
         </div>
-        <p v-if="!devices.length" class="hint">尚未添加设备。</p>
+        <p v-if="!baseStations.length" class="hint">尚未添加基站，将按完全受灾进行测试。</p>
       </div>
       <button type="submit" class="run-btn" :disabled="isRunning">
         {{ isRunning ? "测试中..." : "开始测试" }}
@@ -91,16 +96,20 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import axios from "axios";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000/api";
 
 const scenarios = ref([]);
 const scenarioName = ref("typhoon_residual");
-const devices = ref([]);
+const baseStations = ref([]);
 const simulationResult = ref(null);
 const isRunning = ref(false);
+
+const currentScenario = computed(() => scenarios.value.find((scenario) => scenario.name === scenarioName.value));
+const baseStationOptions = computed(() => currentScenario.value?.base_stations || []);
+const gridLimit = computed(() => Math.max(0, (currentScenario.value?.grid_size || 10) - 1));
 
 const fetchScenarios = async () => {
   try {
@@ -114,18 +123,43 @@ const fetchScenarios = async () => {
   }
 };
 
-const addDevice = () => {
-  devices.value.push({
+const resolveDefaultMode = (baseKey) => {
+  const option = baseStationOptions.value.find((item) => item.name === baseKey);
+  if (!option) return null;
+  const modes = option.supported_modes || [];
+  return modes.length ? modes[0] : null;
+};
+
+const formatModes = (baseKey) => {
+  const option = baseStationOptions.value.find((item) => item.name === baseKey);
+  if (!option || !option.supported_modes) return "未知";
+  return option.supported_modes.join(" / ");
+};
+
+const syncStationMode = (station) => {
+  const option = baseStationOptions.value.find((item) => item.name === station.base_station);
+  if (!option) {
+    station.mode = null;
+    return;
+  }
+  if (!option.supported_modes?.includes(station.mode)) {
+    station.mode = resolveDefaultMode(station.base_station);
+  }
+};
+
+const addBaseStation = () => {
+  if (!baseStationOptions.value.length) return;
+  const baseKey = baseStationOptions.value[0].name;
+  baseStations.value.push({
+    base_station: baseKey,
+    mode: resolveDefaultMode(baseKey),
     x: 0,
     y: 0,
-    demand: 10,
-    connected: false,
-    broadcast_served: false,
   });
 };
 
-const removeDevice = (index) => {
-  devices.value.splice(index, 1);
+const removeBaseStation = (index) => {
+  baseStations.value.splice(index, 1);
 };
 
 const runSimulation = async () => {
@@ -137,7 +171,8 @@ const runSimulation = async () => {
       env_type: "multimodal",
       stochastic_eval: true,
       episodes: 1,
-      custom_devices: devices.value,
+      custom_devices: [],
+      custom_base_stations: baseStations.value,
     });
     simulationResult.value = data;
   } catch (error) {
@@ -147,9 +182,12 @@ const runSimulation = async () => {
   }
 };
 
+watch(scenarioName, () => {
+  baseStations.value = [];
+});
+
 onMounted(() => {
   fetchScenarios();
-  addDevice();
 });
 </script>
 
@@ -217,16 +255,19 @@ input[type="number"] {
 }
 
 .device-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 8px;
-  padding: 8px;
+  padding: 12px;
+  align-items: end;
 }
 
 .device-row label {
-  flex: 1 1 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .remove-btn {
@@ -235,6 +276,15 @@ input[type="number"] {
   color: #fecaca;
   border-radius: 999px;
   padding: 6px 12px;
+}
+
+.station-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #cbd5f5;
+  padding: 4px 0;
 }
 
 .hint {

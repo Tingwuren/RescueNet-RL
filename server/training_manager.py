@@ -21,6 +21,7 @@ class TrainingRun:
     run_id: str
     scenario_name: str
     env_type: str
+    reward_mode: Optional[str] = None
     status: str = "pending"
     started_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
@@ -44,15 +45,16 @@ class TrainingManager:
         env_type: str,
         total_timesteps: Optional[int],
         stochastic_eval: bool,
+        reward_mode: Optional[str],
     ) -> TrainingRun:
         run_id = uuid.uuid4().hex
-        run = TrainingRun(run_id=run_id, scenario_name=scenario_name, env_type=env_type)
+        run = TrainingRun(run_id=run_id, scenario_name=scenario_name, env_type=env_type, reward_mode=reward_mode)
         with self._lock:
             self._runs[run_id] = run
 
         thread = threading.Thread(
             target=self._execute_training,
-            args=(run, scenario_name, env_type, total_timesteps, stochastic_eval),
+            args=(run, scenario_name, env_type, total_timesteps, stochastic_eval, reward_mode),
             daemon=True,
         )
         run.thread = thread
@@ -79,6 +81,7 @@ class TrainingManager:
         env_type: str,
         total_timesteps: Optional[int],
         stochastic_eval: bool,
+        reward_mode: Optional[str],
     ) -> None:
         run.status = "initializing"
         self._push_event(run, {"type": "status", "payload": {"state": "initializing"}})
@@ -87,6 +90,8 @@ class TrainingManager:
             config["experiment"]["env_type"] = env_type
             if env_type == "multimodal":
                 config["multimodal_env"]["scenario_name"] = scenario_name
+                if reward_mode is not None:
+                    config["multimodal_env"]["reward_mode"] = reward_mode
             if total_timesteps:
                 config["train"]["total_timesteps"] = total_timesteps
             config["train"]["eval_deterministic"] = not stochastic_eval

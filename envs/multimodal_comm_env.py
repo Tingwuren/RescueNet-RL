@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
 from gymnasium.utils import seeding
 
-from data.resource_dataset import ResourceDataset
+from data.resource_dataset import BaseStationProfile, ResourceDataset, RewardProfile
 
 
 class MultiModalCommEnv(gym.Env):
@@ -21,6 +21,7 @@ class MultiModalCommEnv(gym.Env):
         self,
         dataset_path: str = "data/scenarios.json",
         scenario_name: str = "typhoon_residual",
+        reward_mode: Optional[str] = None,
         max_base_stations: int = 10,
         coverage_reward: float = 1.0,
         bandwidth_reward: float = 0.05,
@@ -32,12 +33,20 @@ class MultiModalCommEnv(gym.Env):
         super().__init__()
         self.dataset = ResourceDataset(dataset_path)
         self.scenario = self.dataset.get(scenario_name)
+        self.reward_profile: RewardProfile = self.scenario.get_reward_profile(reward_mode)
         self.max_base_stations = max_base_stations
         self.coverage_reward = coverage_reward
         self.bandwidth_reward = bandwidth_reward
         self.broadcast_reward = broadcast_reward
         self.invalid_action_penalty = invalid_action_penalty
         self.demand_penalty = demand_penalty
+        self.reward_mode = self.reward_profile.key
+        base_profiles = self.scenario.base_station_profiles or {}
+        self.base_station_profiles = base_profiles
+        self.max_base_throughput = max((profile.max_throughput for profile in base_profiles.values()), default=1.0)
+        self.max_total_demand = max(1.0, self.scenario.num_users * 40.0)
+        self.custom_base_station_specs: Optional[List[Dict[str, Any]]] = None
+        self.residual_base_summary: List[Dict[str, Any]] = []
 
         self.np_random, _ = seeding.np_random(seed)
         self.grid_size = self.scenario.grid_size
@@ -60,7 +69,7 @@ class MultiModalCommEnv(gym.Env):
             + self.candidate_sites * self.num_broadcast_modes
             + self.num_comm_modes * 3
             + self.num_broadcast_modes * 3
-            + 4
+            + 6
         )
         self.observation_space = spaces.Box(
             low=0.0,
@@ -85,6 +94,12 @@ class MultiModalCommEnv(gym.Env):
         self.remaining_budget = float(self.max_base_stations)
         self.current_step = 0
         self.current_time_idx = 0
+        self.total_served_throughput = 0.0
+        self.total_served_users = 0
+        self._latest_throughput = 0.0
+        self._latest_device_cost = 0.0
+        self._latest_bandwidth_cost = 0.0
+        self.residual_base_summary = []
 
     def _generate_candidate_locations(self) -> np.ndarray:
         coords: List[Tuple[int, int]] = []
@@ -166,7 +181,10 @@ class MultiModalCommEnv(gym.Env):
             self.np_random, _ = seeding.np_random(seed)
         self._init_state_containers()
         self._sample_users()
-        if self.scenario.has_residual_network:
+        if self.custom_base_station_specs is not None:
+            if self.custom_base_station_specs:
+                self._apply_residual_base_stations(self.custom_base_station_specs)
+        elif self.scenario.has_residual_network:
             residual_fraction = 0.25
             num_residual = int(self.num_users * residual_fraction)
             indices = self.np_random.choice(self.num_users, size=num_residual, replace=False)
@@ -185,6 +203,9 @@ class MultiModalCommEnv(gym.Env):
         info: Dict[str, float] = {}
 
         if self.remaining_budget <= 0:
+            self._latest_throughput = 0.0
+            self._latest_device_cost = 0.0
+            self._latest_bandwidth_cost = 0.0
             reward = -self.invalid_action_penalty
             truncated = True
             info["reason"] = "budget_exhausted"
@@ -196,6 +217,9 @@ class MultiModalCommEnv(gym.Env):
         reward = 0.0
         if self.deployment_mask[site_idx, comm_idx]:
             reward = -self.invalid_action_penalty
+            self._latest_throughput = 0.0
+            self._latest_device_cost = 0.0
+            self._latest_bandwidth_cost = 0.0
         else:
             self.deployment_mask[site_idx, comm_idx] = True
             self.broadcast_mask[site_idx, broadcast_idx] = True
@@ -203,12 +227,7 @@ class MultiModalCommEnv(gym.Env):
             mode_effect = self._deploy_comm(site_idx, comm_idx)
             broadcast_effect = self._activate_broadcast(site_idx, broadcast_idx)
             demand_gap = max(0.0, mode_effect["requested_demand"] - mode_effect["served_demand"])
-            reward = (
-                self.coverage_reward * mode_effect["newly_connected"]
-                + self.bandwidth_reward * mode_effect["served_demand"]
-                + self.broadcast_reward * broadcast_effect
-                - self.demand_penalty * demand_gap
-            )
+            reward = self._compute_reward(mode_effect, broadcast_effect, demand_gap)
 
         self.current_step += 1
         self.current_time_idx += 1
@@ -230,26 +249,78 @@ class MultiModalCommEnv(gym.Env):
         mode_name = self.communication_modes[comm_idx]
         location = self.candidate_locations[site_idx]
         profile = self.scenario.mode_profiles.get(mode_name, {})
+        base_station: Optional[BaseStationProfile] = self.scenario.get_base_station_for_mode(mode_name)
         coverage_radius = float(profile.get("coverage_radius", 3.0))
         mode_snapshot, _ = self._get_time_snapshot()
         available_bw, availability = mode_snapshot[mode_name]
-        capacity = max(0.0, available_bw * availability)
+        dynamic_capacity = max(0.0, available_bw * availability)
+        throughput_cap = base_station.max_throughput if base_station else float(profile.get("max_bandwidth", dynamic_capacity))
+        capacity = min(dynamic_capacity, throughput_cap)
+        max_users = int(base_station.max_users if base_station else profile.get("max_users", self.num_users))
+        if max_users <= 0:
+            max_users = self.num_users
 
         distances = np.linalg.norm(self.user_positions - location, axis=1)
-        coverage_mask = (distances <= coverage_radius) & (~self.user_connected)
-        newly_connected = int(coverage_mask.sum())
-        demanded = float(self.user_demands[coverage_mask].sum()) if newly_connected else 0.0
-        served = min(capacity, demanded)
-        if newly_connected:
-            served_ratio = served / demanded if demanded > 0 else 0.0
-            satisfied_mask = coverage_mask & (self.np_random.random(self.num_users) < served_ratio)
-            self.user_connected[satisfied_mask] = True
-        self.mode_utilization[comm_idx] = min(1.0, self.mode_utilization[comm_idx] + (served / (profile.get("max_bandwidth", capacity) + 1e-6)))
+        candidate_indices = np.where((distances <= coverage_radius) & (~self.user_connected))[0]
+        served_mask = np.zeros(self.num_users, dtype=bool)
+        requested = 0.0
+        served = 0.0
+        avg_throughput = 0.0
+        newly_connected = 0
+
+        if candidate_indices.size:
+            if candidate_indices.size > max_users:
+                selected = self.np_random.choice(candidate_indices, size=max_users, replace=False)
+            else:
+                selected = candidate_indices
+            demands = self.user_demands[selected]
+            requested = float(demands.sum())
+            allocations = np.zeros_like(demands)
+            if requested > 0 and capacity > 0:
+                served = min(capacity, requested)
+                fraction = served / requested if requested > 0 else 0.0
+                allocations = demands * fraction
+                avg_throughput = float(allocations.mean()) if allocations.size else 0.0
+            served_mask[selected] = allocations > 0.0
+            if served_mask.any():
+                prev_connected = self.user_connected.copy()
+                self.user_connected |= served_mask
+                newly_connected = int(np.logical_and(~prev_connected, served_mask).sum())
+
+        per_device_cost = base_station.device_cost if base_station else float(profile.get("device_cost", 0.0))
+        bandwidth_cost = (base_station.bandwidth_cost if base_station else float(profile.get("bandwidth_cost", 0.0))) * served
+        utilization_base = throughput_cap if throughput_cap > 0 else float(profile.get("max_bandwidth", capacity) + 1e-6)
+        self.mode_utilization[comm_idx] = min(1.0, self.mode_utilization[comm_idx] + (served / (utilization_base + 1e-6)))
+        self.total_served_throughput += served
+        self.total_served_users += newly_connected
+        self._latest_throughput = served
+        self._latest_device_cost = per_device_cost
+        self._latest_bandwidth_cost = bandwidth_cost
+
         return {
             "newly_connected": float(newly_connected) / max(1, self.num_users),
-            "requested_demand": demanded,
+            "requested_demand": requested,
             "served_demand": served,
+            "avg_throughput": avg_throughput,
+            "device_cost": per_device_cost,
+            "bandwidth_cost": bandwidth_cost,
         }
+
+    def _compute_reward(self, mode_effect: Dict[str, float], broadcast_effect: float, demand_gap: float) -> float:
+        weights = self.reward_profile
+        coverage_term = self.coverage_reward * weights.coverage_weight * mode_effect.get("newly_connected", 0.0)
+        served_norm = mode_effect.get("served_demand", 0.0) / self.max_total_demand
+        throughput_norm = mode_effect.get("avg_throughput", 0.0) / max(1.0, self.max_base_throughput)
+        broadcast_term = self.broadcast_reward * weights.broadcast_weight * broadcast_effect
+        device_cost_term = weights.device_cost_weight * mode_effect.get("device_cost", 0.0)
+        bw_cost_term = weights.bandwidth_cost_weight * (
+            mode_effect.get("bandwidth_cost", 0.0) / max(1.0, self.max_base_throughput)
+        )
+        demand_penalty = self.demand_penalty * (demand_gap / self.max_total_demand)
+        bandwidth_term = self.bandwidth_reward * weights.bandwidth_weight * served_norm
+        throughput_term = weights.throughput_weight * throughput_norm
+        reward = coverage_term + bandwidth_term + throughput_term + broadcast_term - device_cost_term - bw_cost_term - demand_penalty
+        return reward
 
     def _activate_broadcast(self, site_idx: int, broadcast_idx: int) -> float:
         broadcast_name = self.broadcast_modes[broadcast_idx]
@@ -266,18 +337,95 @@ class MultiModalCommEnv(gym.Env):
         self.broadcast_utilization[broadcast_idx] = max(self.broadcast_utilization[broadcast_idx], utilization)
         return float(new_served) / max(1, self.num_users)
 
+    def _apply_residual_base_stations(self, specs: List[Dict[str, Any]]) -> None:
+        summaries: List[Dict[str, Any]] = []
+        for spec in specs:
+            base_key = spec.get("base_station")
+            mode_name = spec.get("mode")
+            if not base_key or not mode_name:
+                continue
+            base_profile = self.base_station_profiles.get(base_key)
+            if not base_profile:
+                continue
+            mode_profile = self.scenario.mode_profiles.get(mode_name, {})
+            coverage_radius = float(mode_profile.get("coverage_radius", 3.0))
+            location = np.array([spec["x"], spec["y"]], dtype=np.float32)
+            distances = np.linalg.norm(self.user_positions - location, axis=1)
+            coverage_mask = distances <= coverage_radius
+            covered_users = int(np.count_nonzero(coverage_mask))
+            if covered_users > 0:
+                self.user_connected[coverage_mask] = True
+            summaries.append(
+                {
+                    "base_station": base_profile.name,
+                    "label": base_profile.label,
+                    "mode": mode_name,
+                    "x": spec["x"],
+                    "y": spec["y"],
+                    "connected_users": covered_users,
+                    "coverage_radius": coverage_radius,
+                }
+            )
+        self.residual_base_summary = summaries
+
+    def _sanitize_base_station_spec(self, entry: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        if not entry:
+            return None
+        base_key = str(entry.get("base_station", "")).strip()
+        if not base_key or base_key not in self.base_station_profiles:
+            return None
+        profile = self.base_station_profiles[base_key]
+        supported_modes = list(profile.supported_modes)
+        mode_name = entry.get("mode")
+        if mode_name not in supported_modes:
+            mode_name = supported_modes[0] if supported_modes else None
+        if not mode_name:
+            return None
+        x = int(np.clip(entry.get("x", 0), 0, self.grid_size - 1))
+        y = int(np.clip(entry.get("y", 0), 0, self.grid_size - 1))
+        return {
+            "base_station": base_key,
+            "mode": mode_name,
+            "x": x,
+            "y": y,
+        }
+
+    def set_custom_base_stations(self, base_stations: Optional[List[Dict[str, Any]]]) -> None:
+        """Configure custom residual base-station deployments."""
+        if base_stations is None:
+            self.custom_base_station_specs = None
+            return
+        sanitized: List[Dict[str, Any]] = []
+        for entry in base_stations:
+            spec = self._sanitize_base_station_spec(entry)
+            if spec:
+                sanitized.append(spec)
+        self.custom_base_station_specs = sanitized
+
     def _coverage_ratio(self) -> float:
         return float(self.user_connected.mean()) if self.user_connected.size else 0.0
 
     def _broadcast_ratio(self) -> float:
         return float(self.broadcast_served.mean()) if self.broadcast_served.size else 0.0
 
-    def _info_dict(self) -> Dict[str, float]:
+    def _info_dict(self) -> Dict[str, Any]:
         return {
             "coverage_ratio": self._coverage_ratio(),
             "broadcast_ratio": self._broadcast_ratio(),
             "remaining_budget": float(self.remaining_budget),
+            "avg_user_throughput": self._average_user_throughput(),
+            "recent_throughput": float(self._latest_throughput),
+            "reward_mode": self.reward_profile.key,
+            "reward_label": self.reward_profile.label,
+            "device_cost": float(self._latest_device_cost),
+            "bandwidth_cost": float(self._latest_bandwidth_cost),
+            "residual_base_stations": list(self.residual_base_summary),
         }
+
+    def _average_user_throughput(self) -> float:
+        if self.total_served_users <= 0:
+            return 0.0
+        return float(self.total_served_throughput / max(1, self.total_served_users))
 
     def _get_observation(self) -> np.ndarray:
         mode_snapshot, broadcast_snapshot = self._get_time_snapshot()
@@ -317,12 +465,16 @@ class MultiModalCommEnv(gym.Env):
                 ]
             )
 
+        avg_throughput_norm = np.clip(self._average_user_throughput() / max(1.0, self.max_base_throughput), 0.0, 1.0)
+        recent_throughput_norm = np.clip(self._latest_throughput / max(1.0, self.max_base_throughput), 0.0, 1.0)
         scalars = np.array(
             [
                 float(self.scenario.has_residual_network),
                 self.remaining_budget / max(1.0, self.max_base_stations),
                 self.current_step / max(1.0, self.max_steps),
                 self._coverage_ratio(),
+                avg_throughput_norm,
+                recent_throughput_norm,
             ],
             dtype=np.float32,
         )
@@ -347,6 +499,11 @@ class MultiModalCommEnv(gym.Env):
             info = self._info_dict()
             return observation, info
 
+        self.total_served_throughput = 0.0
+        self.total_served_users = 0
+        self._latest_throughput = 0.0
+        self._latest_device_cost = 0.0
+        self._latest_bandwidth_cost = 0.0
         limit = min(len(users), self.num_users)
         self.user_connected[:] = False
         self.broadcast_served[:] = False
@@ -362,6 +519,11 @@ class MultiModalCommEnv(gym.Env):
             self.user_demands[idx] = np.clip(demand, 0.5, 100.0)
             self.user_connected[idx] = connected
             self.broadcast_served[idx] = broadcast
+
+        if self.custom_base_station_specs is not None:
+            self.residual_base_summary = []
+            if self.custom_base_station_specs:
+                self._apply_residual_base_stations(self.custom_base_station_specs)
 
         observation = self._get_observation()
         info = self._info_dict()

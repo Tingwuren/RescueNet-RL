@@ -64,6 +64,12 @@ def parse_args() -> argparse.Namespace:
         help="Choose scenario from the dataset when env-type=multimodal.",
     )
     parser.add_argument(
+        "--reward-mode",
+        type=str,
+        default=None,
+        help="Override scenario-specific reward profile when env-type=multimodal.",
+    )
+    parser.add_argument(
         "--deterministic-eval",
         action="store_true",
         help="Force evaluation rollouts to use greedy actions.",
@@ -95,6 +101,8 @@ def main() -> None:
     env_type = config["experiment"].get("env_type", "baseline")
     if args.scenario_name:
         config["multimodal_env"]["scenario_name"] = args.scenario_name
+    if args.reward_mode:
+        config["multimodal_env"]["reward_mode"] = args.reward_mode
     if args.deterministic_eval:
         config["train"]["eval_deterministic"] = True
     elif args.stochastic_eval:

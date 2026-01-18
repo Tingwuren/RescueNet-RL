@@ -27,6 +27,38 @@
         <p>候选站点：{{ currentScenario.candidate_sites }}</p>
         <p>最大步长：{{ currentScenario.max_steps }}</p>
       </div>
+      <div class="reward-panel" v-if="rewardProfiles.length">
+        <div class="reward-panel__header">
+          <h3>奖励函数配置</h3>
+          <p>
+            当前选择：
+            <strong>{{ activeRewardProfile?.label || "默认" }}</strong>
+            <span v-if="activeRewardProfile?.description">（{{ activeRewardProfile.description }}）</span>
+          </p>
+        </div>
+        <div class="reward-grid">
+          <button
+            v-for="profile in rewardProfiles"
+            :key="profile.key"
+            type="button"
+            class="reward-card"
+            :class="{ 'reward-card--active': profile.key === selectedRewardMode }"
+            @click="() => selectRewardMode(profile.key)"
+          >
+            <div class="reward-card__title">
+              <strong>{{ profile.label }}</strong>
+              <small>{{ profile.description }}</small>
+            </div>
+            <div class="reward-card__weights">
+              <span>覆盖 {{ formatWeight(profile.coverage_weight) }}</span>
+              <span>带宽 {{ formatWeight(profile.bandwidth_weight) }}</span>
+              <span>吞吐 {{ formatWeight(profile.throughput_weight) }}</span>
+              <span>设备成本 {{ formatWeight(profile.device_cost_weight) }}</span>
+              <span>带宽成本 {{ formatWeight(profile.bandwidth_cost_weight) }}</span>
+            </div>
+          </button>
+        </div>
+      </div>
       <form class="training-form" @submit.prevent="startTraining">
         <label>
           总训练步数
@@ -43,7 +75,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, computed } from "vue";
+import { onMounted, ref, computed, watch } from "vue";
 import axios from "axios";
 import TrainingMonitor from "./TrainingMonitor.vue";
 
@@ -51,6 +83,7 @@ const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000/api";
 
 const scenarios = ref([]);
 const selectedScenario = ref(null);
+const selectedRewardMode = ref(null);
 const totalTimesteps = ref(12000);
 const isStarting = ref(false);
 const eventLog = ref([]);
@@ -58,6 +91,10 @@ const runStatus = ref("Idle");
 let eventSource = null;
 
 const currentScenario = computed(() => scenarios.value.find((item) => item.name === selectedScenario.value));
+const rewardProfiles = computed(() => currentScenario.value?.reward_profiles || []);
+const activeRewardProfile = computed(() =>
+  rewardProfiles.value.find((profile) => profile.key === selectedRewardMode.value)
+);
 
 const fetchScenarios = async () => {
   try {
@@ -66,6 +103,7 @@ const fetchScenarios = async () => {
     if (!selectedScenario.value && scenarios.value.length) {
       selectedScenario.value = scenarios.value[0].name;
     }
+    initializeRewardMode(selectedScenario.value);
   } catch (error) {
     console.error("Failed to load scenarios", error);
   }
@@ -73,7 +111,26 @@ const fetchScenarios = async () => {
 
 const selectScenario = (scenarioName) => {
   selectedScenario.value = scenarioName;
+  initializeRewardMode(scenarioName);
 };
+
+const initializeRewardMode = (scenarioName) => {
+  if (!scenarioName) return;
+  const scenario = scenarios.value.find((item) => item.name === scenarioName);
+  if (!scenario) return;
+  const defaultKey =
+    scenario.default_reward_profile ||
+    (Array.isArray(scenario.reward_profiles) && scenario.reward_profiles.length
+      ? scenario.reward_profiles[0].key
+      : null);
+  selectedRewardMode.value = defaultKey;
+};
+
+const selectRewardMode = (modeKey) => {
+  selectedRewardMode.value = modeKey;
+};
+
+const formatWeight = (value) => Number(value ?? 0).toFixed(2);
 
 const startTraining = async () => {
   if (!selectedScenario.value) return;
@@ -87,6 +144,7 @@ const startTraining = async () => {
       env_type: "multimodal",
       total_timesteps: totalTimesteps.value,
       stochastic_eval: true,
+      reward_mode: selectedRewardMode.value,
     });
     subscribeToEvents(data.run_id);
   } catch (error) {
@@ -130,6 +188,22 @@ const closeEventSource = () => {
     eventSource = null;
   }
 };
+
+watch(currentScenario, (scenario) => {
+  if (!scenario) {
+    selectedRewardMode.value = null;
+    return;
+  }
+  const availableKeys = (scenario.reward_profiles || []).map((profile) => profile.key);
+  if (availableKeys.length === 0) {
+    selectedRewardMode.value = null;
+    return;
+  }
+  if (!availableKeys.includes(selectedRewardMode.value)) {
+    const fallback = scenario.default_reward_profile || availableKeys[0];
+    selectedRewardMode.value = fallback;
+  }
+});
 
 onMounted(fetchScenarios);
 </script>
@@ -186,6 +260,75 @@ onMounted(fetchScenarios);
   border-radius: 12px;
   padding: 16px;
   background: rgba(15, 23, 42, 0.4);
+}
+
+.reward-panel {
+  flex: 1 1 360px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 12px;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.reward-panel__header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.reward-panel__header p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #cbd5f5;
+}
+
+.reward-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.reward-card {
+  flex: 1 1 160px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  padding: 10px 12px;
+  text-align: left;
+  background: rgba(15, 23, 42, 0.6);
+  color: inherit;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  cursor: pointer;
+}
+
+.reward-card--active {
+  border-color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+}
+
+.reward-card__title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.reward-card__title strong {
+  font-size: 14px;
+}
+
+.reward-card__title small {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.reward-card__weights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 4px;
+  font-size: 11px;
+  color: #cbd5f5;
 }
 
 .training-form {

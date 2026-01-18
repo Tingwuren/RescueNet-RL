@@ -49,14 +49,44 @@ def list_scenarios() -> Dict[str, List[Dict[str, object]]]:
     scenarios = []
     for name in dataset.list_scenarios():
         record = dataset.get(name)
+        reward_profiles = [
+            {
+                "key": key,
+                "label": profile.label,
+                "description": profile.description,
+                "coverage_weight": profile.coverage_weight,
+                "bandwidth_weight": profile.bandwidth_weight,
+                "throughput_weight": profile.throughput_weight,
+                "broadcast_weight": profile.broadcast_weight,
+                "device_cost_weight": profile.device_cost_weight,
+                "bandwidth_cost_weight": profile.bandwidth_cost_weight,
+            }
+            for key, profile in sorted(record.reward_profiles.items())
+        ]
+        base_stations = [
+            {
+                "name": profile.name,
+                "label": profile.label,
+                "max_throughput": profile.max_throughput,
+                "max_users": profile.max_users,
+                "device_cost": profile.device_cost,
+                "bandwidth_cost": profile.bandwidth_cost,
+                "supported_modes": profile.supported_modes,
+            }
+            for profile in record.base_station_profiles.values()
+        ]
         scenarios.append(
             {
                 "name": record.name,
                 "disaster_type": record.disaster_type,
+                "grid_size": record.grid_size,
                 "num_users": record.num_users,
                 "candidate_sites": record.candidate_sites,
                 "max_steps": record.max_steps,
                 "has_residual_network": record.has_residual_network,
+                "reward_profiles": reward_profiles,
+                "default_reward_profile": record.default_reward_profile,
+                "base_stations": base_stations,
             }
         )
     return {"scenarios": scenarios}
@@ -69,6 +99,7 @@ def start_training(request: TrainRequest) -> TrainResponse:
         env_type=request.env_type,
         total_timesteps=request.total_timesteps,
         stochastic_eval=request.stochastic_eval,
+        reward_mode=request.reward_mode,
     )
     return TrainResponse(run_id=run.run_id)
 
@@ -83,6 +114,7 @@ def get_training_status(run_id: str) -> TrainingStatus:
         status=run.status,
         scenario_name=run.scenario_name,
         env_type=run.env_type,
+        reward_mode=run.reward_mode,
         started_at=run.started_at,
         updated_at=run.updated_at,
         error=run.error,
@@ -122,6 +154,11 @@ def simulate_strategy(request: SimulationRequest) -> SimulationResponse:
     policy = load_policy(checkpoint_path, env, config, request.env_type)
 
     custom_state = [device.dict() for device in request.custom_devices]
+    custom_base_stations = (
+        [station.dict() for station in request.custom_base_stations]
+        if request.custom_base_stations is not None
+        else None
+    )
     rewards, coverages, reports = evaluate_policy(
         env=env,
         policy=policy,
@@ -129,6 +166,7 @@ def simulate_strategy(request: SimulationRequest) -> SimulationResponse:
         deterministic=not request.stochastic_eval,
         render=False,
         custom_user_state=custom_state or None,
+        custom_base_stations=custom_base_stations,
     )
 
     return SimulationResponse(

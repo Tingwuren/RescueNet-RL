@@ -26,6 +26,7 @@ DEFAULT_CONFIG: Dict[str, Dict[str, Any]] = {
     "multimodal_env": {
         "dataset_path": "data/scenarios.json",
         "scenario_name": "typhoon_residual",
+        "reward_mode": None,
         "max_base_stations": 10,
         "coverage_reward": 1.0,
         "bandwidth_reward": 0.05,
