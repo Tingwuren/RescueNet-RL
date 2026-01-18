@@ -35,16 +35,16 @@ class TrainingStatus(BaseModel):
 
 
 class CustomDevice(BaseModel):
-    x: int = Field(..., description="Grid X coordinate")
-    y: int = Field(..., description="Grid Y coordinate")
+    x: int = Field(..., description="Region grid row index (formerly X)")
+    y: int = Field(..., description="Region grid column index (formerly Y)")
     demand: float = Field(10.0, description="Demand in Mbps")
     connected: bool = Field(False, description="Initial connectivity flag")
     broadcast_served: bool = Field(False, description="Initial broadcast coverage flag")
 
 
 class CustomBaseStation(BaseModel):
-    x: int = Field(..., description="Grid X coordinate for the residual base station")
-    y: int = Field(..., description="Grid Y coordinate for the residual base station")
+    x: int = Field(..., description="Region grid row index for the residual base station")
+    y: int = Field(..., description="Region grid column index for the residual base station")
     base_station: str = Field(..., description="Base-station profile key defined in the scenario dataset.")
     mode: Optional[str] = Field(
         None, description="Communication mode to activate; defaults to the first supported mode of the base-station type."

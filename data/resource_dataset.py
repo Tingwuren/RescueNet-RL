@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 
 @dataclass
@@ -40,6 +40,7 @@ class DisasterScenario:
     name: str
     disaster_type: str
     grid_size: int
+    region_grid: "RegionGrid"
     num_users: int
     candidate_sites: int
     max_steps: int
@@ -146,10 +147,12 @@ class ResourceDataset:
         default_reward = data.get("default_reward_profile")
         if not default_reward or default_reward not in reward_profiles:
             default_reward = next(iter(reward_profiles.keys()))
+        region_grid = self._parse_region_grid(data.get("region_grid"), int(data["grid_size"]), data.get("name"))
         return DisasterScenario(
             name=data["name"],
             disaster_type=data["disaster_type"],
             grid_size=int(data["grid_size"]),
+            region_grid=region_grid,
             num_users=int(data["num_users"]),
             candidate_sites=int(data["candidate_sites"]),
             max_steps=int(data["max_steps"]),
@@ -224,7 +227,85 @@ class ResourceDataset:
             )
         return profiles
 
+    def _parse_region_grid(self, raw: Optional[Dict[str, Any]], grid_size: int, scenario_name: Optional[str]) -> "RegionGrid":
+        """Map grid cells to real-world latitude/longitude bounds and human labels."""
+        rows = int(raw.get("rows", grid_size)) if raw else grid_size
+        cols = int(raw.get("cols", grid_size)) if raw else grid_size
+        bounds = raw.get("geo_bounds", {}) if raw else {}
+        lat_min = float(bounds.get("lat_min", 0.0))
+        lat_max = float(bounds.get("lat_max", float(rows)))
+        lon_min = float(bounds.get("lon_min", 0.0))
+        lon_max = float(bounds.get("lon_max", float(cols)))
+        labels = {str(key): str(value) for key, value in (raw.get("cell_labels", {}) if raw else {}).items()}
+        name = str(raw.get("name", f"{scenario_name}_grid")) if raw else f"{scenario_name}_grid"
+        return RegionGrid(
+            name=name,
+            rows=rows,
+            cols=cols,
+            lat_min=lat_min,
+            lat_max=lat_max,
+            lon_min=lon_min,
+            lon_max=lon_max,
+            cell_labels=labels,
+        )
+
 
 def load_dataset(dataset_path: Union[str, Path]) -> ResourceDataset:
     """Helper to load the dataset from disk."""
     return ResourceDataset(dataset_path)
+
+
+@dataclass
+class RegionGrid:
+    """Semantic mapping from grid cells to geo bounds and labels."""
+
+    name: str
+    rows: int
+    cols: int
+    lat_min: float
+    lat_max: float
+    lon_min: float
+    lon_max: float
+    cell_labels: Dict[str, str]
+
+    @property
+    def cell_count(self) -> int:
+        return self.rows * self.cols
+
+    def cell_index(self, row: int, col: int) -> int:
+        return row * self.cols + col
+
+    def normalize_cell_index(self, row: int, col: int) -> float:
+        return self.cell_index(row, col) / max(1, self.cell_count - 1)
+
+    def normalize_row(self, row: int) -> float:
+        return row / max(1, self.rows - 1)
+
+    def normalize_col(self, col: int) -> float:
+        return col / max(1, self.cols - 1)
+
+    def cell_bounds(self, row: int, col: int) -> Tuple[float, float, float, float]:
+        lat_step = (self.lat_max - self.lat_min) / max(1, self.rows)
+        lon_step = (self.lon_max - self.lon_min) / max(1, self.cols)
+        lat0 = self.lat_min + row * lat_step
+        lat1 = lat0 + lat_step
+        lon0 = self.lon_min + col * lon_step
+        lon1 = lon0 + lon_step
+        return lat0, lat1, lon0, lon1
+
+    def cell_label(self, row: int, col: int) -> str:
+        return self.cell_labels.get(f"{row},{col}", f"cell-{row}-{col}")
+
+    def to_public_dict(self) -> Dict[str, Any]:
+        return {
+            "name": self.name,
+            "rows": self.rows,
+            "cols": self.cols,
+            "geo_bounds": {
+                "lat_min": self.lat_min,
+                "lat_max": self.lat_max,
+                "lon_min": self.lon_min,
+                "lon_max": self.lon_max,
+            },
+            "cell_labels": dict(self.cell_labels),
+        }

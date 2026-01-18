@@ -19,7 +19,7 @@ RescueNet-RL/
 
 ## 环境设定概述
 
-- **空间建模**：10×10 网格表示灾区，候选部署点随机挑选 `candidate_sites` 个格点。
+- **空间建模**：`region_grid` 描述真实区域的纬度/经度范围并离散为 10×10（或场景自定义）网格；候选部署点随机挑选 `candidate_sites` 个网格单元，坐标含义为“行/列”而非绝对米制。
 - **用户建模**：每次 reset 随机生成 `num_users` 个坐标，并按 `initial_outage_fraction` 标记断网状态。
 - **动作空间**：离散动作索引到候选点列表；若重复部署或预算耗尽，给予 `invalid_action_penalty`。
 - **奖励**：`reward = coverage_reward * newly_covered - deployment_cost`，按新增覆盖用户数加分，同时支付部署成本。
@@ -32,6 +32,12 @@ RescueNet-RL/
 - `data/scenarios.json`：覆盖台风、洪水、地震等场景，每个场景包含通信制式 ≥4、广播方式 ≥2 的时间序列资源变化数据（可扩展）。
 - `data/resource_dataset.py`：数据访问与校验工具，保障多制式指标满足 ≥4 的硬约束。
 - `planning/broadcast_architecture.py`：基于场景数据自动生成“残余网络/无残余网络”双方案的智能广播与通信组网架构（含单用户理论带宽、资源利用率等指标），训练完成后会将方案导出至 `artifacts/broadcast_architecture_<scenario>.json`。
+
+## 区域网格与观测字段
+
+- `data/scenarios.json` 的每个场景新增 `region_grid`，用于把网格单元映射到真实区域范围：`name`、`rows/cols`、`geo_bounds(lat_min/lat_max/lon_min/lon_max)` 以及可选 `cell_labels`（标注特定行列对应的街区/乡镇语义）。`user_clusters.center`、自定义设备/残余基站的 x/y 坐标都代表该网格的行列索引。
+- 多制式环境的单用户观测字段由 5 维变为 6 维：`[row_norm, col_norm, region_id_norm, demand_norm, connected, broadcast_served]`。前三项采用“真实区域网格单元”的语义，策略网络会根据新的 `observation_space` 维度自动构建。
+- 评估与可视化通过 `services/evaluation` 回传 `region_label` 与 `lat_lon_bounds`，API/前端可直接呈现用户或基站所在的真实区域分区，避免纯数字坐标。
 
 ## 配置说明
 

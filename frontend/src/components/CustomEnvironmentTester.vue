@@ -16,6 +16,16 @@
           </option>
         </select>
       </label>
+      <div v-if="regionGrid" class="region-hint">
+        <p>
+          区域：{{ regionGrid.name }}
+          <small>网格 {{ regionGrid.rows }} × {{ regionGrid.cols }}</small>
+        </p>
+        <p class="bounds">
+          近似范围：纬度 {{ regionGrid.geo_bounds?.lat_min }}–{{ regionGrid.geo_bounds?.lat_max }}，
+          经度 {{ regionGrid.geo_bounds?.lon_min }}–{{ regionGrid.geo_bounds?.lon_max }}
+        </p>
+      </div>
       <label>
         算法选择
         <div class="algo-options">
@@ -55,12 +65,12 @@
             </select>
           </label>
           <label>
-            X
-            <input type="number" min="0" :max="gridLimit" v-model.number="station.x" />
+            网格行
+            <input type="number" min="0" :max="gridRowLimit" v-model.number="station.x" />
           </label>
           <label>
-            Y
-            <input type="number" min="0" :max="gridLimit" v-model.number="station.y" />
+            网格列
+            <input type="number" min="0" :max="gridColLimit" v-model.number="station.y" />
           </label>
           <div class="station-meta">
             <p>支持模式：{{ formatModes(station.base_station) }}</p>
@@ -95,7 +105,7 @@
             <thead>
               <tr>
                 <th>ID</th>
-                <th>位置</th>
+                <th>位置 / 区域</th>
                 <th>需求</th>
                 <th>连接状态</th>
                 <th>广播</th>
@@ -104,7 +114,15 @@
             <tbody>
               <tr v-for="device in report.final_state.user_details" :key="device.id">
                 <td>{{ device.id }}</td>
-                <td>{{ device.position?.[0] }}, {{ device.position?.[1] }}</td>
+                <td>
+                  <div>{{ device.position?.[0] }}, {{ device.position?.[1] }}</div>
+                  <small v-if="device.region_label">{{ device.region_label }}</small>
+                  <small v-else class="muted">网格单元</small>
+                  <small v-if="device.lat_lon_bounds">
+                    (Lat {{ device.lat_lon_bounds.lat_min.toFixed(3) }}~{{ device.lat_lon_bounds.lat_max.toFixed(3) }},
+                    Lon {{ device.lat_lon_bounds.lon_min.toFixed(3) }}~{{ device.lat_lon_bounds.lon_max.toFixed(3) }})
+                  </small>
+                </td>
                 <td>{{ device.demand?.toFixed(1) }} Mbps</td>
                 <td>{{ device.connected ? "在线" : "离线" }}</td>
                 <td>{{ device.broadcast_served ? "已覆盖" : "未覆盖" }}</td>
@@ -140,7 +158,11 @@ const errorMessage = ref("");
 
 const currentScenario = computed(() => scenarios.value.find((scenario) => scenario.name === scenarioName.value));
 const baseStationOptions = computed(() => currentScenario.value?.base_stations || []);
-const gridLimit = computed(() => Math.max(0, (currentScenario.value?.grid_size || 10) - 1));
+const regionGrid = computed(() => currentScenario.value?.region_grid || null);
+const gridRows = computed(() => regionGrid.value?.rows || currentScenario.value?.grid_size || 10);
+const gridCols = computed(() => regionGrid.value?.cols || currentScenario.value?.grid_size || 10);
+const gridRowLimit = computed(() => Math.max(0, gridRows.value - 1));
+const gridColLimit = computed(() => Math.max(0, gridCols.value - 1));
 
 const fetchScenarios = async () => {
   try {
@@ -245,6 +267,24 @@ onMounted(() => {
 
 .subtitle {
   margin: 0;
+  color: #94a3b8;
+}
+
+.region-hint {
+  border-left: 4px solid #0ea5e9;
+  background: rgba(14, 165, 233, 0.08);
+  padding: 8px 12px;
+  border-radius: 10px;
+  color: #e2e8f0;
+}
+
+.region-hint .bounds {
+  margin: 4px 0 0;
+  color: #cbd5f5;
+  font-size: 13px;
+}
+
+.muted {
   color: #94a3b8;
 }
 

@@ -49,6 +49,7 @@ def list_scenarios() -> Dict[str, List[Dict[str, object]]]:
     scenarios = []
     for name in dataset.list_scenarios():
         record = dataset.get(name)
+        region_grid = record.region_grid.to_public_dict() if getattr(record, "region_grid", None) else None
         reward_profiles = [
             {
                 "key": key,
@@ -80,6 +81,7 @@ def list_scenarios() -> Dict[str, List[Dict[str, object]]]:
                 "name": record.name,
                 "disaster_type": record.disaster_type,
                 "grid_size": record.grid_size,
+                "region_grid": region_grid,
                 "num_users": record.num_users,
                 "candidate_sites": record.candidate_sites,
                 "max_steps": record.max_steps,

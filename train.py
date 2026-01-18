@@ -6,6 +6,7 @@ import argparse
 from pathlib import Path
 from typing import Dict
 
+import matplotlib
 import torch
 
 from algos.ppo import PPOTrainer
@@ -198,6 +199,7 @@ def main() -> None:
 
 def plot_training_metrics(metrics: Dict, output_path: Path, skip: int = 1) -> None:
     """Plot coverage improvements across training episodes."""
+    matplotlib.use("Agg")  # use headless backend to avoid Tk in worker threads
     eval_history = metrics.get("eval_history", [])
     if eval_history:
         timesteps = [entry["step"] for entry in eval_history]

@@ -329,6 +329,7 @@ def _extract_user_details(env) -> List[Dict[str, Any]]:
         return []
 
     positions = getattr(env, "user_positions", None)
+    region_grid = getattr(env, "region_grid", None)
     demands = getattr(env, "user_demands", None)
     connected = getattr(env, "user_connected", None)
     broadcast_served = getattr(env, "broadcast_served", None)
@@ -338,7 +339,19 @@ def _extract_user_details(env) -> List[Dict[str, Any]]:
         entry: Dict[str, Any] = {"id": idx}
         if positions is not None and len(positions) > idx:
             coords = positions[idx]
-            entry["position"] = (int(coords[0]), int(coords[1]))
+            row = int(coords[0])
+            col = int(coords[1])
+            entry["position"] = (row, col)
+            if region_grid:
+                entry["region_id"] = region_grid.cell_index(row, col)
+                entry["region_label"] = region_grid.cell_label(row, col)
+                lat_min, lat_max, lon_min, lon_max = region_grid.cell_bounds(row, col)
+                entry["lat_lon_bounds"] = {
+                    "lat_min": lat_min,
+                    "lat_max": lat_max,
+                    "lon_min": lon_min,
+                    "lon_max": lon_max,
+                }
         if demands is not None and len(demands) > idx:
             entry["demand"] = float(demands[idx])
         if connected is not None and len(connected) > idx:
@@ -373,6 +386,10 @@ def _decode_multimodal_action(env, action: int) -> Optional[Dict[str, Any]]:
     if hasattr(env, "candidate_locations") and len(env.candidate_locations) > site_idx:
         coords = env.candidate_locations[site_idx]
         location = (int(coords[0]), int(coords[1]))
+    region_label = None
+    if location and hasattr(env, "region_grid"):
+        row, col = location
+        region_label = env.region_grid.cell_label(row, col)
 
     comm_name = None
     if hasattr(env, "communication_modes") and len(env.communication_modes) > comm_idx:
@@ -387,6 +404,7 @@ def _decode_multimodal_action(env, action: int) -> Optional[Dict[str, Any]]:
         "comm_index": comm_idx,
         "broadcast_index": broadcast_idx,
         "location": location,
+        "region_label": region_label,
         "comm_mode": comm_name,
         "broadcast_mode": broadcast_name,
     }
@@ -451,12 +469,15 @@ def _format_device_detail(detail: Dict[str, Any]) -> str:
     demand = detail.get("demand")
     connected = detail.get("connected")
     broadcast_served = detail.get("broadcast_served")
+    region_label = detail.get("region_label")
 
     if isinstance(idx, (int, np.integer)):
         id_text = f"{int(idx):02d}"
     else:
         id_text = str(idx) if idx is not None else "??"
     pos_text = f"({pos[0]}, {pos[1]})" if isinstance(pos, tuple) else str(pos) if pos is not None else "n/a"
+    if region_label:
+        pos_text = f"{pos_text} [{region_label}]"
     if isinstance(demand, (int, float, np.floating)):
         demand_text = f"{float(demand):.1f} Mbps"
     else:

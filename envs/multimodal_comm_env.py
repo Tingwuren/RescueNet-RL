@@ -1,4 +1,7 @@
-"""Environment that couples multi-modal communication and broadcast resources."""
+"""Environment that couples multi-modal communication and broadcast resources.
+
+Grid positions represent region-grid cells mapped to real-world bounds, and per-user observations
+encode normalized row/column plus region-id semantics instead of free-form coordinates."""
 
 from __future__ import annotations
 
@@ -9,7 +12,7 @@ import gymnasium as gym
 from gymnasium import spaces
 from gymnasium.utils import seeding
 
-from data.resource_dataset import BaseStationProfile, ResourceDataset, RewardProfile
+from data.resource_dataset import BaseStationProfile, RegionGrid, ResourceDataset, RewardProfile
 
 
 class MultiModalCommEnv(gym.Env):
@@ -49,7 +52,10 @@ class MultiModalCommEnv(gym.Env):
         self.residual_base_summary: List[Dict[str, Any]] = []
 
         self.np_random, _ = seeding.np_random(seed)
-        self.grid_size = self.scenario.grid_size
+        self.region_grid: RegionGrid = self.scenario.region_grid
+        self.grid_rows = self.region_grid.rows
+        self.grid_cols = self.region_grid.cols
+        self.grid_size = max(self.grid_rows, self.grid_cols, self.scenario.grid_size)
         self.num_users = self.scenario.num_users
         self.candidate_sites = self.scenario.candidate_sites
         self.max_steps = self.scenario.max_steps
@@ -57,6 +63,7 @@ class MultiModalCommEnv(gym.Env):
         self.broadcast_modes = list(self.scenario.broadcast_modes)
         self.num_comm_modes = len(self.communication_modes)
         self.num_broadcast_modes = len(self.broadcast_modes)
+        self.user_feature_dim = 6
 
         self.action_space = spaces.Discrete(
             self.candidate_sites * self.num_comm_modes * self.num_broadcast_modes
@@ -64,7 +71,7 @@ class MultiModalCommEnv(gym.Env):
 
         # Observation packs user state, deployment masks, mode/broadcast metrics and scalar context.
         obs_len = (
-            self.num_users * 5
+            self.num_users * self.user_feature_dim
             + self.candidate_sites * self.num_comm_modes
             + self.candidate_sites * self.num_broadcast_modes
             + self.num_comm_modes * 3
@@ -85,6 +92,7 @@ class MultiModalCommEnv(gym.Env):
     def _init_state_containers(self) -> None:
         self.user_positions = np.zeros((self.num_users, 2), dtype=np.int32)
         self.user_demands = np.zeros(self.num_users, dtype=np.float32)
+        self.user_region_ids = np.zeros(self.num_users, dtype=np.int32)
         self.user_connected = np.zeros(self.num_users, dtype=bool)
         self.broadcast_served = np.zeros(self.num_users, dtype=bool)
         self.deployment_mask = np.zeros((self.candidate_sites, self.num_comm_modes), dtype=bool)
@@ -106,8 +114,8 @@ class MultiModalCommEnv(gym.Env):
         seen = set()
         while len(coords) < self.candidate_sites:
             candidate = (
-                int(self.np_random.integers(0, self.grid_size)),
-                int(self.np_random.integers(0, self.grid_size)),
+                int(self.np_random.integers(0, self.grid_rows)),
+                int(self.np_random.integers(0, self.grid_cols)),
             )
             if candidate in seen:
                 continue
@@ -119,8 +127,11 @@ class MultiModalCommEnv(gym.Env):
         clusters = self.scenario.user_clusters
         if not clusters:
             # Uniform fallback.
-            self.user_positions = self.np_random.integers(
-                0, self.grid_size, size=(self.num_users, 2), dtype=np.int32
+            rows = self.np_random.integers(0, self.grid_rows, size=(self.num_users,), dtype=np.int32)
+            cols = self.np_random.integers(0, self.grid_cols, size=(self.num_users,), dtype=np.int32)
+            self.user_positions = np.stack([rows, cols], axis=1)
+            self.user_region_ids = np.array(
+                [self.region_grid.cell_index(int(r), int(c)) for r, c in self.user_positions], dtype=np.int32
             )
             base_demand = 10.0
             self.user_demands = base_demand + self.np_random.normal(0, 2.0, size=self.num_users)
@@ -135,8 +146,10 @@ class MultiModalCommEnv(gym.Env):
             radius = float(clusters[choice].get("radius", 2.0))
             jitter = self.np_random.normal(0.0, radius * 0.4, size=2)
             point = center + jitter
-            point = np.clip(point, [0.0, 0.0], [self.grid_size - 1, self.grid_size - 1])
-            self.user_positions[idx] = point.astype(np.int32)
+            point = np.clip(point, [0.0, 0.0], [self.grid_rows - 1, self.grid_cols - 1])
+            row, col = point.astype(np.int32)
+            self.user_positions[idx] = (row, col)
+            self.user_region_ids[idx] = self.region_grid.cell_index(int(row), int(col))
             demand = float(clusters[choice].get("demand_mbps", 10.0))
             demand += float(self.np_random.normal(0.0, demand * 0.15))
             self.user_demands[idx] = np.clip(demand, 2.0, 40.0)
@@ -327,7 +340,8 @@ class MultiModalCommEnv(gym.Env):
         _, broadcast_snapshot = self._get_time_snapshot()
         available_bw, coverage_ratio = broadcast_snapshot[broadcast_name]
         location = self.candidate_locations[site_idx]
-        reach = coverage_ratio * (self.grid_size / 2.0)
+        grid_span = max(self.grid_rows, self.grid_cols)
+        reach = coverage_ratio * (grid_span / 2.0)
         distances = np.linalg.norm(self.user_positions - location, axis=1)
         coverage_mask = (distances <= reach) & (~self.broadcast_served)
         new_served = int(coverage_mask.sum())
@@ -381,8 +395,8 @@ class MultiModalCommEnv(gym.Env):
             mode_name = supported_modes[0] if supported_modes else None
         if not mode_name:
             return None
-        x = int(np.clip(entry.get("x", 0), 0, self.grid_size - 1))
-        y = int(np.clip(entry.get("y", 0), 0, self.grid_size - 1))
+        x = int(np.clip(entry.get("x", 0), 0, self.grid_rows - 1))
+        y = int(np.clip(entry.get("y", 0), 0, self.grid_cols - 1))
         return {
             "base_station": base_key,
             "mode": mode_name,
@@ -429,12 +443,16 @@ class MultiModalCommEnv(gym.Env):
 
     def _get_observation(self) -> np.ndarray:
         mode_snapshot, broadcast_snapshot = self._get_time_snapshot()
-        grid_max = max(1, self.grid_size - 1)
-        user_features = np.zeros((self.num_users, 5), dtype=np.float32)
-        user_features[:, 0:2] = self.user_positions / grid_max
-        user_features[:, 2] = np.clip(self.user_demands / 40.0, 0.0, 1.0)
-        user_features[:, 3] = self.user_connected.astype(np.float32)
-        user_features[:, 4] = self.broadcast_served.astype(np.float32)
+        row_max = max(1, self.grid_rows - 1)
+        col_max = max(1, self.grid_cols - 1)
+        region_max = max(1, self.region_grid.cell_count - 1)
+        user_features = np.zeros((self.num_users, self.user_feature_dim), dtype=np.float32)
+        user_features[:, 0] = np.clip(self.user_positions[:, 0] / row_max, 0.0, 1.0)
+        user_features[:, 1] = np.clip(self.user_positions[:, 1] / col_max, 0.0, 1.0)
+        user_features[:, 2] = np.clip(self.user_region_ids / region_max, 0.0, 1.0)
+        user_features[:, 3] = np.clip(self.user_demands / 40.0, 0.0, 1.0)
+        user_features[:, 4] = self.user_connected.astype(np.float32)
+        user_features[:, 5] = self.broadcast_served.astype(np.float32)
 
         deploy_state = self.deployment_mask.astype(np.float32).flatten()
         broadcast_state = self.broadcast_mask.astype(np.float32).flatten()
@@ -510,12 +528,13 @@ class MultiModalCommEnv(gym.Env):
 
         for idx in range(limit):
             entry = users[idx]
-            x = int(np.clip(entry.get("x", self.user_positions[idx, 0]), 0, self.grid_size - 1))
-            y = int(np.clip(entry.get("y", self.user_positions[idx, 1]), 0, self.grid_size - 1))
+            x = int(np.clip(entry.get("x", self.user_positions[idx, 0]), 0, self.grid_rows - 1))
+            y = int(np.clip(entry.get("y", self.user_positions[idx, 1]), 0, self.grid_cols - 1))
             demand = float(entry.get("demand", self.user_demands[idx]))
             connected = bool(entry.get("connected", False))
             broadcast = bool(entry.get("broadcast_served", False))
             self.user_positions[idx] = (x, y)
+            self.user_region_ids[idx] = self.region_grid.cell_index(int(x), int(y))
             self.user_demands[idx] = np.clip(demand, 0.5, 100.0)
             self.user_connected[idx] = connected
             self.broadcast_served[idx] = broadcast

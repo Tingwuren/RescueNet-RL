@@ -4,6 +4,22 @@
       "name": "typhoon_residual",
       "disaster_type": "typhoon",
       "grid_size": 12,
+      "region_grid": {
+        "name": "珠海-沿海台风救灾区块",
+        "rows": 12,
+        "cols": 12,
+        "geo_bounds": {
+          "lat_min": 21.8,
+          "lat_max": 22.4,
+          "lon_min": 113.3,
+          "lon_max": 114.1
+        },
+        "cell_labels": {
+          "3,4": "沿海居民聚集带",
+          "8,9": "港口作业区",
+          "6,2": "山地安置点"
+        }
+      },
       "num_users": 60,
       "candidate_sites": 30,
       "max_steps": 30,
@@ -305,6 +321,22 @@
       "name": "flood_no_residual",
       "disaster_type": "flood",
       "grid_size": 10,
+      "region_grid": {
+        "name": "洞庭湖-城郊易涝区块",
+        "rows": 10,
+        "cols": 10,
+        "geo_bounds": {
+          "lat_min": 29.0,
+          "lat_max": 29.6,
+          "lon_min": 112.9,
+          "lon_max": 113.6
+        },
+        "cell_labels": {
+          "2,2": "江滩村落",
+          "7,8": "湖滨新城",
+          "5,4": "防洪堤后居民区"
+        }
+      },
       "num_users": 55,
       "candidate_sites": 28,
       "max_steps": 28,
@@ -598,6 +630,22 @@
       "name": "earthquake_residual",
       "disaster_type": "earthquake",
       "grid_size": 11,
+      "region_grid": {
+        "name": "川西震后山区网格",
+        "rows": 11,
+        "cols": 11,
+        "geo_bounds": {
+          "lat_min": 30.2,
+          "lat_max": 30.8,
+          "lon_min": 102.8,
+          "lon_max": 103.5
+        },
+        "cell_labels": {
+          "4,5": "县城核心区",
+          "9,8": "山脊村落",
+          "5,2": "河谷安置点"
+        }
+      },
       "num_users": 65,
       "candidate_sites": 32,
       "max_steps": 32,
