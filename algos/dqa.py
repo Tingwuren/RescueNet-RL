@@ -95,6 +95,7 @@ class DQATrainer:
         self.completed_episodes = 0
         self.episode_rewards: list[float] = []
         self.episode_coverages: list[float] = []
+        self.episode_broadcasts: list[float] = []
         self.episode_timesteps: list[int] = []
         self.eval_history: list[Dict[str, float]] = []
         self.current_episode_return = 0.0
@@ -203,15 +204,18 @@ class DQATrainer:
 
     def _log_episode(self, info: Dict[str, Any]) -> None:
         coverage = float(info.get("coverage_ratio", 0.0))
+        broadcast = float(info.get("broadcast_ratio", 0.0))
         self.episode_rewards.append(self.current_episode_return)
         self.episode_coverages.append(coverage)
+        self.episode_broadcasts.append(broadcast)
         self.episode_timesteps.append(self.global_step)
         self.completed_episodes += 1
         if self.log_episodes:
             reason = info.get("reason", "episode_end")
             print(
                 f"[Episode {self.completed_episodes}] steps={self.current_episode_length} | "
-                f"reward={self.current_episode_return:.2f} | coverage={coverage:.2%} | reason={reason}"
+                f"reward={self.current_episode_return:.2f} | coverage={coverage:.2%} | "
+                f"broadcast={broadcast:.2%} | reason={reason}"
             )
         self._emit_progress(
             "episode",
@@ -220,6 +224,7 @@ class DQATrainer:
                 "steps": self.current_episode_length,
                 "reward": float(self.current_episode_return),
                 "coverage": coverage,
+                "broadcast": broadcast,
                 "reason": info.get("reason", "episode_end"),
             },
         )
@@ -280,19 +285,33 @@ class DQATrainer:
                 )
 
             if self.global_step % eval_interval == 0:
-                eval_reward, eval_cov = self.evaluate(episodes=eval_episodes)
+                eval_reward, eval_cov, eval_broadcast = self.evaluate(episodes=eval_episodes)
                 self.eval_history.append(
-                    {"step": float(self.global_step), "avg_reward": float(eval_reward), "avg_coverage": float(eval_cov)}
+                    {
+                        "step": float(self.global_step),
+                        "avg_reward": float(eval_reward),
+                        "avg_coverage": float(eval_cov),
+                        "avg_broadcast": float(eval_broadcast),
+                    }
                 )
-                print(f"    Eval -> avg_reward={eval_reward:.2f} | avg_final_coverage={eval_cov:.2%}")
+                print(
+                    f"    Eval -> avg_reward={eval_reward:.2f} | "
+                    f"avg_final_coverage={eval_cov:.2%} | avg_broadcast={eval_broadcast:.2%}"
+                )
                 self._emit_progress(
                     "evaluation",
-                    {"step": self.global_step, "avg_reward": float(eval_reward), "avg_coverage": float(eval_cov)},
+                    {
+                        "step": self.global_step,
+                        "avg_reward": float(eval_reward),
+                        "avg_coverage": float(eval_cov),
+                        "avg_broadcast": float(eval_broadcast),
+                    },
                 )
 
         metrics = {
             "episode_rewards": self.episode_rewards,
             "episode_coverages": self.episode_coverages,
+            "episode_broadcasts": self.episode_broadcasts,
             "episode_timesteps": self.episode_timesteps,
             "eval_history": self.eval_history,
             "config": self.config,
@@ -308,23 +327,27 @@ class DQATrainer:
         )
         return metrics
 
-    def evaluate(self, episodes: int = 5, deterministic: bool = True) -> Tuple[float, float]:
+    def evaluate(self, episodes: int = 5, deterministic: bool = True) -> Tuple[float, float, float]:
         rewards = []
         coverages = []
+        broadcasts = []
         for _ in range(episodes):
             obs, _ = self.eval_env.reset()
             done = False
             ep_reward = 0.0
             final_cov = 0.0
+            final_broadcast = 0.0
             while not done:
                 action, _ = self.policy.act(obs, epsilon=0.0, deterministic=deterministic)
                 obs, reward, terminated, truncated, info = self.eval_env.step(action)
                 done = bool(terminated or truncated)
                 ep_reward += reward
                 final_cov = float(info.get("coverage_ratio", final_cov))
+                final_broadcast = float(info.get("broadcast_ratio", final_broadcast))
             rewards.append(ep_reward)
             coverages.append(final_cov)
-        return float(np.mean(rewards)), float(np.mean(coverages))
+            broadcasts.append(final_broadcast)
+        return float(np.mean(rewards)), float(np.mean(coverages)), float(np.mean(broadcasts))
 
     def _save_artifacts(self, metrics: Dict[str, Any]) -> None:
         policy_path = self.artifact_dir / "dqa_policy.pt"

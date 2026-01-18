@@ -13,7 +13,7 @@
     <div class="monitor__chart">
       <div class="chart__header">
         <div>
-          <p class="monitor__label">实时准确率/覆盖率</p>
+          <p class="monitor__label">实时覆盖率</p>
           <p class="monitor__value">{{ latestAccuracy }}</p>
         </div>
         <small class="chart__hint">来源：episode 覆盖率 + evaluation 覆盖率</small>
@@ -27,24 +27,61 @@
             </linearGradient>
           </defs>
           <path
-            v-if="areaPath"
-            :d="areaPath"
+            v-if="coverageAreaPath"
+            :d="coverageAreaPath"
             fill="url(#areaGradient)"
             stroke="none"
             opacity="0.8"
           />
           <path
-            v-if="linePath"
-            :d="linePath"
+            v-if="coverageLinePath"
+            :d="coverageLinePath"
             fill="none"
             stroke="#38bdf8"
             stroke-width="2"
           />
-          <g v-for="(point, idx) in normalizedPoints" :key="idx">
+          <g v-for="(point, idx) in coveragePoints" :key="`cov-${idx}`">
             <circle :cx="point.x" :cy="point.y" r="2.5" fill="#22d3ee" />
           </g>
         </svg>
-        <p v-if="!normalizedPoints.length" class="monitor__placeholder">暂无覆盖率数据，等待训练事件...</p>
+        <p v-if="!coveragePoints.length" class="monitor__placeholder">暂无覆盖率数据，等待训练事件...</p>
+      </div>
+    </div>
+    <div class="monitor__chart">
+      <div class="chart__header">
+        <div>
+          <p class="monitor__label">实时广播覆盖</p>
+          <p class="monitor__value">{{ latestBroadcast }}</p>
+        </div>
+        <small class="chart__hint">来源：episode 广播率 + evaluation 广播率</small>
+      </div>
+      <div class="chart__viewport">
+        <svg :viewBox="`0 0 ${chartWidth} ${chartHeight}`" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="broadcastGradient" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="#a855f7" stop-opacity="0.4" />
+              <stop offset="100%" stop-color="#a855f7" stop-opacity="0.05" />
+            </linearGradient>
+          </defs>
+          <path
+            v-if="broadcastAreaPath"
+            :d="broadcastAreaPath"
+            fill="url(#broadcastGradient)"
+            stroke="none"
+            opacity="0.8"
+          />
+          <path
+            v-if="broadcastLinePath"
+            :d="broadcastLinePath"
+            fill="none"
+            stroke="#a855f7"
+            stroke-width="2"
+          />
+          <g v-for="(point, idx) in broadcastPoints" :key="`bc-${idx}`">
+            <circle :cx="point.x" :cy="point.y" r="2.5" fill="#d946ef" />
+          </g>
+        </svg>
+        <p v-if="!broadcastPoints.length" class="monitor__placeholder">暂无广播率数据，等待训练事件...</p>
       </div>
     </div>
   <div class="monitor__events">
@@ -82,59 +119,72 @@ const latestUpdate = computed(() => {
   return new Date(timestamp * 1000).toLocaleTimeString();
 });
 
-const accuracySeries = computed(() => {
-  const series = [];
-  for (const event of props.events) {
-    const payload = event.payload || {};
-    if (event.type === "episode" && typeof payload.coverage === "number") {
-      series.push({ value: payload.coverage, label: `Episode ${payload.episode}` });
-    }
-    if (event.type === "evaluation" && typeof payload.avg_coverage === "number") {
-      series.push({ value: payload.avg_coverage, label: `Eval@${payload.step}` });
-    }
-  }
-  return series;
-});
-
-const latestAccuracy = computed(() => {
-  if (!accuracySeries.value.length) return "--";
-  const latest = accuracySeries.value[accuracySeries.value.length - 1].value;
-  return `${(Math.max(0, Math.min(1, latest)) * 100).toFixed(2)}%`;
-});
-
 const chartWidth = 320;
 const chartHeight = 140;
 
-const normalizedPoints = computed(() => {
-  const points = accuracySeries.value;
-  if (!points.length) return [];
-  const maxIdx = Math.max(1, points.length - 1);
-  return points.map((pt, idx) => {
+const buildSeries = (keyEpisode, keyEval) => {
+  const series = [];
+  for (const event of props.events) {
+    const payload = event.payload || {};
+    if (event.type === "episode" && typeof payload[keyEpisode] === "number") {
+      series.push({ value: payload[keyEpisode], label: `Episode ${payload.episode}` });
+    }
+    if (event.type === "evaluation" && typeof payload[keyEval] === "number") {
+      series.push({ value: payload[keyEval], label: `Eval@${payload.step}` });
+    }
+  }
+  return series;
+};
+
+const coverageSeries = computed(() => buildSeries("coverage", "avg_coverage"));
+const broadcastSeries = computed(() => buildSeries("broadcast", "avg_broadcast"));
+
+const latestAccuracy = computed(() => {
+  if (!coverageSeries.value.length) return "--";
+  const latest = coverageSeries.value[coverageSeries.value.length - 1].value;
+  return `${(Math.max(0, Math.min(1, latest)) * 100).toFixed(2)}%`;
+});
+
+const latestBroadcast = computed(() => {
+  if (!broadcastSeries.value.length) return "--";
+  const latest = broadcastSeries.value[broadcastSeries.value.length - 1].value;
+  return `${(Math.max(0, Math.min(1, latest)) * 100).toFixed(2)}%`;
+});
+
+const normalizePoints = (series) => {
+  if (!series.length) return [];
+  const maxIdx = Math.max(1, series.length - 1);
+  return series.map((pt, idx) => {
     const x = (idx / maxIdx) * chartWidth;
     const clamped = Math.max(0, Math.min(1, pt.value));
     const y = chartHeight - clamped * chartHeight;
     return { x, y };
   });
-});
+};
 
-const linePath = computed(() => {
-  if (!normalizedPoints.value.length) return "";
-  return normalizedPoints.value.reduce((path, point, idx) => {
+const coveragePoints = computed(() => normalizePoints(coverageSeries.value));
+const broadcastPoints = computed(() => normalizePoints(broadcastSeries.value));
+
+const linePathFrom = (points) => {
+  if (!points.length) return "";
+  return points.reduce((path, point, idx) => {
     const cmd = idx === 0 ? "M" : "L";
     return `${path} ${cmd} ${point.x} ${point.y}`;
   }, "").trim();
-});
+};
 
-const areaPath = computed(() => {
-  if (!normalizedPoints.value.length) return "";
-  const first = normalizedPoints.value[0];
-  const last = normalizedPoints.value[normalizedPoints.value.length - 1];
-  const line = normalizedPoints.value.reduce((path, point, idx) => {
-    const cmd = idx === 0 ? "M" : "L";
-    return `${path} ${cmd} ${point.x} ${point.y}`;
-  }, "");
+const areaPathFrom = (points) => {
+  if (!points.length) return "";
+  const first = points[0];
+  const last = points[points.length - 1];
+  const line = linePathFrom(points);
   return `${line} L ${last.x} ${chartHeight} L ${first.x} ${chartHeight} Z`;
-});
+};
+
+const coverageLinePath = computed(() => linePathFrom(coveragePoints.value));
+const coverageAreaPath = computed(() => areaPathFrom(coveragePoints.value));
+const broadcastLinePath = computed(() => linePathFrom(broadcastPoints.value));
+const broadcastAreaPath = computed(() => areaPathFrom(broadcastPoints.value));
 
 const formatPayload = (payload) => {
   if (!payload) {
