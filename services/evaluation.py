@@ -11,6 +11,9 @@ import torch
 from envs import DisasterCellularEnv, MultiModalCommEnv
 from models.multimodal_policy import MultimodalPolicy
 from models.policy_network import MLPActorCritic
+from models.dqa_network import DQANetwork
+from models.n3c_policy import N3CPolicy
+from models.mppo_policy import MPPOPolicy
 
 
 def build_env(config: Dict[str, Dict], env_type: str):
@@ -20,21 +23,61 @@ def build_env(config: Dict[str, Dict], env_type: str):
     return DisasterCellularEnv(**config["env"])
 
 
-def load_policy(checkpoint: Path, env, config: Dict[str, Dict], env_type: str):
+def load_policy(checkpoint: Path, env, config: Dict[str, Dict], env_type: str, algorithm: str | None = None):
     """Rebuild the policy network and load a saved checkpoint."""
-    if env_type == "multimodal":
+    algo = algorithm or config.get("experiment", {}).get("algorithm", "ppo")
+    obs_dim = env.observation_space.shape[0]
+    action_dim = env.action_space.n
+    model_cfg = config.get("model", {})
+    hidden_key = "multimodal_hidden_sizes" if env_type == "multimodal" else "hidden_sizes"
+    hidden_sizes = model_cfg.get(hidden_key, [1024, 1024, 512, 512] if env_type == "multimodal" else [128, 128])
+    device = config["train"].get("device", "auto")
+
+    if algo == "dqa":
+        policy = DQANetwork(
+            obs_dim=obs_dim,
+            action_dim=action_dim,
+            hidden_sizes=model_cfg.get("hidden_sizes", [256, 256]),
+            device=device,
+        )
+    elif algo == "n3c":
+        policy = N3CPolicy(
+            obs_dim=obs_dim,
+            action_dim=action_dim,
+            hidden_sizes=hidden_sizes,
+            value_weights=config.get("n3c", {}).get("value_weights"),
+            device=device,
+        )
+    elif algo == "mppo":
+        mppo_cfg = config.get("mppo", {})
+        head_keys = mppo_cfg.get("head_keys", ["default"])
+        default_head_key = mppo_cfg.get("default_head_key", head_keys[0] if head_keys else "default")
+        active_head_key = (
+            config.get("multimodal_env", {}).get("reward_mode")
+            or config.get("multimodal_env", {}).get("scenario_name")
+            or default_head_key
+        )
+        policy = MPPOPolicy(
+            obs_dim=obs_dim,
+            action_dim=action_dim,
+            hidden_sizes=hidden_sizes,
+            head_keys=head_keys,
+            active_head_key=active_head_key,
+            device=device,
+        )
+    elif env_type == "multimodal":
         policy = MultimodalPolicy(
-            obs_dim=env.observation_space.shape[0],
-            action_dim=env.action_space.n,
-            hidden_sizes=config["model"].get("multimodal_hidden_sizes", [1024, 1024, 512, 512]),
-            device=config["train"].get("device", "auto"),
+            obs_dim=obs_dim,
+            action_dim=action_dim,
+            hidden_sizes=hidden_sizes,
+            device=device,
         )
     else:
         policy = MLPActorCritic(
-            obs_dim=env.observation_space.shape[0],
-            action_dim=env.action_space.n,
-            hidden_sizes=config["model"].get("hidden_sizes", [128, 128]),
-            device=config["train"].get("device", "auto"),
+            obs_dim=obs_dim,
+            action_dim=action_dim,
+            hidden_sizes=hidden_sizes,
+            device=device,
         )
     state_dict = torch.load(checkpoint, map_location=policy.device, weights_only=True)
     policy.load_state_dict(state_dict)
@@ -95,8 +138,11 @@ def evaluate_policy(
             "steps": [],
         }
         while not done:
-            action, _, _ = policy.act(obs, deterministic=deterministic)
-            action_value = int(action)
+            action_out = policy.act(obs, deterministic=deterministic)
+            if isinstance(action_out, (list, tuple)):
+                action_value = int(action_out[0])
+            else:
+                action_value = int(action_out)
             prev_snapshot = state_snapshot
             obs, reward, terminated, truncated, info = env.step(action_value)
             last_info = info

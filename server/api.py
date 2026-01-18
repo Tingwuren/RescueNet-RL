@@ -97,6 +97,7 @@ def start_training(request: TrainRequest) -> TrainResponse:
     run = training_manager.start_run(
         scenario_name=request.scenario_name,
         env_type=request.env_type,
+        algorithm=request.algorithm,
         total_timesteps=request.total_timesteps,
         stochastic_eval=request.stochastic_eval,
         reward_mode=request.reward_mode,
@@ -114,6 +115,7 @@ def get_training_status(run_id: str) -> TrainingStatus:
         status=run.status,
         scenario_name=run.scenario_name,
         env_type=run.env_type,
+        algorithm=run.algorithm,
         reward_mode=run.reward_mode,
         started_at=run.started_at,
         updated_at=run.updated_at,
@@ -146,12 +148,13 @@ async def stream_training_events(run_id: str):
 def simulate_strategy(request: SimulationRequest) -> SimulationResponse:
     config = get_default_config()
     config["experiment"]["env_type"] = request.env_type
+    config["experiment"]["algorithm"] = request.algorithm
     if request.env_type == "multimodal":
         config["multimodal_env"]["scenario_name"] = request.scenario_name
 
     checkpoint_path = Path(request.checkpoint_path)
     env = build_env(config, request.env_type)
-    policy = load_policy(checkpoint_path, env, config, request.env_type)
+    policy = load_policy(checkpoint_path, env, config, request.env_type, algorithm=request.algorithm)
 
     custom_state = [device.dict() for device in request.custom_devices]
     custom_base_stations = (

@@ -9,6 +9,7 @@ from typing import Any, Dict
 DEFAULT_CONFIG: Dict[str, Dict[str, Any]] = {
     "experiment": {
         "env_type": "baseline",  # baseline | multimodal
+        "algorithm": "ppo",  # ppo | dqa | n3c | mppo
     },
     "env": {
         "grid_size": 10,
@@ -49,6 +50,46 @@ DEFAULT_CONFIG: Dict[str, Dict[str, Any]] = {
         "entropy_coef": 0.01,
         "value_coef": 0.5,
         "max_grad_norm": 0.5,
+    },
+    # DQA: decomposed Q-learning for large discrete action space
+    "dqa": {
+        "learning_rate": 3e-4,
+        "gamma": 0.99,
+        "buffer_size": 200_000,
+        "batch_size": 512,
+        "epsilon_start": 1.0,
+        "epsilon_end": 0.05,
+        "epsilon_decay_steps": 300_000,
+        "target_update_tau": 0.005,  # soft update coefficient
+        "target_update_period": 1000,  # hard update fallback
+        "n_step": 3,
+    },
+    # N3C: PPO-compatible policy with triple-value heads (coverage/throughput/cost)
+    "n3c": {
+        "learning_rate": 3e-4,
+        "gamma": 0.99,
+        "gae_lambda": 0.95,
+        "clip_coef": 0.2,
+        "update_epochs": 10,
+        "mini_batch_size": 128,
+        "entropy_coef": 0.01,
+        "value_coef": 0.5,
+        "max_grad_norm": 0.5,
+        "value_weights": {"coverage": 1.0, "throughput": 0.5, "cost": 0.2},
+    },
+    # MPPO: multi-head actor for different reward modes / scenarios
+    "mppo": {
+        "learning_rate": 3e-4,
+        "gamma": 0.99,
+        "gae_lambda": 0.95,
+        "clip_coef": 0.2,
+        "update_epochs": 10,
+        "mini_batch_size": 128,
+        "entropy_coef": 0.02,
+        "value_coef": 0.5,
+        "max_grad_norm": 0.5,
+        "head_keys": ["default"],
+        "default_head_key": "default",
     },
     "train": {
         "total_timesteps": 8000,

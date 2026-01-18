@@ -19,6 +19,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--episodes", type=int, default=5, help="Number of evaluation episodes.")
     parser.add_argument("--render", action="store_true", help="Print per-step render info.")
     parser.add_argument(
+        "--algo",
+        type=str,
+        choices=["ppo", "dqa", "n3c", "mppo"],
+        default=None,
+        help="Algorithm used to train the checkpoint.",
+    )
+    parser.add_argument(
         "--env-type",
         type=str,
         choices=["baseline", "multimodal"],
@@ -37,6 +44,8 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     config = get_default_config()
+    if args.algo:
+        config["experiment"]["algorithm"] = args.algo
     if args.env_type:
         config["experiment"]["env_type"] = args.env_type
     env_type = config["experiment"].get("env_type", "baseline")
@@ -48,7 +57,8 @@ def main() -> None:
     artifact_dir.mkdir(parents=True, exist_ok=True)
 
     env = build_env(config, env_type)
-    policy = load_policy(checkpoint_path, env, config, env_type)
+    algorithm = config["experiment"].get("algorithm", "ppo")
+    policy = load_policy(checkpoint_path, env, config, env_type, algorithm=algorithm)
 
     deterministic = not args.stochastic_eval
     rewards, coverages, reports = evaluate_policy(

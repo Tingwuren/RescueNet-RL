@@ -31,9 +31,10 @@ class PPOTrainer:
         self.eval_env = eval_env
         self.policy = policy
         self.config = config
+        self.algo_key = config.get("experiment", {}).get("algorithm", "ppo")
 
         self.train_cfg = config["train"]
-        self.ppo_cfg = config["ppo"]
+        self.ppo_cfg = config.get(self.algo_key, config["ppo"])
         self.log_cfg = config["logging"]
 
         self.device = policy.device
@@ -310,10 +311,22 @@ class PPOTrainer:
         return float(np.mean(rewards)), float(np.mean(coverages))
 
     def _save_artifacts(self, metrics: Dict[str, Any]) -> None:
-        policy_path = self.artifact_dir / "ppo_policy.pt"
+        policy_path = self.artifact_dir / f"{self.algo_key}_policy.pt"
         metrics_path = self.artifact_dir / "training_metrics.json"
+        meta_path = self.artifact_dir / "policy_meta.json"
 
         torch.save(self.policy.state_dict(), policy_path)
         with metrics_path.open("w", encoding="utf-8") as fp:
             json.dump(metrics, fp, indent=2)
+        with meta_path.open("w", encoding="utf-8") as fp:
+            json.dump(
+                {
+                    "algorithm": self.algo_key,
+                    "env_type": self.config.get("experiment", {}).get("env_type", "baseline"),
+                    "policy_path": str(policy_path),
+                    "config": self.config.get(self.algo_key, {}),
+                },
+                fp,
+                indent=2,
+            )
         print(f"Artifacts saved to {self.artifact_dir.resolve()}")

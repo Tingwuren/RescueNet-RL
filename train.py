@@ -9,10 +9,16 @@ from typing import Dict
 import torch
 
 from algos.ppo import PPOTrainer
+from algos.dqa import DQATrainer
+from algos.n3c import N3CTrainer
+from algos.mppo import MPPOTrainer
 from configs.default_config import get_default_config
 from envs import DisasterCellularEnv, MultiModalCommEnv
 from models.policy_network import MLPActorCritic
 from models.multimodal_policy import MultimodalPolicy
+from models.dqa_network import DQANetwork
+from models.n3c_policy import N3CPolicy
+from models.mppo_policy import MPPOPolicy
 from planning.broadcast_architecture import export_architecture
 
 
@@ -23,21 +29,62 @@ def make_env(config: Dict[str, Dict], env_type: str):
     return DisasterCellularEnv(**config["env"])
 
 
-def build_policy(env, model_config: Dict[str, object], env_type: str, device: str):
+def build_policy(env, config: Dict[str, Dict[str, object]], env_type: str, device: str):
     """Instantiate the actor-critic network that matches the environment."""
+    algorithm = config.get("experiment", {}).get("algorithm", "ppo")
+    model_config = config.get("model", {})
     obs_dim = env.observation_space.shape[0]
     action_dim = env.action_space.n
+    hidden_key = "multimodal_hidden_sizes" if env_type == "multimodal" else "hidden_sizes"
+    hidden_sizes = model_config.get(hidden_key, [1024, 1024, 512, 512] if env_type == "multimodal" else [128, 128])
+
+    if algorithm == "dqa":
+        return DQANetwork(
+            obs_dim=obs_dim,
+            action_dim=action_dim,
+            hidden_sizes=model_config.get("hidden_sizes", [256, 256]),
+            device=device,
+        )
+
+    if algorithm == "n3c":
+        value_weights = config.get("n3c", {}).get("value_weights", None)
+        return N3CPolicy(
+            obs_dim=obs_dim,
+            action_dim=action_dim,
+            hidden_sizes=hidden_sizes,
+            value_weights=value_weights,
+            device=device,
+        )
+
+    if algorithm == "mppo":
+        mppo_cfg = config.get("mppo", {})
+        head_keys = mppo_cfg.get("head_keys", ["default"])
+        default_head_key = mppo_cfg.get("default_head_key", head_keys[0] if head_keys else "default")
+        context_key = (
+            config.get("multimodal_env", {}).get("reward_mode")
+            or config.get("multimodal_env", {}).get("scenario_name")
+            or default_head_key
+        )
+        return MPPOPolicy(
+            obs_dim=obs_dim,
+            action_dim=action_dim,
+            hidden_sizes=hidden_sizes,
+            head_keys=head_keys,
+            active_head_key=context_key,
+            device=device,
+        )
+
     if env_type == "multimodal":
         return MultimodalPolicy(
             obs_dim=obs_dim,
             action_dim=action_dim,
-            hidden_sizes=model_config.get("multimodal_hidden_sizes", [1024, 1024, 512, 512]),
+            hidden_sizes=hidden_sizes,
             device=device,
         )
     return MLPActorCritic(
         obs_dim=obs_dim,
         action_dim=action_dim,
-        hidden_sizes=model_config.get("hidden_sizes", [128, 128]),
+        hidden_sizes=hidden_sizes,
         device=device,
     )
 
@@ -56,6 +103,13 @@ def parse_args() -> argparse.Namespace:
         choices=["baseline", "multimodal"],
         default=None,
         help="Select between baseline and multimodal joint environment.",
+    )
+    parser.add_argument(
+        "--algo",
+        type=str,
+        choices=["ppo", "dqa", "n3c", "mppo"],
+        default=None,
+        help="Algorithm to train with (default=ppo).",
     )
     parser.add_argument(
         "--scenario-name",
@@ -98,6 +152,8 @@ def main() -> None:
         config["train"]["eval_episodes"] = max(1, args.eval_episodes)
     if args.env_type:
         config["experiment"]["env_type"] = args.env_type
+    if args.algo:
+        config["experiment"]["algorithm"] = args.algo
     env_type = config["experiment"].get("env_type", "baseline")
     if args.scenario_name:
         config["multimodal_env"]["scenario_name"] = args.scenario_name
@@ -115,11 +171,19 @@ def main() -> None:
     eval_env = make_env(config, env_type)
 
     device = config["train"].get("device", "auto")
-    policy = build_policy(env, config["model"], env_type=env_type, device=device)
+    policy = build_policy(env, config, env_type=env_type, device=device)
 
     torch.manual_seed(config["train"]["seed"])
 
-    trainer = PPOTrainer(env=env, eval_env=eval_env, policy=policy, config=config)
+    algo = config["experiment"].get("algorithm", "ppo")
+    trainer_cls = {
+        "ppo": PPOTrainer,
+        "dqa": DQATrainer,
+        "n3c": N3CTrainer,
+        "mppo": MPPOTrainer,
+    }.get(algo, PPOTrainer)
+
+    trainer = trainer_cls(env=env, eval_env=eval_env, policy=policy, config=config)
     metrics = trainer.train()
 
     coverage_plot_path = artifact_dir / "training_coverage_curve.png"

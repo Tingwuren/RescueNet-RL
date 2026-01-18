@@ -3,7 +3,7 @@
     <div class="panel-header">
       <div>
         <h2>灾害场景训练</h2>
-        <p>选择场景，触发 PPO 训练，并通过事件流实时查看指标。</p>
+        <p>选择场景，触发训练（支持 PPO / DQA / N3C / MPPO），并通过事件流实时查看指标。</p>
       </div>
       <div class="scenario-select">
         <label>训练场景</label>
@@ -64,6 +64,21 @@
           总训练步数
           <input type="number" min="2000" step="1000" v-model.number="totalTimesteps" />
         </label>
+        <label>
+          训练算法
+          <div class="algo-options">
+            <button
+              type="button"
+              v-for="algo in algorithms"
+              :key="algo.value"
+              :class="['algo-chip', { 'algo-chip--active': algo.value === selectedAlgorithm }]"
+              @click="() => selectAlgorithm(algo.value)"
+            >
+              <strong>{{ algo.label }}</strong>
+              <small>{{ algo.desc }}</small>
+            </button>
+          </div>
+        </label>
         <button type="submit" :disabled="!selectedScenario || isStarting">
           {{ isStarting ? "启动中..." : "开始训练" }}
         </button>
@@ -82,8 +97,15 @@ import TrainingMonitor from "./TrainingMonitor.vue";
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000/api";
 
 const scenarios = ref([]);
+const algorithms = [
+  { value: "ppo", label: "PPO", desc: "基线" },
+  { value: "dqa", label: "DQA", desc: "大动作空间" },
+  { value: "n3c", label: "N3C", desc: "多目标" },
+  { value: "mppo", label: "MPPO", desc: "多头策略" },
+];
 const selectedScenario = ref(null);
 const selectedRewardMode = ref(null);
+const selectedAlgorithm = ref("ppo");
 const totalTimesteps = ref(12000);
 const isStarting = ref(false);
 const eventLog = ref([]);
@@ -132,6 +154,10 @@ const selectRewardMode = (modeKey) => {
 
 const formatWeight = (value) => Number(value ?? 0).toFixed(2);
 
+const selectAlgorithm = (value) => {
+  selectedAlgorithm.value = value;
+};
+
 const startTraining = async () => {
   if (!selectedScenario.value) return;
   isStarting.value = true;
@@ -142,6 +168,7 @@ const startTraining = async () => {
     const { data } = await axios.post(`${API_BASE}/train`, {
       scenario_name: selectedScenario.value,
       env_type: "multimodal",
+      algorithm: selectedAlgorithm.value,
       total_timesteps: totalTimesteps.value,
       stochastic_eval: true,
       reward_mode: selectedRewardMode.value,
@@ -329,6 +356,40 @@ onMounted(fetchScenarios);
   gap: 4px;
   font-size: 11px;
   color: #cbd5f5;
+}
+
+.algo-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+.algo-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: rgba(148, 163, 184, 0.08);
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.algo-chip--active {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.25);
+  background: linear-gradient(120deg, rgba(56, 189, 248, 0.1), rgba(14, 165, 233, 0.08));
+}
+
+.algo-chip strong {
+  font-size: 14px;
+}
+
+.algo-chip small {
+  color: #94a3b8;
 }
 
 .training-form {

@@ -4,6 +4,9 @@
     <p class="subtitle">
       选择残余基站并设置位置，模拟部分基础设施仍然可用的场景；若不添加则表示完全受灾。
     </p>
+    <div v-if="errorMessage" class="error-banner">
+      {{ errorMessage }}
+    </div>
     <form class="tester__form" @submit.prevent="runSimulation">
       <label>
         场景选择
@@ -12,6 +15,25 @@
             {{ scenario.name }} ({{ scenario.disaster_type }})
           </option>
         </select>
+      </label>
+      <label>
+        算法选择
+        <div class="algo-options">
+          <button
+            type="button"
+            v-for="algo in algorithms"
+            :key="algo.value"
+            :class="['algo-chip', { 'algo-chip--active': algo.value === selectedAlgorithm }]"
+            @click="selectedAlgorithm = algo.value"
+          >
+            <strong>{{ algo.label }}</strong>
+            <small>{{ algo.desc }}</small>
+          </button>
+        </div>
+      </label>
+      <label>
+        Checkpoint 路径
+        <input type="text" v-model="checkpointPath" placeholder="artifacts/ppo_policy.pt" />
       </label>
       <div class="devices">
         <div class="devices__header">
@@ -103,9 +125,18 @@ const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000/api";
 
 const scenarios = ref([]);
 const scenarioName = ref("typhoon_residual");
+const algorithms = [
+  { value: "ppo", label: "PPO", desc: "基线" },
+  { value: "dqa", label: "DQA", desc: "大动作空间" },
+  { value: "n3c", label: "N3C", desc: "多目标" },
+  { value: "mppo", label: "MPPO", desc: "多头策略" },
+];
+const selectedAlgorithm = ref("ppo");
+const checkpointPath = ref("artifacts/ppo_policy.pt");
 const baseStations = ref([]);
 const simulationResult = ref(null);
 const isRunning = ref(false);
+const errorMessage = ref("");
 
 const currentScenario = computed(() => scenarios.value.find((scenario) => scenario.name === scenarioName.value));
 const baseStationOptions = computed(() => currentScenario.value?.base_stations || []);
@@ -165,9 +196,12 @@ const removeBaseStation = (index) => {
 const runSimulation = async () => {
   isRunning.value = true;
   simulationResult.value = null;
+  errorMessage.value = "";
   try {
     const { data } = await axios.post(`${API_BASE}/simulate`, {
       scenario_name: scenarioName.value,
+      algorithm: selectedAlgorithm.value,
+      checkpoint_path: checkpointPath.value,
       env_type: "multimodal",
       stochastic_eval: true,
       episodes: 1,
@@ -177,6 +211,8 @@ const runSimulation = async () => {
     simulationResult.value = data;
   } catch (error) {
     console.error("Simulation failed", error);
+    const apiMsg = error?.response?.data?.detail || error?.message || "模拟请求失败";
+    errorMessage.value = typeof apiMsg === "string" ? apiMsg : JSON.stringify(apiMsg);
   } finally {
     isRunning.value = false;
   }
@@ -185,6 +221,15 @@ const runSimulation = async () => {
 watch(scenarioName, () => {
   baseStations.value = [];
 });
+
+watch(
+  selectedAlgorithm,
+  (algo) => {
+    // auto-suggest checkpoint name per algorithm
+    checkpointPath.value = `artifacts/${algo}_policy.pt`;
+  },
+  { immediate: true }
+);
 
 onMounted(() => {
   fetchScenarios();
@@ -214,7 +259,8 @@ onMounted(() => {
 }
 
 select,
-input[type="number"] {
+input[type="number"],
+input[type="text"] {
   width: 100%;
   padding: 10px 12px;
   border-radius: 8px;
@@ -301,11 +347,45 @@ input[type="number"] {
   font-weight: 600;
 }
 
+.algo-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.algo-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: rgba(148, 163, 184, 0.08);
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.algo-chip--active {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.25);
+  background: linear-gradient(120deg, rgba(56, 189, 248, 0.1), rgba(14, 165, 233, 0.08));
+}
+
 .tester__result {
   border: 1px solid rgba(148, 163, 184, 0.4);
   border-radius: 12px;
   padding: 16px;
   background: rgba(15, 23, 42, 0.4);
+}
+
+.error-banner {
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.15);
+  color: #fecaca;
+  border-radius: 10px;
+  padding: 10px 12px;
 }
 
 .report {

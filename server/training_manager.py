@@ -21,6 +21,7 @@ class TrainingRun:
     run_id: str
     scenario_name: str
     env_type: str
+    algorithm: str
     reward_mode: Optional[str] = None
     status: str = "pending"
     started_at: float = field(default_factory=time.time)
@@ -43,18 +44,25 @@ class TrainingManager:
         *,
         scenario_name: str,
         env_type: str,
+        algorithm: str,
         total_timesteps: Optional[int],
         stochastic_eval: bool,
         reward_mode: Optional[str],
     ) -> TrainingRun:
         run_id = uuid.uuid4().hex
-        run = TrainingRun(run_id=run_id, scenario_name=scenario_name, env_type=env_type, reward_mode=reward_mode)
+        run = TrainingRun(
+            run_id=run_id,
+            scenario_name=scenario_name,
+            env_type=env_type,
+            algorithm=algorithm,
+            reward_mode=reward_mode,
+        )
         with self._lock:
             self._runs[run_id] = run
 
         thread = threading.Thread(
             target=self._execute_training,
-            args=(run, scenario_name, env_type, total_timesteps, stochastic_eval, reward_mode),
+            args=(run, scenario_name, env_type, algorithm, total_timesteps, stochastic_eval, reward_mode),
             daemon=True,
         )
         run.thread = thread
@@ -79,6 +87,7 @@ class TrainingManager:
         run: TrainingRun,
         scenario_name: str,
         env_type: str,
+        algorithm: str,
         total_timesteps: Optional[int],
         stochastic_eval: bool,
         reward_mode: Optional[str],
@@ -88,6 +97,7 @@ class TrainingManager:
         try:
             config = get_default_config()
             config["experiment"]["env_type"] = env_type
+            config["experiment"]["algorithm"] = algorithm
             if env_type == "multimodal":
                 config["multimodal_env"]["scenario_name"] = scenario_name
                 if reward_mode is not None:
@@ -102,9 +112,20 @@ class TrainingManager:
             env = make_env(config, env_type)
             eval_env = make_env(config, env_type)
             device = config["train"].get("device", "auto")
-            policy = build_policy(env, config["model"], env_type=env_type, device=device)
+            policy = build_policy(env, config, env_type=env_type, device=device)
 
-            trainer = PPOTrainer(
+            from algos.dqa import DQATrainer
+            from algos.n3c import N3CTrainer
+            from algos.mppo import MPPOTrainer
+
+            trainer_cls = {
+                "ppo": PPOTrainer,
+                "dqa": DQATrainer,
+                "n3c": N3CTrainer,
+                "mppo": MPPOTrainer,
+            }.get(algorithm, PPOTrainer)
+
+            trainer = trainer_cls(
                 env=env,
                 eval_env=eval_env,
                 policy=policy,
