@@ -3,7 +3,7 @@
     <div class="panel-header">
       <div>
         <h2>灾害场景训练</h2>
-        <p>选择场景，触发训练（支持 PPO / DQA / N3C / MPPO），并通过事件流实时查看指标。</p>
+        <p>选择场景，触发训练（支持 PPO / DQN / A3C / MPPO），并通过事件流实时查看指标。</p>
       </div>
       <div class="scenario-select">
         <label>训练场景</label>
@@ -99,8 +99,8 @@ const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000/api";
 const scenarios = ref([]);
 const algorithms = [
   { value: "ppo", label: "PPO", desc: "基线" },
-  { value: "dqa", label: "DQA", desc: "大动作空间" },
-  { value: "n3c", label: "N3C", desc: "多目标" },
+  { value: "dqn", label: "DQN", desc: "大动作空间" },
+  { value: "a3c", label: "A3C", desc: "多目标" },
   { value: "mppo", label: "MPPO", desc: "多头策略" },
 ];
 const selectedScenario = ref(null);

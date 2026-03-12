@@ -1,4 +1,4 @@
-"""Decomposed Q-learning trainer for large discrete action spaces."""
+"""Deep Q-Network (DQN) trainer for large discrete action spaces."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ import torch.nn.functional as F
 from torch import Tensor
 from torch.optim import Adam
 
-from models.dqa_network import DQANetwork
+from models.dqn_network import DQNNetwork
 
 
 @dataclass
@@ -55,14 +55,14 @@ class ReplayBuffer:
         return Transition(obs=obs, action=actions, reward=rewards, next_obs=next_obs, done=dones)
 
 
-class DQATrainer:
-    """Lightweight DQA trainer with epsilon-greedy exploration."""
+class DQNTrainer:
+    """Lightweight DQN trainer with epsilon-greedy exploration."""
 
     def __init__(
         self,
         env,
         eval_env,
-        policy: DQANetwork,
+        policy: DQNNetwork,
         config: Dict[str, Dict[str, Any]],
         progress_callback: Optional[callable] = None,
     ) -> None:
@@ -70,15 +70,15 @@ class DQATrainer:
         self.eval_env = eval_env
         self.policy = policy
         self.config = config
-        self.algo_key = "dqa"
+        self.algo_key = "dqn"
 
         self.train_cfg = config["train"]
-        self.dqa_cfg = config.get("dqa", {})
+        self.dqn_cfg = config.get("dqn", config.get("dqa", {}))
         self.log_cfg = config["logging"]
 
         self.device = policy.device
-        self.optimizer = Adam(self.policy.parameters(), lr=self.dqa_cfg["learning_rate"])
-        self.target_net = DQANetwork(
+        self.optimizer = Adam(self.policy.parameters(), lr=self.dqn_cfg["learning_rate"])
+        self.target_net = DQNNetwork(
             obs_dim=policy.obs_dim,
             action_dim=policy.action_dim,
             hidden_sizes=policy.hidden_sizes,
@@ -86,9 +86,9 @@ class DQATrainer:
         )
         self.policy.hard_update(self.target_net)
 
-        self.replay_buffer = ReplayBuffer(self.dqa_cfg["buffer_size"])
-        self.n_step = max(1, int(self.dqa_cfg.get("n_step", 1)))
-        self.gamma = float(self.dqa_cfg["gamma"])
+        self.replay_buffer = ReplayBuffer(self.dqn_cfg["buffer_size"])
+        self.n_step = max(1, int(self.dqn_cfg.get("n_step", 1)))
+        self.gamma = float(self.dqn_cfg["gamma"])
         self.nstep_buffer: Deque[Transition] = deque(maxlen=self.n_step)
 
         self.global_step = 0
@@ -106,11 +106,11 @@ class DQATrainer:
         self.artifact_dir = Path(self.log_cfg.get("artifact_dir", "artifacts"))
         self.artifact_dir.mkdir(parents=True, exist_ok=True)
 
-        self.epsilon_start = float(self.dqa_cfg["epsilon_start"])
-        self.epsilon_end = float(self.dqa_cfg["epsilon_end"])
-        self.epsilon_decay_steps = int(self.dqa_cfg["epsilon_decay_steps"])
-        self.target_update_tau = float(self.dqa_cfg.get("target_update_tau", 0.005))
-        self.target_update_period = int(self.dqa_cfg.get("target_update_period", 1000))
+        self.epsilon_start = float(self.dqn_cfg["epsilon_start"])
+        self.epsilon_end = float(self.dqn_cfg["epsilon_end"])
+        self.epsilon_decay_steps = int(self.dqn_cfg["epsilon_decay_steps"])
+        self.target_update_tau = float(self.dqn_cfg.get("target_update_tau", 0.005))
+        self.target_update_period = int(self.dqn_cfg.get("target_update_period", 1000))
 
     def _emit_progress(self, event_type: str, payload: Dict[str, Any]) -> None:
         if not self.progress_callback:
@@ -118,7 +118,7 @@ class DQATrainer:
         try:
             self.progress_callback({"type": event_type, "payload": payload})
         except Exception as exc:  # pragma: no cover - defensive
-            print(f"[DQATrainer] progress callback error: {exc}")
+            print(f"[DQNTrainer] progress callback error: {exc}")
 
     def _epsilon(self) -> float:
         fraction = min(1.0, self.global_step / max(1, self.epsilon_decay_steps))
@@ -174,7 +174,7 @@ class DQATrainer:
             )
 
     def _update_q_network(self) -> Dict[str, float]:
-        batch = self.replay_buffer.sample(self.dqa_cfg["batch_size"])
+        batch = self.replay_buffer.sample(self.dqn_cfg["batch_size"])
         obs = torch.as_tensor(batch.obs, dtype=torch.float32, device=self.device)
         actions = torch.as_tensor(batch.action, dtype=torch.int64, device=self.device)
         rewards = torch.as_tensor(batch.reward, dtype=torch.float32, device=self.device)
@@ -263,14 +263,14 @@ class DQATrainer:
                 self._log_episode(info)
                 obs, _ = self.env.reset()
 
-            if len(self.replay_buffer) >= self.dqa_cfg["batch_size"]:
+            if len(self.replay_buffer) >= self.dqn_cfg["batch_size"]:
                 q_loss_val = self._update_q_network().get("q_loss", q_loss_val)
 
             if self.global_step % log_interval == 0:
                 mean_reward = np.mean(self.episode_rewards[-log_interval:]) if self.episode_rewards else 0.0
                 mean_coverage = np.mean(self.episode_coverages[-log_interval:]) if self.episode_coverages else 0.0
                 print(
-                    f"[DQA] step={self.global_step} | epsilon={epsilon:.3f} | "
+                    f"[DQN] step={self.global_step} | epsilon={epsilon:.3f} | "
                     f"mean_reward={mean_reward:.2f} | mean_coverage={mean_coverage:.2%} | q_loss={q_loss_val:.4f}"
                 )
                 self._emit_progress(
@@ -350,7 +350,7 @@ class DQATrainer:
         return float(np.mean(rewards)), float(np.mean(coverages)), float(np.mean(broadcasts))
 
     def _save_artifacts(self, metrics: Dict[str, Any]) -> None:
-        policy_path = self.artifact_dir / "dqa_policy.pt"
+        policy_path = self.artifact_dir / "dqn_policy.pt"
         metrics_path = self.artifact_dir / "training_metrics.json"
         meta_path = self.artifact_dir / "policy_meta.json"
 
@@ -360,12 +360,16 @@ class DQATrainer:
         with meta_path.open("w", encoding="utf-8") as fp:
             json.dump(
                 {
-                    "algorithm": "dqa",
+                    "algorithm": "dqn",
                     "env_type": self.config.get("experiment", {}).get("env_type", "baseline"),
                     "policy_path": str(policy_path),
-                    "config": self.config.get("dqa", {}),
+                    "config": self.config.get("dqn", {}),
                 },
                 fp,
                 indent=2,
             )
         print(f"Artifacts saved to {self.artifact_dir.resolve()}")
+
+
+# Backward compatibility alias.
+DQATrainer = DQNTrainer

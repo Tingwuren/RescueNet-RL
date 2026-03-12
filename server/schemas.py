@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 class TrainRequest(BaseModel):
     scenario_name: str = Field(..., description="Scenario key defined in data/scenarios.json")
     env_type: Literal["baseline", "multimodal"] = Field("multimodal", description="Environment variant to train")
-    algorithm: Literal["ppo", "dqa", "n3c", "mppo"] = Field("ppo", description="Training algorithm.")
+    algorithm: Literal["ppo", "dqn", "a3c", "mppo"] = Field("ppo", description="Training algorithm.")
     total_timesteps: Optional[int] = Field(None, ge=1000, description="Override PPO total timesteps")
     stochastic_eval: bool = Field(True, description="Use stochastic actions during eval")
     reward_mode: Optional[str] = Field(
@@ -55,7 +55,7 @@ class SimulationRequest(BaseModel):
     scenario_name: str = Field("typhoon_residual", description="Scenario to use as baseline.")
     checkpoint_path: str = Field("artifacts/ppo_policy.pt", description="Policy checkpoint to load.")
     env_type: Literal["baseline", "multimodal"] = Field("multimodal", description="Environment variant.")
-    algorithm: Literal["ppo", "dqa", "n3c", "mppo"] = Field("ppo", description="Policy algorithm.")
+    algorithm: Literal["ppo", "dqn", "a3c", "mppo"] = Field("ppo", description="Policy algorithm.")
     episodes: int = Field(1, ge=1, description="Evaluation episodes to run.")
     stochastic_eval: bool = Field(True, description="Sample actions during evaluation.")
     custom_devices: List[CustomDevice] = Field(default_factory=list, description="Custom device definitions.")

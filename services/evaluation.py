@@ -11,8 +11,8 @@ import torch
 from envs import DisasterCellularEnv, MultiModalCommEnv
 from models.multimodal_policy import MultimodalPolicy
 from models.policy_network import MLPActorCritic
-from models.dqa_network import DQANetwork
-from models.n3c_policy import N3CPolicy
+from models.dqn_network import DQNNetwork
+from models.a3c_policy import A3CPolicy
 from models.mppo_policy import MPPOPolicy
 
 
@@ -33,19 +33,19 @@ def load_policy(checkpoint: Path, env, config: Dict[str, Dict], env_type: str, a
     hidden_sizes = model_cfg.get(hidden_key, [1024, 1024, 512, 512] if env_type == "multimodal" else [128, 128])
     device = config["train"].get("device", "auto")
 
-    if algo == "dqa":
-        policy = DQANetwork(
+    if algo == "dqn":
+        policy = DQNNetwork(
             obs_dim=obs_dim,
             action_dim=action_dim,
             hidden_sizes=model_cfg.get("hidden_sizes", [256, 256]),
             device=device,
         )
-    elif algo == "n3c":
-        policy = N3CPolicy(
+    elif algo == "a3c":
+        policy = A3CPolicy(
             obs_dim=obs_dim,
             action_dim=action_dim,
             hidden_sizes=hidden_sizes,
-            value_weights=config.get("n3c", {}).get("value_weights"),
+            value_weights=config.get("a3c", config.get("n3c", {})).get("value_weights"),
             device=device,
         )
     elif algo == "mppo":

@@ -10,15 +10,15 @@ import matplotlib
 import torch
 
 from algos.ppo import PPOTrainer
-from algos.dqa import DQATrainer
-from algos.n3c import N3CTrainer
+from algos.dqn import DQNTrainer
+from algos.a3c import A3CTrainer
 from algos.mppo import MPPOTrainer
 from configs.default_config import get_default_config
 from envs import DisasterCellularEnv, MultiModalCommEnv
 from models.policy_network import MLPActorCritic
 from models.multimodal_policy import MultimodalPolicy
-from models.dqa_network import DQANetwork
-from models.n3c_policy import N3CPolicy
+from models.dqn_network import DQNNetwork
+from models.a3c_policy import A3CPolicy
 from models.mppo_policy import MPPOPolicy
 from planning.broadcast_architecture import export_architecture
 
@@ -39,17 +39,17 @@ def build_policy(env, config: Dict[str, Dict[str, object]], env_type: str, devic
     hidden_key = "multimodal_hidden_sizes" if env_type == "multimodal" else "hidden_sizes"
     hidden_sizes = model_config.get(hidden_key, [1024, 1024, 512, 512] if env_type == "multimodal" else [128, 128])
 
-    if algorithm == "dqa":
-        return DQANetwork(
+    if algorithm == "dqn":
+        return DQNNetwork(
             obs_dim=obs_dim,
             action_dim=action_dim,
             hidden_sizes=model_config.get("hidden_sizes", [256, 256]),
             device=device,
         )
 
-    if algorithm == "n3c":
-        value_weights = config.get("n3c", {}).get("value_weights", None)
-        return N3CPolicy(
+    if algorithm == "a3c":
+        value_weights = config.get("a3c", config.get("n3c", {})).get("value_weights", None)
+        return A3CPolicy(
             obs_dim=obs_dim,
             action_dim=action_dim,
             hidden_sizes=hidden_sizes,
@@ -108,7 +108,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--algo",
         type=str,
-        choices=["ppo", "dqa", "n3c", "mppo"],
+        choices=["ppo", "dqn", "a3c", "mppo"],
         default=None,
         help="Algorithm to train with (default=ppo).",
     )
@@ -179,8 +179,8 @@ def main() -> None:
     algo = config["experiment"].get("algorithm", "ppo")
     trainer_cls = {
         "ppo": PPOTrainer,
-        "dqa": DQATrainer,
-        "n3c": N3CTrainer,
+        "dqn": DQNTrainer,
+        "a3c": A3CTrainer,
         "mppo": MPPOTrainer,
     }.get(algo, PPOTrainer)
 

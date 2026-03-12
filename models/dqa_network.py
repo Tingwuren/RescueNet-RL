@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 
 
-class DQANetwork(nn.Module):
+class DQNNetwork(nn.Module):
     """Feed-forward Q-network with epsilon-greedy action selection."""
 
     def __init__(
@@ -52,10 +52,14 @@ class DQANetwork(nn.Module):
         q_max = float(torch.max(q_values).item())
         return int(action_tensor.item()), q_max
 
-    def hard_update(self, target_net: "DQANetwork") -> None:
+    def hard_update(self, target_net: "DQNNetwork") -> None:
         target_net.load_state_dict(self.state_dict())
 
-    def soft_update(self, target_net: "DQANetwork", tau: float) -> None:
+    def soft_update(self, target_net: "DQNNetwork", tau: float) -> None:
         with torch.no_grad():
             for target_param, param in zip(target_net.parameters(), self.parameters()):
                 target_param.data.mul_(1.0 - tau).add_(param.data * tau)
+
+
+# Backward compatibility alias.
+DQANetwork = DQNNetwork

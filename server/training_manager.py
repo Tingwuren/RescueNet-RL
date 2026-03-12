@@ -114,14 +114,14 @@ class TrainingManager:
             device = config["train"].get("device", "auto")
             policy = build_policy(env, config, env_type=env_type, device=device)
 
-            from algos.dqa import DQATrainer
-            from algos.n3c import N3CTrainer
+            from algos.dqn import DQNTrainer
+            from algos.a3c import A3CTrainer
             from algos.mppo import MPPOTrainer
 
             trainer_cls = {
                 "ppo": PPOTrainer,
-                "dqa": DQATrainer,
-                "n3c": N3CTrainer,
+                "dqn": DQNTrainer,
+                "a3c": A3CTrainer,
                 "mppo": MPPOTrainer,
             }.get(algorithm, PPOTrainer)
 

@@ -145,8 +145,8 @@ const scenarios = ref([]);
 const scenarioName = ref("typhoon_residual");
 const algorithms = [
   { value: "ppo", label: "PPO", desc: "基线" },
-  { value: "dqa", label: "DQA", desc: "大动作空间" },
-  { value: "n3c", label: "N3C", desc: "多目标" },
+  { value: "dqn", label: "DQN", desc: "大动作空间" },
+  { value: "a3c", label: "A3C", desc: "多目标" },
   { value: "mppo", label: "MPPO", desc: "多头策略" },
 ];
 const selectedAlgorithm = ref("ppo");

@@ -9,7 +9,7 @@ from typing import Any, Dict
 DEFAULT_CONFIG: Dict[str, Dict[str, Any]] = {
     "experiment": {
         "env_type": "baseline",  # baseline | multimodal
-        "algorithm": "ppo",  # ppo | dqa | n3c | mppo
+        "algorithm": "ppo",  # ppo | dqn | a3c | mppo
     },
     "env": {
         "grid_size": 10,
@@ -28,7 +28,7 @@ DEFAULT_CONFIG: Dict[str, Dict[str, Any]] = {
         "dataset_path": "data/scenarios.json",
         "scenario_name": "typhoon_residual",
         "reward_mode": None,
-        "max_base_stations": 10,
+        "max_base_stations": 7,
         "coverage_reward": 1.0,
         "bandwidth_reward": 0.05,
         "broadcast_reward": 0.4,
@@ -51,8 +51,8 @@ DEFAULT_CONFIG: Dict[str, Dict[str, Any]] = {
         "value_coef": 0.5,
         "max_grad_norm": 0.5,
     },
-    # DQA: decomposed Q-learning for large discrete action space
-    "dqa": {
+    # DQN: decomposed Q-learning for large discrete action space
+    "dqn": {
         "learning_rate": 3e-4,
         "gamma": 0.99,
         "buffer_size": 200_000,
@@ -64,8 +64,8 @@ DEFAULT_CONFIG: Dict[str, Dict[str, Any]] = {
         "target_update_period": 1000,  # hard update fallback
         "n_step": 3,
     },
-    # N3C: PPO-compatible policy with triple-value heads (coverage/throughput/cost)
-    "n3c": {
+    # A3C: PPO-compatible policy with triple-value heads (coverage/throughput/cost)
+    "a3c": {
         "learning_rate": 3e-4,
         "gamma": 0.99,
         "gae_lambda": 0.95,

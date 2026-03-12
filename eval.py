@@ -21,7 +21,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--algo",
         type=str,
-        choices=["ppo", "dqa", "n3c", "mppo"],
+        choices=["ppo", "dqn", "a3c", "mppo"],
         default=None,
         help="Algorithm used to train the checkpoint.",
     )

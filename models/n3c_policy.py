@@ -1,4 +1,4 @@
-"""Multi-head value (coverage/throughput/cost) actor-critic for N3C."""
+"""Multi-head value (coverage/throughput/cost) actor-critic for A3C."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ import torch.nn as nn
 from torch.distributions import Categorical
 
 
-class N3CPolicy(nn.Module):
+class A3CPolicy(nn.Module):
     """Actor with triple critics aggregated by configurable weights."""
 
     def __init__(
@@ -95,3 +95,7 @@ class N3CPolicy(nn.Module):
 
     def update_value_weights(self, value_weights: Dict[str, float]) -> None:
         self.value_weights = value_weights
+
+
+# Backward compatibility alias.
+N3CPolicy = A3CPolicy

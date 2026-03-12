@@ -13,10 +13,10 @@
     <div class="monitor__chart">
       <div class="chart__header">
         <div>
-          <p class="monitor__label">实时覆盖率</p>
+          <p class="monitor__label">实时覆盖率（episode）</p>
           <p class="monitor__value">{{ latestAccuracy }}</p>
         </div>
-        <small class="chart__hint">来源：episode 覆盖率 + evaluation 覆盖率</small>
+        <small class="chart__hint">来源：每个 episode 终态覆盖率</small>
       </div>
       <div class="chart__viewport">
         <svg :viewBox="`0 0 ${chartWidth} ${chartHeight}`" preserveAspectRatio="none">
@@ -50,10 +50,10 @@
     <div class="monitor__chart">
       <div class="chart__header">
         <div>
-          <p class="monitor__label">实时广播覆盖</p>
+          <p class="monitor__label">实时广播覆盖（episode）</p>
           <p class="monitor__value">{{ latestBroadcast }}</p>
         </div>
-        <small class="chart__hint">来源：episode 广播率 + evaluation 广播率</small>
+        <small class="chart__hint">来源：每个 episode 终态广播率</small>
       </div>
       <div class="chart__viewport">
         <svg :viewBox="`0 0 ${chartWidth} ${chartHeight}`" preserveAspectRatio="none">
@@ -122,22 +122,19 @@ const latestUpdate = computed(() => {
 const chartWidth = 320;
 const chartHeight = 140;
 
-const buildSeries = (keyEpisode, keyEval) => {
+const buildEpisodeSeries = (keyEpisode) => {
   const series = [];
   for (const event of props.events) {
     const payload = event.payload || {};
     if (event.type === "episode" && typeof payload[keyEpisode] === "number") {
       series.push({ value: payload[keyEpisode], label: `Episode ${payload.episode}` });
     }
-    if (event.type === "evaluation" && typeof payload[keyEval] === "number") {
-      series.push({ value: payload[keyEval], label: `Eval@${payload.step}` });
-    }
   }
   return series;
 };
 
-const coverageSeries = computed(() => buildSeries("coverage", "avg_coverage"));
-const broadcastSeries = computed(() => buildSeries("broadcast", "avg_broadcast"));
+const coverageSeries = computed(() => buildEpisodeSeries("coverage"));
+const broadcastSeries = computed(() => buildEpisodeSeries("broadcast"));
 
 const latestAccuracy = computed(() => {
   if (!coverageSeries.value.length) return "--";

@@ -38,31 +38,31 @@
       ],
       "mode_profiles": {
         "5G_600MHz": {
-          "coverage_radius": 3.5,
+          "coverage_radius": 2.8,
           "max_bandwidth": 180.0,
           "recovery_speed": 0.6,
           "base_station": "macro_bs"
         },
         "5G_700MHz": {
-          "coverage_radius": 3.0,
+          "coverage_radius": 2.4,
           "max_bandwidth": 200.0,
           "recovery_speed": 0.7,
           "base_station": "macro_bs"
         },
         "Satellite_Ka": {
-          "coverage_radius": 5.0,
+          "coverage_radius": 4.0,
           "max_bandwidth": 90.0,
           "recovery_speed": 0.9,
           "base_station": "orbital_relay"
         },
         "WiFi6": {
-          "coverage_radius": 2.0,
+          "coverage_radius": 1.6,
           "max_bandwidth": 120.0,
           "recovery_speed": 0.4,
           "base_station": "wifi_hotspot"
         },
         "Shortwave_HF": {
-          "coverage_radius": 6.0,
+          "coverage_radius": 4.8,
           "max_bandwidth": 20.0,
           "recovery_speed": 0.3,
           "base_station": "shortwave_node"
@@ -354,31 +354,31 @@
       ],
       "mode_profiles": {
         "5G_700MHz": {
-          "coverage_radius": 3.2,
+          "coverage_radius": 2.6,
           "max_bandwidth": 160.0,
           "recovery_speed": 0.65,
           "base_station": "delta_macro"
         },
         "Satellite_Ka": {
-          "coverage_radius": 5.5,
+          "coverage_radius": 4.4,
           "max_bandwidth": 85.0,
           "recovery_speed": 0.85,
           "base_station": "satellite_relay"
         },
         "WiFi6": {
-          "coverage_radius": 2.2,
+          "coverage_radius": 1.8,
           "max_bandwidth": 130.0,
           "recovery_speed": 0.5,
           "base_station": "wifi_hotspot"
         },
         "Shortwave_HF": {
-          "coverage_radius": 6.5,
+          "coverage_radius": 5.2,
           "max_bandwidth": 18.0,
           "recovery_speed": 0.35,
           "base_station": "shortwave_node"
         },
         "Mesh_UAV": {
-          "coverage_radius": 4.0,
+          "coverage_radius": 3.2,
           "max_bandwidth": 60.0,
           "recovery_speed": 0.55,
           "base_station": "mesh_uav"
@@ -664,31 +664,31 @@
       ],
       "mode_profiles": {
         "5G_600MHz": {
-          "coverage_radius": 3.8,
+          "coverage_radius": 3.0,
           "max_bandwidth": 170.0,
           "recovery_speed": 0.7,
           "base_station": "macro_bs"
         },
         "5G_mmWave": {
-          "coverage_radius": 1.5,
+          "coverage_radius": 1.2,
           "max_bandwidth": 500.0,
           "recovery_speed": 0.5,
           "base_station": "mmwave_micro"
         },
         "Satellite_Ku": {
-          "coverage_radius": 4.5,
+          "coverage_radius": 3.6,
           "max_bandwidth": 120.0,
           "recovery_speed": 0.9,
           "base_station": "satellite_ku"
         },
         "WiFi6": {
-          "coverage_radius": 2.0,
+          "coverage_radius": 1.6,
           "max_bandwidth": 140.0,
           "recovery_speed": 0.55,
           "base_station": "wifi_hotspot"
         },
         "Shortwave_HF": {
-          "coverage_radius": 7.0,
+          "coverage_radius": 5.6,
           "max_bandwidth": 18.0,
           "recovery_speed": 0.4,
           "base_station": "shortwave_node"
