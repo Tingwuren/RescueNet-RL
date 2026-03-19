@@ -23,7 +23,7 @@ from server.schemas import (
     TrainingStatus,
 )
 from server.training_manager import TrainingManager
-from services.evaluation import build_env, evaluate_policy, load_policy
+from services.evaluation import build_env, evaluate_policy, export_episode_scene, load_policy
 
 app = FastAPI(title="RescueNet-RL API", version="0.1.0")
 app.add_middleware(
@@ -173,9 +173,14 @@ def simulate_strategy(request: SimulationRequest) -> SimulationResponse:
         custom_user_state=custom_state or None,
         custom_base_stations=custom_base_stations,
     )
+    scene_export = None
+    if reports:
+        export_dir = Path(config["logging"]["artifact_dir"]) / "scene_exports"
+        scene_export = export_episode_scene(reports[0], env, export_dir)
 
     return SimulationResponse(
         avg_reward=float(np.mean(rewards)),
         avg_final_coverage=float(np.mean(coverages)),
         reports=reports,
+        scene_export=scene_export,
     )

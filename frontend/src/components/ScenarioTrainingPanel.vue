@@ -3,7 +3,7 @@
     <div class="panel-header">
       <div>
         <h2>灾害场景训练</h2>
-        <p>选择场景，触发训练（支持 PPO / DQN / A3C / MPPO），并通过事件流实时查看指标。</p>
+        <p>选择场景，触发训练（支持 PPO / DQN / A3C / MPPO，自创算法按钮已预留），并通过事件流实时查看指标。</p>
       </div>
       <div class="scenario-select">
         <label>训练场景</label>
@@ -26,6 +26,12 @@
         <p>用户数：{{ currentScenario.num_users }}</p>
         <p>候选站点：{{ currentScenario.candidate_sites }}</p>
         <p>最大步长：{{ currentScenario.max_steps }}</p>
+        <p v-if="regionMetrics">
+          区域跨度：约 {{ formatDistance(regionMetrics.widthKm) }} × {{ formatDistance(regionMetrics.heightKm) }}
+        </p>
+        <p v-if="regionMetrics">
+          单网格：约 {{ formatDistance(regionMetrics.cellWidthKm) }} × {{ formatDistance(regionMetrics.cellHeightKm) }}
+        </p>
       </div>
       <div class="reward-panel" v-if="rewardProfiles.length">
         <div class="reward-panel__header">
@@ -72,7 +78,9 @@
               v-for="algo in algorithms"
               :key="algo.value"
               :class="['algo-chip', { 'algo-chip--active': algo.value === selectedAlgorithm }]"
-              @click="() => selectAlgorithm(algo.value)"
+              :disabled="algo.disabled"
+              :title="algo.disabled ? '预留按钮，暂未接入训练后端' : ''"
+              @click="() => !algo.disabled && selectAlgorithm(algo.value)"
             >
               <strong>{{ algo.label }}</strong>
               <small>{{ algo.desc }}</small>
@@ -93,6 +101,7 @@
 import { onMounted, ref, computed, watch } from "vue";
 import axios from "axios";
 import TrainingMonitor from "./TrainingMonitor.vue";
+import { buildRegionMetrics, formatDistance } from "../utils/regionMetrics";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000/api";
 
@@ -102,6 +111,7 @@ const algorithms = [
   { value: "dqn", label: "DQN", desc: "大动作空间" },
   { value: "a3c", label: "A3C", desc: "多目标" },
   { value: "mppo", label: "MPPO", desc: "多头策略" },
+  { value: "custom", label: "自创算法", desc: "预留中", disabled: true },
 ];
 const selectedScenario = ref(null);
 const selectedRewardMode = ref(null);
@@ -114,6 +124,7 @@ let eventSource = null;
 
 const currentScenario = computed(() => scenarios.value.find((item) => item.name === selectedScenario.value));
 const rewardProfiles = computed(() => currentScenario.value?.reward_profiles || []);
+const regionMetrics = computed(() => buildRegionMetrics(currentScenario.value?.region_grid));
 const activeRewardProfile = computed(() =>
   rewardProfiles.value.find((profile) => profile.key === selectedRewardMode.value)
 );
@@ -376,6 +387,11 @@ onMounted(fetchScenarios);
   color: #e2e8f0;
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+.algo-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .algo-chip--active {

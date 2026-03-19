@@ -28,7 +28,7 @@ DEFAULT_CONFIG: Dict[str, Dict[str, Any]] = {
         "dataset_path": "data/scenarios.json",
         "scenario_name": "typhoon_residual",
         "reward_mode": None,
-        "max_base_stations": 7,
+        "max_base_stations": 24,
         "coverage_reward": 1.0,
         "bandwidth_reward": 0.05,
         "broadcast_reward": 0.4,

@@ -47,7 +47,13 @@ class MultiModalCommEnv(gym.Env):
         base_profiles = self.scenario.base_station_profiles or {}
         self.base_station_profiles = base_profiles
         self.max_base_throughput = max((profile.max_throughput for profile in base_profiles.values()), default=1.0)
+        self.max_device_cost = max((profile.device_cost for profile in base_profiles.values()), default=1.0)
+        self.max_bandwidth_cost_per_step = max(
+            (profile.bandwidth_cost * profile.max_throughput for profile in base_profiles.values()),
+            default=1.0,
+        )
         self.max_total_demand = max(1.0, self.scenario.num_users * 40.0)
+        self.target_users_per_station = max(1.0, self.scenario.num_users / max(1.0, self.max_base_stations))
         self.custom_base_station_specs: Optional[List[Dict[str, Any]]] = None
         self.residual_base_summary: List[Dict[str, Any]] = []
 
@@ -107,6 +113,7 @@ class MultiModalCommEnv(gym.Env):
         self._latest_throughput = 0.0
         self._latest_device_cost = 0.0
         self._latest_bandwidth_cost = 0.0
+        self._latest_reward_breakdown: Dict[str, float] = {}
         self.residual_base_summary = []
 
     def _generate_candidate_locations(self) -> np.ndarray:
@@ -220,6 +227,10 @@ class MultiModalCommEnv(gym.Env):
             self._latest_device_cost = 0.0
             self._latest_bandwidth_cost = 0.0
             reward = -self.invalid_action_penalty
+            self._latest_reward_breakdown = {
+                "invalid_action_penalty": -self.invalid_action_penalty,
+                "total": reward,
+            }
             truncated = True
             info["reason"] = "budget_exhausted"
             observation = self._get_observation()
@@ -233,6 +244,10 @@ class MultiModalCommEnv(gym.Env):
             self._latest_throughput = 0.0
             self._latest_device_cost = 0.0
             self._latest_bandwidth_cost = 0.0
+            self._latest_reward_breakdown = {
+                "invalid_action_penalty": -self.invalid_action_penalty,
+                "total": reward,
+            }
         else:
             self.deployment_mask[site_idx, comm_idx] = True
             self.broadcast_mask[site_idx, broadcast_idx] = True
@@ -250,6 +265,13 @@ class MultiModalCommEnv(gym.Env):
         if coverage_ratio >= 0.999 and broadcast_ratio >= 0.9:
             terminated = True
             info["reason"] = "all_users_served"
+            completion_bonus = (
+                self.coverage_reward * self.reward_profile.coverage_weight
+                + self.broadcast_reward * self.reward_profile.broadcast_weight
+            )
+            reward += completion_bonus
+            self._latest_reward_breakdown["completion_bonus"] = float(completion_bonus)
+            self._latest_reward_breakdown["total"] = float(reward)
         elif self.current_step >= self.max_steps:
             truncated = True
             info["reason"] = "max_steps"
@@ -312,6 +334,7 @@ class MultiModalCommEnv(gym.Env):
 
         return {
             "newly_connected": float(newly_connected) / max(1, self.num_users),
+            "newly_connected_users": float(newly_connected),
             "requested_demand": requested,
             "served_demand": served,
             "avg_throughput": avg_throughput,
@@ -321,18 +344,35 @@ class MultiModalCommEnv(gym.Env):
 
     def _compute_reward(self, mode_effect: Dict[str, float], broadcast_effect: float, demand_gap: float) -> float:
         weights = self.reward_profile
-        coverage_term = self.coverage_reward * weights.coverage_weight * mode_effect.get("newly_connected", 0.0)
-        served_norm = mode_effect.get("served_demand", 0.0) / self.max_total_demand
+        newly_connected_users = mode_effect.get("newly_connected_users", 0.0)
+        new_broadcast_users = broadcast_effect * self.num_users
+        coverage_progress = newly_connected_users / self.target_users_per_station
+        broadcast_progress = new_broadcast_users / self.target_users_per_station
+        served_norm = mode_effect.get("served_demand", 0.0) / max(1.0, self.max_base_throughput)
         throughput_norm = mode_effect.get("avg_throughput", 0.0) / max(1.0, self.max_base_throughput)
-        broadcast_term = self.broadcast_reward * weights.broadcast_weight * broadcast_effect
-        device_cost_term = weights.device_cost_weight * mode_effect.get("device_cost", 0.0)
-        bw_cost_term = weights.bandwidth_cost_weight * (
-            mode_effect.get("bandwidth_cost", 0.0) / max(1.0, self.max_base_throughput)
+        coverage_term = self.coverage_reward * weights.coverage_weight * coverage_progress
+        broadcast_term = self.broadcast_reward * weights.broadcast_weight * broadcast_progress
+        device_cost_term = weights.device_cost_weight * (
+            mode_effect.get("device_cost", 0.0) / max(1.0, self.max_device_cost)
         )
-        demand_penalty = self.demand_penalty * (demand_gap / self.max_total_demand)
+        bw_cost_term = weights.bandwidth_cost_weight * (
+            mode_effect.get("bandwidth_cost", 0.0) / max(1.0, self.max_bandwidth_cost_per_step)
+        )
+        requested_demand = mode_effect.get("requested_demand", 0.0)
+        demand_penalty = self.demand_penalty * (demand_gap / max(1.0, requested_demand))
         bandwidth_term = self.bandwidth_reward * weights.bandwidth_weight * served_norm
         throughput_term = weights.throughput_weight * throughput_norm
         reward = coverage_term + bandwidth_term + throughput_term + broadcast_term - device_cost_term - bw_cost_term - demand_penalty
+        self._latest_reward_breakdown = {
+            "coverage_term": float(coverage_term),
+            "broadcast_term": float(broadcast_term),
+            "bandwidth_term": float(bandwidth_term),
+            "throughput_term": float(throughput_term),
+            "device_cost_term": float(-device_cost_term),
+            "bandwidth_cost_term": float(-bw_cost_term),
+            "demand_penalty": float(-demand_penalty),
+            "total": float(reward),
+        }
         return reward
 
     def _activate_broadcast(self, site_idx: int, broadcast_idx: int) -> float:
@@ -433,6 +473,7 @@ class MultiModalCommEnv(gym.Env):
             "reward_label": self.reward_profile.label,
             "device_cost": float(self._latest_device_cost),
             "bandwidth_cost": float(self._latest_bandwidth_cost),
+            "reward_breakdown": dict(self._latest_reward_breakdown),
             "residual_base_stations": list(self.residual_base_summary),
         }
 

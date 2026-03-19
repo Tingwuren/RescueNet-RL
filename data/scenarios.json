@@ -3,11 +3,11 @@
     {
       "name": "typhoon_residual",
       "disaster_type": "typhoon",
-      "grid_size": 12,
+      "grid_size": 24,
       "region_grid": {
         "name": "珠海-沿海台风救灾区块",
-        "rows": 12,
-        "cols": 12,
+        "rows": 24,
+        "cols": 24,
         "geo_bounds": {
           "lat_min": 21.8,
           "lat_max": 22.4,
@@ -15,14 +15,14 @@
           "lon_max": 114.1
         },
         "cell_labels": {
-          "3,4": "沿海居民聚集带",
-          "8,9": "港口作业区",
-          "6,2": "山地安置点"
+          "6,8": "沿海居民聚集带",
+          "16,18": "港口作业区",
+          "12,4": "山地安置点"
         }
       },
-      "num_users": 60,
-      "candidate_sites": 30,
-      "max_steps": 30,
+      "num_users": 1500,
+      "candidate_sites": 120,
+      "max_steps": 72,
       "has_residual_network": true,
       "communication_modes": [
         "5G_600MHz",
@@ -85,28 +85,28 @@
       "user_clusters": [
         {
           "center": [
-            3,
-            4
+            6,
+            8
           ],
-          "radius": 2.0,
+          "radius": 4.0,
           "density": 0.35,
           "demand_mbps": 15.0
         },
         {
           "center": [
-            8,
-            9
+            16,
+            18
           ],
-          "radius": 3.0,
+          "radius": 6.0,
           "density": 0.4,
           "demand_mbps": 20.0
         },
         {
           "center": [
-            6,
-            2
+            12,
+            4
           ],
-          "radius": 2.5,
+          "radius": 5.0,
           "density": 0.25,
           "demand_mbps": 8.0
         }
@@ -320,11 +320,11 @@
     {
       "name": "flood_no_residual",
       "disaster_type": "flood",
-      "grid_size": 10,
+      "grid_size": 20,
       "region_grid": {
         "name": "洞庭湖-城郊易涝区块",
-        "rows": 10,
-        "cols": 10,
+        "rows": 20,
+        "cols": 20,
         "geo_bounds": {
           "lat_min": 29.0,
           "lat_max": 29.6,
@@ -332,14 +332,14 @@
           "lon_max": 113.6
         },
         "cell_labels": {
-          "2,2": "江滩村落",
-          "7,8": "湖滨新城",
-          "5,4": "防洪堤后居民区"
+          "4,4": "江滩村落",
+          "14,16": "湖滨新城",
+          "10,8": "防洪堤后居民区"
         }
       },
-      "num_users": 55,
-      "candidate_sites": 28,
-      "max_steps": 28,
+      "num_users": 1280,
+      "candidate_sites": 112,
+      "max_steps": 64,
       "has_residual_network": false,
       "communication_modes": [
         "5G_700MHz",
@@ -397,28 +397,28 @@
       "user_clusters": [
         {
           "center": [
-            2,
-            2
+            4,
+            4
           ],
-          "radius": 2.5,
+          "radius": 5.0,
           "density": 0.4,
           "demand_mbps": 12.0
         },
         {
           "center": [
-            7,
-            8
+            14,
+            16
           ],
-          "radius": 2.2,
+          "radius": 4.4,
           "density": 0.32,
           "demand_mbps": 14.0
         },
         {
           "center": [
-            5,
-            4
+            10,
+            8
           ],
-          "radius": 2.0,
+          "radius": 4.0,
           "density": 0.28,
           "demand_mbps": 9.0
         }
@@ -629,11 +629,11 @@
     {
       "name": "earthquake_residual",
       "disaster_type": "earthquake",
-      "grid_size": 11,
+      "grid_size": 22,
       "region_grid": {
         "name": "川西震后山区网格",
-        "rows": 11,
-        "cols": 11,
+        "rows": 22,
+        "cols": 22,
         "geo_bounds": {
           "lat_min": 30.2,
           "lat_max": 30.8,
@@ -641,14 +641,14 @@
           "lon_max": 103.5
         },
         "cell_labels": {
-          "4,5": "县城核心区",
-          "9,8": "山脊村落",
-          "5,2": "河谷安置点"
+          "8,10": "县城核心区",
+          "18,16": "山脊村落",
+          "10,4": "河谷安置点"
         }
       },
-      "num_users": 65,
-      "candidate_sites": 32,
-      "max_steps": 32,
+      "num_users": 1360,
+      "candidate_sites": 128,
+      "max_steps": 68,
       "has_residual_network": true,
       "communication_modes": [
         "5G_600MHz",
@@ -711,28 +711,28 @@
       "user_clusters": [
         {
           "center": [
-            4,
-            5
+            8,
+            10
           ],
-          "radius": 2.5,
+          "radius": 5.0,
           "density": 0.33,
           "demand_mbps": 16.0
         },
         {
           "center": [
-            9,
-            8
+            18,
+            16
           ],
-          "radius": 2.8,
+          "radius": 5.6,
           "density": 0.3,
           "demand_mbps": 18.0
         },
         {
           "center": [
-            5,
-            2
+            10,
+            4
           ],
-          "radius": 2.0,
+          "radius": 4.0,
           "density": 0.25,
           "demand_mbps": 10.0
         }

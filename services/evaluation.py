@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -14,6 +15,9 @@ from models.policy_network import MLPActorCritic
 from models.dqn_network import DQNNetwork
 from models.a3c_policy import A3CPolicy
 from models.mppo_policy import MPPOPolicy
+
+REAL_MAP_WIDTH = 5000
+REAL_MAP_HEIGHT = 5000
 
 
 def build_env(config: Dict[str, Dict], env_type: str):
@@ -111,7 +115,7 @@ def evaluate_policy(
     render: bool = False,
     custom_user_state: Optional[List[Dict[str, Any]]] = None,
     custom_base_stations: Optional[List[Dict[str, Any]]] = None,
-) -> Tuple[List[float], List[float], List[Dict[str, Any]]]:
+    ) -> Tuple[List[float], List[float], List[Dict[str, Any]]]:
     """Run rollouts and return rewards, coverages, and structured episode reports."""
     rewards: List[float] = []
     coverages: List[float] = []
@@ -177,6 +181,30 @@ def evaluate_policy(
         episode_report["steps_taken"] = steps
         reports.append(episode_report)
     return rewards, coverages, reports
+
+
+def export_episode_scene(report: Dict[str, Any], env, output_dir: Path) -> Dict[str, Any]:
+    """Export the initial disaster scene and post-deployment scene to JSON files."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    scenario_name = (report.get("scenario", {}) or {}).get("name") or "scenario"
+    episode = int(report.get("episode", 1))
+    slug = _slugify(f"{scenario_name}_episode_{episode}")
+
+    disaster_scene = _build_scene_payload(report, env, include_deployments=False)
+    deployment_scene = _build_scene_payload(report, env, include_deployments=True)
+
+    disaster_path = output_dir / f"{slug}_disaster_scene.json"
+    deployment_path = output_dir / f"{slug}_deployment_scene.json"
+    disaster_path.write_text(json.dumps(disaster_scene, ensure_ascii=False, indent=2), encoding="utf-8")
+    deployment_path.write_text(json.dumps(deployment_scene, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    return {
+        "disaster_scene_path": str(disaster_path),
+        "deployment_scene_path": str(deployment_path),
+        "disaster_scene": disaster_scene,
+        "deployment_scene": deployment_scene,
+    }
 
 
 def format_episode_report(report: Dict[str, Any]) -> str:
@@ -270,6 +298,127 @@ def format_episode_report(report: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _build_scene_payload(report: Dict[str, Any], env, include_deployments: bool) -> Dict[str, Any]:
+    initial_state = report.get("initial_state", {}) or {}
+    final_state = report.get("final_state", {}) or {}
+    user_details = final_state.get("user_details") or initial_state.get("user_details") or []
+    grid_rows, grid_cols = _grid_shape(env)
+
+    nodes: List[Dict[str, Any]] = []
+    node_id = 0
+
+    for detail in user_details:
+        position = detail.get("position")
+        if not _valid_position(position):
+            continue
+        row, col = int(position[0]), int(position[1])
+        x, y = _grid_to_real_coords(row, col, grid_rows, grid_cols)
+        nodes.append({"id": node_id, "type": "USER", "x": x, "y": y})
+        node_id += 1
+
+    for station in initial_state.get("residual_base_stations", []) or []:
+        row = station.get("x")
+        col = station.get("y")
+        if row is None or col is None:
+            continue
+        x, y = _grid_to_real_coords(int(row), int(col), grid_rows, grid_cols)
+        nodes.append(
+            {
+                "id": node_id,
+                "type": _base_station_node_type(station.get("base_station")),
+                "x": x,
+                "y": y,
+            }
+        )
+        node_id += 1
+
+    if include_deployments:
+        for station in _collect_deployed_station_nodes(report, env):
+            x, y = _grid_to_real_coords(station["row"], station["col"], grid_rows, grid_cols)
+            nodes.append(
+                {
+                    "id": node_id,
+                    "type": station["type"],
+                    "x": x,
+                    "y": y,
+                }
+            )
+            node_id += 1
+
+    return {
+        "map_width": REAL_MAP_WIDTH,
+        "map_height": REAL_MAP_HEIGHT,
+        "nodes": nodes,
+    }
+
+
+def _collect_deployed_station_nodes(report: Dict[str, Any], env) -> List[Dict[str, Any]]:
+    stations: List[Dict[str, Any]] = []
+    seen = set()
+    scenario = getattr(env, "scenario", None)
+
+    for step in report.get("steps", []) or []:
+        action_desc = step.get("action_desc") or {}
+        location = action_desc.get("location")
+        if not _valid_position(location):
+            continue
+        row, col = int(location[0]), int(location[1])
+        comm_mode = action_desc.get("comm_mode")
+        base_key = comm_mode
+        if scenario and comm_mode and hasattr(scenario, "get_base_station_for_mode"):
+            base_profile = scenario.get_base_station_for_mode(comm_mode)
+            if base_profile is not None:
+                base_key = getattr(base_profile, "name", comm_mode)
+
+        dedupe_key = (row, col, str(base_key))
+        if dedupe_key in seen:
+            continue
+        seen.add(dedupe_key)
+        stations.append(
+            {
+                "row": row,
+                "col": col,
+                "type": _base_station_node_type(base_key),
+            }
+        )
+
+    return stations
+
+
+def _grid_shape(env) -> Tuple[int, int]:
+    region_grid = getattr(env, "region_grid", None)
+    if region_grid is not None:
+        return int(region_grid.rows), int(region_grid.cols)
+    if hasattr(env, "grid_rows") and hasattr(env, "grid_cols"):
+        return int(getattr(env, "grid_rows")), int(getattr(env, "grid_cols"))
+    size = int(getattr(env, "grid_size", 1))
+    return size, size
+
+
+def _grid_to_real_coords(row: int, col: int, rows: int, cols: int) -> Tuple[int, int]:
+    x = int(round(((col + 0.5) / max(1, cols)) * REAL_MAP_WIDTH))
+    y = int(round(((row + 0.5) / max(1, rows)) * REAL_MAP_HEIGHT))
+    x = min(REAL_MAP_WIDTH, max(0, x))
+    y = min(REAL_MAP_HEIGHT, max(0, y))
+    return x, y
+
+
+def _base_station_node_type(base_key: Any) -> str:
+    normalized = str(base_key or "").strip().lower()
+    if "macro" in normalized or normalized.endswith("_enb"):
+        return "MACRO_ENB"
+    return "MANPACK_ENB"
+
+
+def _valid_position(position: Any) -> bool:
+    return isinstance(position, (list, tuple)) and len(position) >= 2
+
+
+def _slugify(value: str) -> str:
+    safe = "".join(ch if ch.isalnum() else "_" for ch in value.strip().lower())
+    return safe.strip("_") or "scene"
+
+
 def _describe_scenario(env) -> Dict[str, Any]:
     scenario = getattr(env, "scenario", None)
     return {
@@ -297,6 +446,7 @@ def _capture_network_state(env, info: Dict[str, Any]) -> Dict[str, Any]:
         "recent_throughput": float(info.get("recent_throughput", 0.0)),
         "device_cost": float(info.get("device_cost", 0.0)),
         "bandwidth_cost": float(info.get("bandwidth_cost", 0.0)),
+        "reward_breakdown": info.get("reward_breakdown", {}),
         "residual_base_stations": info.get("residual_base_stations", []),
     }
 

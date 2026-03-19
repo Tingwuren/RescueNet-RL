@@ -19,10 +19,14 @@
       <div v-if="regionGrid" class="region-hint">
         <p>
           区域：{{ regionGrid.name }}
-          <small>网格 {{ regionGrid.rows }} × {{ regionGrid.cols }}</small>
+          <small>离散网格 {{ regionGrid.rows }} × {{ regionGrid.cols }}</small>
+        </p>
+        <p v-if="regionMetrics">
+          实际跨度：约 {{ formatDistance(regionMetrics.widthKm) }} × {{ formatDistance(regionMetrics.heightKm) }}
+          <small>单网格约 {{ formatDistance(regionMetrics.cellWidthKm) }} × {{ formatDistance(regionMetrics.cellHeightKm) }}</small>
         </p>
         <p class="bounds">
-          近似范围：纬度 {{ regionGrid.geo_bounds?.lat_min }}–{{ regionGrid.geo_bounds?.lat_max }}，
+          经纬边界：纬度 {{ regionGrid.geo_bounds?.lat_min }}–{{ regionGrid.geo_bounds?.lat_max }}，
           经度 {{ regionGrid.geo_bounds?.lon_min }}–{{ regionGrid.geo_bounds?.lon_max }}
         </p>
       </div>
@@ -34,7 +38,9 @@
             v-for="algo in algorithms"
             :key="algo.value"
             :class="['algo-chip', { 'algo-chip--active': algo.value === selectedAlgorithm }]"
-            @click="selectedAlgorithm = algo.value"
+            :disabled="algo.disabled"
+            :title="algo.disabled ? '预留按钮，暂未接入后端实现' : ''"
+            @click="() => !algo.disabled && (selectedAlgorithm = algo.value)"
           >
             <strong>{{ algo.label }}</strong>
             <small>{{ algo.desc }}</small>
@@ -89,6 +95,19 @@
       <h3>测试结果</h3>
       <p>平均奖励：{{ simulationResult.avg_reward.toFixed(2) }}</p>
       <p>平均覆盖率：{{ (simulationResult.avg_final_coverage * 100).toFixed(2) }}%</p>
+      <div v-if="sceneExport" class="export-panel">
+        <h4>场景导出</h4>
+        <p>受灾场景文件：{{ sceneExport.disaster_scene_path }}</p>
+        <p>部署后场景文件：{{ sceneExport.deployment_scene_path }}</p>
+        <div class="export-actions">
+          <button type="button" @click="downloadExport(sceneExport.disaster_scene, exportFilename('disaster'))">
+            下载受灾场景 JSON
+          </button>
+          <button type="button" @click="downloadExport(sceneExport.deployment_scene, exportFilename('deployment'))">
+            下载部署后场景 JSON
+          </button>
+        </div>
+      </div>
       <div v-for="report in simulationResult.reports" :key="report.episode" class="report">
         <h4>
           Episode {{ report.episode }} - {{ report.scenario?.name }} ({{ report.scenario?.disaster_type }})
@@ -138,6 +157,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
 import axios from "axios";
+import { buildRegionMetrics, formatDistance } from "../utils/regionMetrics";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000/api";
 
@@ -148,6 +168,7 @@ const algorithms = [
   { value: "dqn", label: "DQN", desc: "大动作空间" },
   { value: "a3c", label: "A3C", desc: "多目标" },
   { value: "mppo", label: "MPPO", desc: "多头策略" },
+  { value: "custom", label: "自创算法", desc: "预留中", disabled: true },
 ];
 const selectedAlgorithm = ref("ppo");
 const checkpointPath = ref("artifacts/ppo_policy.pt");
@@ -159,6 +180,8 @@ const errorMessage = ref("");
 const currentScenario = computed(() => scenarios.value.find((scenario) => scenario.name === scenarioName.value));
 const baseStationOptions = computed(() => currentScenario.value?.base_stations || []);
 const regionGrid = computed(() => currentScenario.value?.region_grid || null);
+const regionMetrics = computed(() => buildRegionMetrics(regionGrid.value));
+const sceneExport = computed(() => simulationResult.value?.scene_export || null);
 const gridRows = computed(() => regionGrid.value?.rows || currentScenario.value?.grid_size || 10);
 const gridCols = computed(() => regionGrid.value?.cols || currentScenario.value?.grid_size || 10);
 const gridRowLimit = computed(() => Math.max(0, gridRows.value - 1));
@@ -213,6 +236,22 @@ const addBaseStation = () => {
 
 const removeBaseStation = (index) => {
   baseStations.value.splice(index, 1);
+};
+
+const exportFilename = (suffix) => {
+  const scenario = scenarioName.value || "scenario";
+  return `${scenario}_${suffix}_scene.json`;
+};
+
+const downloadExport = (payload, filename) => {
+  if (!payload) return;
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
 };
 
 const runSimulation = async () => {
@@ -407,10 +446,47 @@ input[type="text"] {
   transition: all 0.2s ease;
 }
 
+.algo-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .algo-chip--active {
   border-color: #38bdf8;
   box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.25);
   background: linear-gradient(120deg, rgba(56, 189, 248, 0.1), rgba(14, 165, 233, 0.08));
+}
+
+.export-panel {
+  margin-top: 16px;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 10px;
+  padding: 12px;
+  background: rgba(14, 165, 233, 0.08);
+}
+
+.export-panel h4 {
+  margin: 0 0 8px;
+}
+
+.export-panel p {
+  margin: 4px 0;
+  word-break: break-all;
+}
+
+.export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.export-actions button {
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: rgba(15, 23, 42, 0.3);
+  color: inherit;
+  border-radius: 999px;
+  padding: 8px 12px;
 }
 
 .tester__result {

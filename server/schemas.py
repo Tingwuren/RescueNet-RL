@@ -65,7 +65,15 @@ class SimulationRequest(BaseModel):
     )
 
 
+class SceneExport(BaseModel):
+    disaster_scene_path: str
+    deployment_scene_path: str
+    disaster_scene: Dict[str, Any]
+    deployment_scene: Dict[str, Any]
+
+
 class SimulationResponse(BaseModel):
     avg_reward: float
     avg_final_coverage: float
     reports: List[Dict[str, Any]]
+    scene_export: Optional[SceneExport] = None
