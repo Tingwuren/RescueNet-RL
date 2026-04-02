@@ -163,3 +163,36 @@ python train.py \
    - “自定义环境测试” 面板：自由添加受灾设备（坐标/需求/初始状态），并查看模型在该环境中的组网策略与设备恢复情况。
 
 > 默认 `VITE_API_BASE=http://localhost:8000/api`，若后端端口不同，可通过 `.env.local` 覆写。
+
+## Docker 一体化部署（前后端同容器）
+
+新增 Docker 化部署，支持把 Vue 前端与 FastAPI 后端打包为单个可运行容器。
+
+### 1) 构建并启动
+
+```bash
+docker compose up --build -d
+```
+
+启动后访问：
+
+- 前端页面：`http://localhost:8000/`
+- 后端健康检查：`http://localhost:8000/api/health`
+
+### 2) 查看日志
+
+```bash
+docker compose logs -f rescuenet
+```
+
+### 3) 停止并清理
+
+```bash
+docker compose down
+```
+
+### 说明
+
+- 镜像构建阶段会自动执行前端 `npm run build`，并把静态资源拷贝到最终 Python 运行镜像。
+- 容器运行时由同一个 FastAPI 进程同时提供 `/api/*` 接口和前端静态页面。
+- `docker-compose.yml` 默认将宿主机 `./artifacts` 挂载到容器 `/app/artifacts`，训练产物会持久化到本地目录。

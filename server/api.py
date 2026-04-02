@@ -6,6 +6,7 @@ import asyncio
 import json
 import queue
 import threading
+import os
 import time
 from pathlib import Path
 from typing import AsyncGenerator, Dict, List
@@ -13,6 +14,7 @@ from typing import AsyncGenerator, Dict, List
 import numpy as np
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from fastapi.responses import StreamingResponse
 
 from configs.default_config import get_default_config
@@ -378,3 +380,23 @@ def stream_simulation(request: SimulationRequest):
                 break
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+def _resolve_frontend_dist() -> Path:
+    configured = Path(os.environ.get("FRONTEND_DIST", "frontend/dist"))
+    if configured.is_absolute():
+        return configured
+    project_root = Path(__file__).resolve().parents[1]
+    return project_root / configured
+
+
+def _mount_frontend_static() -> None:
+    frontend_dist = _resolve_frontend_dist()
+    if not frontend_dist.exists():
+        return
+
+    # Keep API routes unchanged, and serve built frontend for root/static files.
+    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
+
+
+_mount_frontend_static()
