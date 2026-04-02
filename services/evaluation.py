@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -18,6 +18,7 @@ from models.mppo_policy import MPPOPolicy
 
 REAL_MAP_WIDTH = 5000
 REAL_MAP_HEIGHT = 5000
+ProgressCallback = Optional[Callable[[Dict[str, Any]], None]]
 
 
 def build_env(config: Dict[str, Dict], env_type: str):
@@ -107,6 +108,42 @@ def configure_custom_base_stations(env, base_stations: Optional[List[Dict[str, A
     env.set_custom_base_stations(base_stations)
 
 
+def build_scene_preview(
+    env,
+    custom_user_state: Optional[List[Dict[str, Any]]] = None,
+    custom_base_stations: Optional[List[Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
+    """Create a reproducible disaster-scene snapshot for UI import flows."""
+    if custom_base_stations is not None:
+        configure_custom_base_stations(env, custom_base_stations)
+
+    _, info = env.reset()
+    if custom_user_state:
+        custom_obs, custom_info = apply_custom_user_state(env, custom_user_state)
+        if custom_obs is not None and custom_info is not None:
+            del custom_obs
+            info = custom_info
+
+    scenario_meta = _describe_scenario(env)
+    initial_state = _capture_network_state(env, info)
+    preview_report = {
+        "episode": 1,
+        "scenario": scenario_meta,
+        "initial_state": initial_state,
+        "final_state": initial_state,
+        "steps": [],
+        "total_reward": 0.0,
+        "steps_taken": 0,
+        "termination_reason": "scene_imported",
+    }
+    scene = _build_scene_payload(preview_report, env, include_deployments=False)
+    return {
+        "scenario": scenario_meta,
+        "initial_state": initial_state,
+        "scene": scene,
+    }
+
+
 def evaluate_policy(
     env,
     policy,
@@ -115,7 +152,8 @@ def evaluate_policy(
     render: bool = False,
     custom_user_state: Optional[List[Dict[str, Any]]] = None,
     custom_base_stations: Optional[List[Dict[str, Any]]] = None,
-    ) -> Tuple[List[float], List[float], List[Dict[str, Any]]]:
+    progress_callback: ProgressCallback = None,
+) -> Tuple[List[float], List[float], List[Dict[str, Any]]]:
     """Run rollouts and return rewards, coverages, and structured episode reports."""
     rewards: List[float] = []
     coverages: List[float] = []
@@ -141,6 +179,29 @@ def evaluate_policy(
             "initial_state": state_snapshot,
             "steps": [],
         }
+        _emit_progress(
+            progress_callback,
+            {
+                "type": "episode_start",
+                "payload": {
+                    "episode": episode + 1,
+                    "scenario": scenario_meta,
+                    "initial_state": state_snapshot,
+                },
+                "message": _format_episode_start_line(episode + 1, scenario_meta, state_snapshot),
+            },
+        )
+        _emit_progress(
+            progress_callback,
+            {
+                "type": "episode_state",
+                "payload": {
+                    "episode": episode + 1,
+                    "initial_state": state_snapshot,
+                },
+                "message": _format_initial_state_line(state_snapshot),
+            },
+        )
         while not done:
             action_out = policy.act(obs, deterministic=deterministic)
             if isinstance(action_out, (list, tuple)):
@@ -168,6 +229,32 @@ def evaluate_policy(
                     - prev_snapshot.get("broadcast_ratio", 0.0),
                 }
             )
+            latest_step = episode_report["steps"][-1]
+            step_messages = _format_step_lines(latest_step)
+            if step_messages:
+                _emit_progress(
+                    progress_callback,
+                    {
+                        "type": "step",
+                        "payload": {
+                            "episode": episode + 1,
+                            "step": latest_step,
+                        },
+                        "message": step_messages[0],
+                    },
+                )
+                if len(step_messages) > 1:
+                    _emit_progress(
+                        progress_callback,
+                        {
+                            "type": "step_state",
+                            "payload": {
+                                "episode": episode + 1,
+                                "step": latest_step,
+                            },
+                            "message": step_messages[1],
+                        },
+                    )
             if render:
                 print(
                     f"[Eval] Episode {episode} Step {steps} | reward={reward:+.2f} | coverage={final_cov:.2%}"
@@ -180,6 +267,17 @@ def evaluate_policy(
         episode_report["termination_reason"] = last_info.get("reason", "episode_finished")
         episode_report["steps_taken"] = steps
         reports.append(episode_report)
+        _emit_progress(
+            progress_callback,
+            {
+                "type": "episode_end",
+                "payload": {
+                    "episode": episode + 1,
+                    "report": episode_report,
+                },
+                "message": _format_episode_end_line(episode + 1, episode_report),
+            },
+        )
     return rewards, coverages, reports
 
 
@@ -296,6 +394,85 @@ def format_episode_report(report: Dict[str, Any]) -> str:
     )
     lines.extend(_format_recovery_details(initial_state, final_state))
     return "\n".join(lines)
+
+
+def _emit_progress(progress_callback: ProgressCallback, event: Dict[str, Any]) -> None:
+    if progress_callback is None:
+        return
+    progress_callback(event)
+
+
+def _format_episode_start_line(episode: int, scenario: Dict[str, Any], initial_state: Dict[str, Any]) -> str:
+    scenario_name = scenario.get("name") or "unknown"
+    disaster_type = scenario.get("disaster_type") or "unknown"
+    reward_mode = scenario.get("reward_mode") or "default"
+    total_users = initial_state.get("total_users", "n/a")
+    return (
+        f"[Episode {episode}] 场景={scenario_name} | 灾害={disaster_type} | 用户={total_users} | "
+        f"reward_mode={reward_mode}"
+    )
+
+
+def _format_initial_state_line(initial_state: Dict[str, Any]) -> str:
+    coverage = initial_state.get("coverage_ratio", 0.0)
+    broadcast = initial_state.get("broadcast_ratio", 0.0)
+    connected = initial_state.get("connected_users", "n/a")
+    total_users = initial_state.get("total_users", "n/a")
+    residual_count = len(initial_state.get("residual_base_stations", []) or [])
+    return (
+        "初始网络 -> coverage={:.2%} | broadcast={:.2%} | connected={}/{} | residual_bases={}".format(
+            coverage,
+            broadcast,
+            connected,
+            total_users,
+            residual_count,
+        )
+    )
+
+
+def _format_step_lines(step: Dict[str, Any]) -> List[str]:
+    action_desc = step.get("action_desc") or {}
+    location = action_desc.get("location")
+    location_text = f"@{tuple(location)}" if location is not None else ""
+    region_label = action_desc.get("region_label")
+    region_text = f" {region_label}" if region_label else ""
+    comm_mode = action_desc.get("comm_mode") or "unknown"
+    broadcast_mode = action_desc.get("broadcast_mode") or "unknown"
+    action_line = (
+        f"Step {step.get('step', 0):02d} | site#{action_desc.get('site_index', '?')} {location_text}{region_text} | "
+        f"comm={comm_mode} | broadcast={broadcast_mode} | reward={step.get('reward', 0.0):+.2f}"
+    )
+    post_state = step.get("post_state", {})
+    state_line = (
+        "          -> coverage={:.2%} | broadcast={:.2%} | remaining_budget={:.1f} | "
+        "Δcoverage={:+.2%} | Δbroadcast={:+.2%}".format(
+            post_state.get("coverage_ratio", 0.0),
+            post_state.get("broadcast_ratio", 0.0),
+            post_state.get("remaining_budget", 0.0),
+            step.get("coverage_delta", 0.0),
+            step.get("broadcast_delta", 0.0),
+        )
+    )
+    return [action_line, state_line]
+
+
+def _format_episode_end_line(episode: int, report: Dict[str, Any]) -> str:
+    final_state = report.get("final_state", {})
+    connected = final_state.get("connected_users", "n/a")
+    total_users = final_state.get("total_users", "n/a")
+    return (
+        "[Episode {} 完成] coverage={:.2%} | broadcast={:.2%} | connected={}/{} | "
+        "reward={:.2f} | steps={} | reason={}".format(
+            episode,
+            final_state.get("coverage_ratio", 0.0),
+            final_state.get("broadcast_ratio", 0.0),
+            connected,
+            total_users,
+            report.get("total_reward", 0.0),
+            report.get("steps_taken", 0),
+            report.get("termination_reason", "episode_finished"),
+        )
+    )
 
 
 def _build_scene_payload(report: Dict[str, Any], env, include_deployments: bool) -> Dict[str, Any]:

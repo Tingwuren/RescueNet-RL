@@ -93,6 +93,8 @@
       </form>
     </div>
 
+    <BaseStationShowcase v-if="currentScenario" :scenario="currentScenario" />
+
     <TrainingMonitor :events="eventLog" :status="runStatus" />
   </div>
 </template>
@@ -101,6 +103,7 @@
 import { onMounted, ref, computed, watch } from "vue";
 import axios from "axios";
 import TrainingMonitor from "./TrainingMonitor.vue";
+import BaseStationShowcase from "./BaseStationShowcase.vue";
 import { buildRegionMetrics, formatDistance } from "../utils/regionMetrics";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000/api";

@@ -1,23 +1,90 @@
+:root {
+  color-scheme: dark;
+  font-family: "Avenir Next", "PingFang SC", "Microsoft YaHei", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #f8fafc;
+  background:
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.22), transparent 34%),
+    radial-gradient(circle at 85% 10%, rgba(250, 204, 21, 0.12), transparent 24%),
+    linear-gradient(180deg, #020617 0%, #0f172a 48%, #071120 100%);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  --border-soft: rgba(148, 163, 184, 0.22);
+  --surface-soft: rgba(15, 23, 42, 0.45);
+  --text-soft: #bfd0e5;
+}
+
 * {
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
-  font-family: "Segoe UI", Arial, sans-serif;
-  background: #0f172a;
-  color: #e2e8f0;
+  min-width: 320px;
+  min-height: 100vh;
+  color: #f8fafc;
+  background:
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.22), transparent 34%),
+    radial-gradient(circle at 85% 10%, rgba(250, 204, 21, 0.12), transparent 24%),
+    linear-gradient(180deg, #020617 0%, #0f172a 48%, #071120 100%);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.035) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.65), transparent);
 }
 
 #app {
   min-height: 100vh;
-  padding: 32px;
+  padding: 24px;
 }
 
 a {
-  color: #38bdf8;
+  color: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }
 
 button {
   cursor: pointer;
+}
+
+button,
+input,
+select,
+textarea {
+  outline: none;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.2);
+}
+
+@media (max-width: 720px) {
+  #app {
+    padding: 12px;
+  }
 }

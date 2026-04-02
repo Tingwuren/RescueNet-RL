@@ -1,0 +1,28 @@
+<svg width="640" height="420" viewBox="0 0 640 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="640" height="420" rx="36" fill="url(#bg)"/>
+  <ellipse cx="322" cy="356" rx="194" ry="28" fill="#020617" fill-opacity="0.38"/>
+  <path d="M322 78L248 334H396L322 78Z" fill="#0F172A" stroke="#A5F3FC" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M282 186H362" stroke="#67E8F9" stroke-width="8" stroke-linecap="round"/>
+  <path d="M268 236H376" stroke="#67E8F9" stroke-width="8" stroke-linecap="round"/>
+  <path d="M256 286H388" stroke="#67E8F9" stroke-width="8" stroke-linecap="round"/>
+  <path d="M322 78V34" stroke="#F8FAFC" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="322" cy="22" r="12" fill="#F8FAFC"/>
+  <path d="M446 126C446 97.2812 469.281 74 498 74H520V180H498C469.281 180 446 156.719 446 128V126Z" fill="#1E293B" stroke="#F8FAFC" stroke-width="8"/>
+  <path d="M518 128H560" stroke="#F8FAFC" stroke-width="8" stroke-linecap="round"/>
+  <path d="M502 96C538 96 568 126 568 162" stroke="#38BDF8" stroke-width="8" stroke-linecap="round"/>
+  <path d="M496 80C544 80 584 120 584 168" stroke="#67E8F9" stroke-width="6" stroke-linecap="round" stroke-opacity="0.7"/>
+  <path d="M292 334L214 214" stroke="#475569" stroke-width="10" stroke-linecap="round"/>
+  <path d="M352 334L430 214" stroke="#475569" stroke-width="10" stroke-linecap="round"/>
+  <rect x="170" y="192" width="82" height="28" rx="14" fill="#F59E0B"/>
+  <path d="M170 182L136 150" stroke="#FCD34D" stroke-width="8" stroke-linecap="round"/>
+  <path d="M470 230L520 198" stroke="#E0F2FE" stroke-width="8" stroke-linecap="round"/>
+  <path d="M468 250L530 250" stroke="#FCD34D" stroke-width="8" stroke-linecap="round"/>
+  <path d="M468 270L520 302" stroke="#E0F2FE" stroke-width="8" stroke-linecap="round"/>
+  <text x="320" y="388" text-anchor="middle" fill="#CFFAFE" font-family="Arial, sans-serif" font-size="28" font-weight="700">中继基站</text>
+  <defs>
+    <linearGradient id="bg" x1="58" y1="28" x2="592" y2="384" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#164E63"/>
+      <stop offset="1" stop-color="#111827"/>
+    </linearGradient>
+  </defs>
+</svg>

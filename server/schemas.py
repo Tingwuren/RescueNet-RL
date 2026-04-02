@@ -51,6 +51,21 @@ class CustomBaseStation(BaseModel):
     )
 
 
+class SceneImportRequest(BaseModel):
+    scenario_name: str = Field("typhoon_residual", description="Scenario to import as a disaster scene.")
+    env_type: Literal["baseline", "multimodal"] = Field("multimodal", description="Environment variant.")
+    custom_base_stations: Optional[List[CustomBaseStation]] = Field(
+        default=None,
+        description="Residual base stations to materialize in the imported scene; empty list means fully damaged.",
+    )
+
+
+class SceneImportResponse(BaseModel):
+    scenario: Dict[str, Any]
+    initial_state: Dict[str, Any]
+    scene: Dict[str, Any]
+
+
 class SimulationRequest(BaseModel):
     scenario_name: str = Field("typhoon_residual", description="Scenario to use as baseline.")
     checkpoint_path: str = Field("artifacts/ppo_policy.pt", description="Policy checkpoint to load.")
