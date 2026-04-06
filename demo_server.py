@@ -87,6 +87,12 @@ class DemoHandler(http.server.BaseHTTPRequestHandler):
         else:
             self._json_response({"detail": "Not found"}, 404)
 
+    def handle(self):
+        try:
+            super().handle()
+        except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError):
+            pass
+
     def log_message(self, fmt, *args):
         sys.stderr.write("[API] %s\n" % args[0])
         sys.stderr.flush()
