@@ -20,6 +20,9 @@ from fastapi.responses import StreamingResponse
 from configs.default_config import get_default_config
 from data.resource_dataset import ResourceDataset
 from server.schemas import (
+    MahimahiSimulateRequest,
+    MahimahiSimulateResponse,
+    MahimahiTraceInfo,
     SceneImportRequest,
     SceneImportResponse,
     SimulationRequest,
@@ -29,6 +32,7 @@ from server.schemas import (
     TrainingStatus,
 )
 from server.training_manager import TrainingManager
+from server.mahimahi_manager import MahimahiManager
 from services.evaluation import build_env, build_scene_preview, evaluate_policy, export_episode_scene, load_policy
 
 app = FastAPI(title="RescueNet-RL API", version="0.1.0")
@@ -40,6 +44,7 @@ app.add_middleware(
 )
 
 training_manager = TrainingManager()
+mahimahi_manager = MahimahiManager()
 default_config = get_default_config()
 dataset_path = Path(default_config["multimodal_env"]["dataset_path"])
 dataset = ResourceDataset(dataset_path)
@@ -380,6 +385,110 @@ def stream_simulation(request: SimulationRequest):
                 break
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+# ---------------------------------------------------------------------------
+# Mahimahi endpoints
+# ---------------------------------------------------------------------------
+
+@app.get("/api/mahimahi/status")
+def mahimahi_status() -> Dict[str, object]:
+    return {
+        "mahimahi_available": mahimahi_manager.mahimahi_available,
+        "traces_dir": str(mahimahi_manager.traces_dir),
+    }
+
+
+@app.get("/api/mahimahi/traces")
+def list_mahimahi_traces() -> Dict[str, List[Dict[str, object]]]:
+    return {"traces": mahimahi_manager.list_traces()}
+
+
+@app.get("/api/mahimahi/traces/{trace_name}")
+def get_trace_analysis(
+    trace_name: str,
+    duration_s: float = 60,
+    window_ms: int = 500,
+) -> Dict[str, object]:
+    try:
+        return mahimahi_manager.analyze_trace(trace_name, duration_s, window_ms)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Trace '{trace_name}' not found")
+
+
+@app.post("/api/mahimahi/simulate", response_model=MahimahiSimulateResponse)
+def mahimahi_simulate(request: MahimahiSimulateRequest) -> MahimahiSimulateResponse:
+    try:
+        result = mahimahi_manager.simulate(
+            trace_name=request.trace_name,
+            duration_s=request.duration_s,
+            rtt_ms=request.rtt_ms,
+            buffer_packets=request.buffer_packets,
+            window_ms=request.window_ms,
+        )
+        return MahimahiSimulateResponse(**result)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Trace '{request.trace_name}' not found")
+
+
+@app.post("/api/mahimahi/simulate/stream")
+def mahimahi_simulate_stream(request: MahimahiSimulateRequest):
+    """SSE stream that pushes simulation progress and final results."""
+
+    def encode_sse(event: Dict[str, object]) -> str:
+        return f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+
+    event_queue: "queue.Queue[Dict[str, object]]" = queue.Queue()
+
+    def run() -> None:
+        try:
+            event_queue.put({"type": "status", "payload": {"state": "initializing"}, "timestamp": time.time()})
+            event_queue.put({
+                "type": "log",
+                "payload": {"message": f"加载 trace: {request.trace_name}, RTT={request.rtt_ms}ms, 时长={request.duration_s}s"},
+                "timestamp": time.time(),
+            })
+
+            result = mahimahi_manager.simulate(
+                trace_name=request.trace_name,
+                duration_s=request.duration_s,
+                rtt_ms=request.rtt_ms,
+                buffer_packets=request.buffer_packets,
+                window_ms=request.window_ms,
+            )
+
+            n = len(result.get("capacity", []))
+            chunk_size = max(1, n // 20)
+            for i in range(0, n, chunk_size):
+                chunk = {
+                    "capacity": result["capacity"][i : i + chunk_size],
+                    "throughput": result["throughput"][i : i + chunk_size],
+                    "sending_rate": result["sending_rate"][i : i + chunk_size],
+                }
+                event_queue.put({"type": "data_chunk", "payload": chunk, "timestamp": time.time()})
+                time.sleep(0.05)
+
+            event_queue.put({"type": "result", "payload": {"stats": result["stats"]}, "timestamp": time.time()})
+            event_queue.put({"type": "end", "payload": {"state": "completed"}, "timestamp": time.time()})
+        except Exception as exc:
+            event_queue.put({"type": "error", "payload": {"message": str(exc)}, "timestamp": time.time()})
+            event_queue.put({"type": "end", "payload": {"state": "failed"}, "timestamp": time.time()})
+
+    def generator():
+        worker = threading.Thread(target=run, daemon=True)
+        worker.start()
+        while True:
+            try:
+                event = event_queue.get(timeout=0.5)
+            except queue.Empty:
+                if not worker.is_alive():
+                    break
+                continue
+            yield encode_sse(event)
+            if event.get("type") == "end":
+                break
+
+    return StreamingResponse(generator(), media_type="text/event-stream")
 
 
 def _resolve_frontend_dist() -> Path:

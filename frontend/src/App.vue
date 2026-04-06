@@ -86,7 +86,7 @@
         </div>
       </section>
 
-      <section v-else class="workspace-view">
+      <section v-else-if="currentRoute === 'testing'" class="workspace-view">
         <div class="workspace-hero">
           <div>
             <span class="eyebrow">Testing Center</span>
@@ -117,6 +117,19 @@
           </section>
         </div>
       </section>
+
+      <section v-else-if="currentRoute === 'mahimahi'" class="workspace-view">
+        <div class="workspace-hero">
+          <div>
+            <span class="eyebrow">Network Simulation</span>
+            <h1>Mahimahi 网络仿真</h1>
+          </div>
+        </div>
+
+        <div class="panel-surface" style="padding:28px">
+          <MahimahiSimulator />
+        </div>
+      </section>
     </main>
   </div>
 </template>
@@ -125,11 +138,13 @@
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import ScenarioTrainingPanel from "./components/ScenarioTrainingPanel.vue";
 import CustomEnvironmentTester from "./components/CustomEnvironmentTester.vue";
+import MahimahiSimulator from "./components/MahimahiSimulator.vue";
 
 const navItems = [
   { key: "home", label: "首页", href: "#/" },
   { key: "training", label: "训练", href: "#/training" },
   { key: "testing", label: "测试", href: "#/testing" },
+  { key: "mahimahi", label: "网络仿真", href: "#/mahimahi" },
 ];
 
 const metrics = [
@@ -159,6 +174,13 @@ const homeCards = [
     description: "围绕用户覆盖、吞吐、广播能力、设备成本和带宽成本等核心指标评估策略效果。",
     href: "#/training",
     cta: "查看训练配置",
+  },
+  {
+    tag: "Mahimahi",
+    title: "网络仿真",
+    description: "基于 Mahimahi 的 trace 回放仿真，可视化链路容量、吞吐量与发送速率，分析网络传输性能。",
+    href: "#/mahimahi",
+    cta: "进入网络仿真",
   },
 ];
 
@@ -412,7 +434,7 @@ onBeforeUnmount(() => {
 
 .feature-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 20px;
 }
 
@@ -496,7 +518,7 @@ onBeforeUnmount(() => {
   }
 
   .feature-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(200px, 1fr));
   }
 
   .workspace-aside {

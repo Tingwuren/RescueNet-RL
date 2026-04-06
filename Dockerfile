@@ -20,7 +20,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libgomp1 \
+    && apt-get install -y --no-install-recommends \
+       libgomp1 \
+       autotools-dev autoconf libtool apache2-dev iptables \
+       protobuf-compiler libprotobuf-dev pkg-config \
+       dnsmasq-base iproute2 iperf3 git ca-certificates \
+    && git clone --depth 1 https://github.com/ravinet/mahimahi.git /tmp/mahimahi \
+    && cd /tmp/mahimahi \
+    && ./autogen.sh && ./configure && make -j"$(nproc)" && make install \
+    && cd / && rm -rf /tmp/mahimahi \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt ./

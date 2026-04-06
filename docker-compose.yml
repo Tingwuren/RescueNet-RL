@@ -12,4 +12,8 @@ services:
       - "8000:8000"
     volumes:
       - ./artifacts:/app/artifacts
+      - ./data/traces:/app/data/traces
+    cap_add:
+      - NET_ADMIN
+    privileged: true
     restart: unless-stopped
