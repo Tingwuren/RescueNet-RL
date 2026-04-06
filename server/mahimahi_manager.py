@@ -98,17 +98,21 @@ class MahimahiManager:
         project_root = Path(__file__).resolve().parents[1]
         candidate = Path(traces_dir)
         self.traces_dir = candidate if candidate.is_absolute() else project_root / candidate
+        self._traces_cache: List[Dict[str, Any]] = []
+        self._analyzers: Dict[str, TraceAnalyzer] = {}
+        self._load_all()
 
-    def list_traces(self) -> List[Dict[str, Any]]:
-        traces: List[Dict[str, Any]] = []
+    def _load_all(self) -> None:
+        """启动时一次性解析所有 trace 文件并缓存。"""
         if not self.traces_dir.exists():
-            return traces
+            return
         for f in sorted(self.traces_dir.iterdir()):
             if f.is_file() and f.suffix == ".trace":
                 try:
                     a = TraceAnalyzer(f)
+                    self._analyzers[f.stem] = a
                     desc = TRACE_DESCRIPTIONS.get(f.stem, {})
-                    traces.append({
+                    self._traces_cache.append({
                         "name": f.stem,
                         "filename": f.name,
                         "label": desc.get("label", f.stem),
@@ -118,13 +122,17 @@ class MahimahiManager:
                     })
                 except Exception:
                     continue
-        return traces
+
+    def list_traces(self) -> List[Dict[str, Any]]:
+        return self._traces_cache
+
+    def _get_analyzer(self, trace_name: str) -> TraceAnalyzer:
+        if trace_name in self._analyzers:
+            return self._analyzers[trace_name]
+        raise FileNotFoundError(f"Trace '{trace_name}' not found")
 
     def analyze_trace(self, trace_name: str, duration_s: float = 60, window_ms: int = 500) -> Dict[str, Any]:
-        path = self.traces_dir / f"{trace_name}.trace"
-        if not path.exists():
-            raise FileNotFoundError(f"Trace '{trace_name}' not found")
-        a = TraceAnalyzer(path)
+        a = self._get_analyzer(trace_name)
         return {
             "name": trace_name,
             "period_ms": a.period_ms,
@@ -135,10 +143,7 @@ class MahimahiManager:
 
     def simulate(self, trace_name: str, duration_s: float = 60, window_ms: int = 500, **_kwargs) -> Dict[str, Any]:
         """返回 trace 的容量时间序列，供前端回放展示。"""
-        path = self.traces_dir / f"{trace_name}.trace"
-        if not path.exists():
-            raise FileNotFoundError(f"Trace '{trace_name}' not found")
-        a = TraceAnalyzer(path)
+        a = self._get_analyzer(trace_name)
         return {
             "trace_name": trace_name,
             "duration_s": duration_s,
