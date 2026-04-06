@@ -21,6 +21,10 @@
       </div>
     </div>
 
+    <div v-if="loadError || actionError" class="error-banner">
+      {{ loadError || actionError }}
+    </div>
+
     <div class="panel-body">
       <div class="scenario-details" v-if="currentScenario">
         <p>用户数：{{ currentScenario.num_users }}</p>
@@ -87,9 +91,12 @@
             </button>
           </div>
         </label>
-        <button type="submit" :disabled="!selectedScenario || isStarting">
+        <button type="submit" :disabled="!selectedScenario || isStarting || isLoadingScenarios">
           {{ isStarting ? "启动中..." : "开始训练" }}
         </button>
+        <p v-if="!selectedScenario && !isLoadingScenarios" class="form-hint">
+          训练场景未加载成功，请先确认前端可访问训练后端。
+        </p>
       </form>
     </div>
 
@@ -105,8 +112,10 @@ import axios from "axios";
 import TrainingMonitor from "./TrainingMonitor.vue";
 import BaseStationShowcase from "./BaseStationShowcase.vue";
 import { buildRegionMetrics, formatDistance } from "../utils/regionMetrics";
+import { rescueApiBase } from "../utils/runtimeEndpoints";
+import { saveReplaySessionFromSimulation } from "../utils/replaySessions";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000/api";
+const API_BASE = rescueApiBase;
 
 const scenarios = ref([]);
 const algorithms = [
@@ -121,8 +130,13 @@ const selectedRewardMode = ref(null);
 const selectedAlgorithm = ref("ppo");
 const totalTimesteps = ref(12000);
 const isStarting = ref(false);
+const isLoadingScenarios = ref(false);
 const eventLog = ref([]);
 const runStatus = ref("Idle");
+const loadError = ref("");
+const actionError = ref("");
+const activeRunMeta = ref(null);
+const replayRunIdInFlight = ref(null);
 let eventSource = null;
 
 const currentScenario = computed(() => scenarios.value.find((item) => item.name === selectedScenario.value));
@@ -133,6 +147,8 @@ const activeRewardProfile = computed(() =>
 );
 
 const fetchScenarios = async () => {
+  isLoadingScenarios.value = true;
+  loadError.value = "";
   try {
     const { data } = await axios.get(`${API_BASE}/scenarios`);
     scenarios.value = data.scenarios || [];
@@ -142,6 +158,9 @@ const fetchScenarios = async () => {
     initializeRewardMode(selectedScenario.value);
   } catch (error) {
     console.error("Failed to load scenarios", error);
+    loadError.value = `无法连接训练后端: ${error?.message || "未知错误"}`;
+  } finally {
+    isLoadingScenarios.value = false;
   }
 };
 
@@ -172,11 +191,68 @@ const selectAlgorithm = (value) => {
   selectedAlgorithm.value = value;
 };
 
+const checkpointPathForAlgorithm = (algorithm) => `artifacts/${algorithm}_policy.pt`;
+
+const generateReplayFromTraining = async (runMeta) => {
+  if (!runMeta?.runId) return;
+  if (replayRunIdInFlight.value === runMeta.runId) return;
+  replayRunIdInFlight.value = runMeta.runId;
+  try {
+    const { data } = await axios.post(`${API_BASE}/simulate`, {
+      scenario_name: runMeta.scenarioName,
+      env_type: "multimodal",
+      algorithm: runMeta.algorithm,
+      checkpoint_path: checkpointPathForAlgorithm(runMeta.algorithm),
+      reward_mode: runMeta.rewardMode,
+      stochastic_eval: true,
+      eval_seed: 13,
+      episodes: 1,
+    });
+    saveReplaySessionFromSimulation({
+      scenarioName: runMeta.scenarioName,
+      algorithm: runMeta.algorithm,
+      result: {
+        ...data,
+        source: "training",
+      },
+    });
+    eventLog.value = [
+      ...eventLog.value.slice(-30),
+      {
+        type: "training_replay_ready",
+        timestamp: Date.now() / 1000,
+        payload: {
+          scenario: runMeta.scenarioName,
+          algorithm: runMeta.algorithm,
+        },
+        message: "训练完成后已自动生成一条回放，可在回放页刷新列表后查看。",
+      },
+    ];
+  } catch (error) {
+    console.error("Failed to generate replay from training", error);
+    eventLog.value = [
+      ...eventLog.value.slice(-30),
+      {
+        type: "training_replay_error",
+        timestamp: Date.now() / 1000,
+        payload: {
+          message: error?.message || "自动生成训练回放失败",
+        },
+      },
+    ];
+  } finally {
+    replayRunIdInFlight.value = null;
+  }
+};
+
 const startTraining = async () => {
   if (!selectedScenario.value) return;
   isStarting.value = true;
+  actionError.value = "";
   eventLog.value = [];
   runStatus.value = "starting";
+  activeRunMeta.value = null;
+  replayRunIdInFlight.value = null;
   closeEventSource();
   try {
     const { data } = await axios.post(`${API_BASE}/train`, {
@@ -187,10 +263,17 @@ const startTraining = async () => {
       stochastic_eval: true,
       reward_mode: selectedRewardMode.value,
     });
+    activeRunMeta.value = {
+      runId: data.run_id,
+      scenarioName: selectedScenario.value,
+      algorithm: selectedAlgorithm.value,
+      rewardMode: selectedRewardMode.value,
+    };
     subscribeToEvents(data.run_id);
   } catch (error) {
     console.error("Failed to start training", error);
     runStatus.value = "error";
+    actionError.value = `启动训练失败: ${error?.message || "未知错误"}`;
   } finally {
     isStarting.value = false;
   }
@@ -212,6 +295,9 @@ const subscribeToEvents = (runId) => {
       eventLog.value = [...eventLog.value.slice(-30), payload];
       if (payload.type === "status" && payload.payload?.state) {
         runStatus.value = payload.payload.state;
+        if (payload.payload.state === "completed" && activeRunMeta.value?.runId === runId) {
+          void generateReplayFromTraining(activeRunMeta.value);
+        }
       }
     } catch (err) {
       console.warn("Failed to parse event", err);
@@ -254,6 +340,14 @@ onMounted(fetchScenarios);
   display: flex;
   flex-direction: column;
   gap: 24px;
+}
+
+.error-banner {
+  border: 1px solid rgba(248, 113, 113, 0.55);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: rgba(127, 29, 29, 0.25);
+  color: #fecaca;
 }
 
 .panel-header {
@@ -416,6 +510,12 @@ onMounted(fetchScenarios);
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.form-hint {
+  margin: 0;
+  color: #fca5a5;
+  font-size: 0.92rem;
 }
 
 input[type="number"] {

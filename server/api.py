@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import AsyncGenerator, Dict, List
 
 import numpy as np
+import torch
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -101,6 +102,39 @@ def _build_candidate_site_preview(scenario_name: str) -> List[Dict[str, object]]
 @app.get("/api/health")
 def health_check() -> Dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/api/train/latest-artifact")
+def latest_training_artifact() -> Dict[str, object]:
+    artifact_dir = Path(default_config["logging"]["artifact_dir"])
+    meta_path = artifact_dir / "policy_meta.json"
+    metrics_path = artifact_dir / "training_metrics.json"
+    if not meta_path.exists():
+        raise HTTPException(status_code=404, detail="No training artifact metadata found.")
+
+    with meta_path.open("r", encoding="utf-8") as handle:
+        meta = json.load(handle)
+
+    metrics = {}
+    if metrics_path.exists():
+        with metrics_path.open("r", encoding="utf-8") as handle:
+            metrics = json.load(handle)
+
+    config = metrics.get("config", {}) if isinstance(metrics, dict) else {}
+    experiment_cfg = config.get("experiment", {}) if isinstance(config, dict) else {}
+    multimodal_cfg = config.get("multimodal_env", {}) if isinstance(config, dict) else {}
+    updated_at = max(
+        meta_path.stat().st_mtime if meta_path.exists() else 0.0,
+        metrics_path.stat().st_mtime if metrics_path.exists() else 0.0,
+    )
+    return {
+        "algorithm": meta.get("algorithm") or experiment_cfg.get("algorithm") or "ppo",
+        "env_type": meta.get("env_type") or experiment_cfg.get("env_type") or "multimodal",
+        "checkpoint_path": meta.get("policy_path"),
+        "scenario_name": multimodal_cfg.get("scenario_name"),
+        "reward_mode": multimodal_cfg.get("reward_mode"),
+        "updated_at": updated_at,
+    }
 
 
 @app.get("/api/scenarios")
@@ -214,6 +248,13 @@ def simulate_strategy(request: SimulationRequest) -> SimulationResponse:
     config["experiment"]["algorithm"] = request.algorithm
     if request.env_type == "multimodal":
         config["multimodal_env"]["scenario_name"] = request.scenario_name
+        if request.reward_mode is not None:
+            config["multimodal_env"]["reward_mode"] = request.reward_mode
+    if request.eval_seed is not None:
+        torch.manual_seed(request.eval_seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(request.eval_seed)
+        np.random.seed(request.eval_seed)
 
     checkpoint_path = Path(request.checkpoint_path)
     env = build_env(config, request.env_type)
@@ -299,6 +340,13 @@ def stream_simulation(request: SimulationRequest):
             config["experiment"]["algorithm"] = request.algorithm
             if request.env_type == "multimodal":
                 config["multimodal_env"]["scenario_name"] = request.scenario_name
+                if request.reward_mode is not None:
+                    config["multimodal_env"]["reward_mode"] = request.reward_mode
+            if request.eval_seed is not None:
+                torch.manual_seed(request.eval_seed)
+                if torch.cuda.is_available():
+                    torch.cuda.manual_seed_all(request.eval_seed)
+                np.random.seed(request.eval_seed)
 
             checkpoint_path = Path(request.checkpoint_path)
             env = build_env(config, request.env_type)
@@ -312,7 +360,7 @@ def stream_simulation(request: SimulationRequest):
             push_event(
                 "log",
                 {
-                    "message": f"加载模型 {checkpoint_path}，算法={request.algorithm}，episodes={request.episodes}。"
+                    "message": f"加载模型 {checkpoint_path}，算法={request.algorithm}，episodes={request.episodes}，stochastic={request.stochastic_eval}，seed={request.eval_seed if request.eval_seed is not None else 'auto'}。"
                 },
             )
             policy = load_policy(checkpoint_path, env, config, request.env_type, algorithm=request.algorithm)

@@ -32,6 +32,7 @@
             <div class="hero__actions">
               <a class="primary-link" href="#/training">进入训练中心</a>
               <a class="secondary-link" href="#/testing">进入测试中心</a>
+              <a class="secondary-link" href="#/replay">进入回放中心</a>
             </div>
           </div>
 
@@ -86,7 +87,7 @@
         </div>
       </section>
 
-      <section v-else class="workspace-view">
+      <section v-else-if="currentRoute === 'testing'" class="workspace-view">
         <div class="workspace-hero">
           <div>
             <span class="eyebrow">Testing Center</span>
@@ -117,6 +118,38 @@
           </section>
         </div>
       </section>
+
+      <section v-else class="workspace-view">
+        <div class="workspace-hero">
+          <div>
+            <span class="eyebrow">Replay Center</span>
+            <h1>真实场景组网回放中心</h1>
+            <p>
+              接入 ns-3.46.1 生成的实验帧数据，按时间序列回放真实节点连通状态和链路变化。
+            </p>
+          </div>
+          <div class="workspace-meta">
+            <span>ns-3 实验列表</span>
+            <span>逐帧播放控制</span>
+            <span>节点链路实时渲染</span>
+          </div>
+        </div>
+
+        <div class="workspace-layout">
+          <aside class="workspace-aside panel-surface">
+            <h2>回放流程</h2>
+            <ol>
+              <li>先运行 ns-3 仿真并生成 trace / 实验数据。</li>
+              <li>启动 ns-3 回放后端 API（建议 8001 端口）。</li>
+              <li>回放页选择实验，按帧观察组网演进过程。</li>
+              <li>必要时打开 ns-3 原生回放页做细节对照。</li>
+            </ol>
+          </aside>
+          <section class="workspace-content panel-surface">
+            <Ns3ReplayPanel />
+          </section>
+        </div>
+      </section>
     </main>
   </div>
 </template>
@@ -125,11 +158,13 @@
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import ScenarioTrainingPanel from "./components/ScenarioTrainingPanel.vue";
 import CustomEnvironmentTester from "./components/CustomEnvironmentTester.vue";
+import Ns3ReplayPanel from "./components/Ns3ReplayPanel.vue";
 
 const navItems = [
   { key: "home", label: "首页", href: "#/" },
   { key: "training", label: "训练", href: "#/training" },
   { key: "testing", label: "测试", href: "#/testing" },
+  { key: "replay", label: "回放", href: "#/replay" },
 ];
 
 const metrics = [
@@ -154,11 +189,11 @@ const homeCards = [
     cta: "打开测试页",
   },
   {
-    tag: "Scenario",
-    title: "场景与指标",
-    description: "围绕用户覆盖、吞吐、广播能力、设备成本和带宽成本等核心指标评估策略效果。",
-    href: "#/training",
-    cta: "查看训练配置",
+    tag: "Replay",
+    title: "真实仿真回放",
+    description: "将 ns-3.46.1 仿真帧接入前端，按时间顺序回放组网过程并观察链路变化。",
+    href: "#/replay",
+    cta: "打开回放页",
   },
 ];
 

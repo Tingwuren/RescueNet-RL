@@ -71,8 +71,12 @@ class SimulationRequest(BaseModel):
     checkpoint_path: str = Field("artifacts/ppo_policy.pt", description="Policy checkpoint to load.")
     env_type: Literal["baseline", "multimodal"] = Field("multimodal", description="Environment variant.")
     algorithm: Literal["ppo", "dqn", "a3c", "mppo"] = Field("ppo", description="Policy algorithm.")
+    reward_mode: Optional[str] = Field(
+        None, description="Reward profile key to align evaluation with the training configuration."
+    )
     episodes: int = Field(1, ge=1, description="Evaluation episodes to run.")
     stochastic_eval: bool = Field(True, description="Sample actions during evaluation.")
+    eval_seed: Optional[int] = Field(None, ge=0, description="Optional random seed for reproducible stochastic evaluation.")
     custom_devices: List[CustomDevice] = Field(default_factory=list, description="Custom device definitions.")
     custom_base_stations: Optional[List[CustomBaseStation]] = Field(
         default=None,

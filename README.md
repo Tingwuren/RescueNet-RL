@@ -164,6 +164,84 @@ python train.py \
 
 > 默认 `VITE_API_BASE=http://localhost:8000/api`，若后端端口不同，可通过 `.env.local` 覆写。
 
+## RescueNet-RL + ns-3.46.1 融合运行
+
+该仓库已支持“RL 生成部署场景 + ns-3.46.1 仿真 + 前端回放”的完整链路。
+
+- 训练中心：启动 RL 训练，训练完成后自动生成一条可回放记录。
+- 测试中心：对自定义场景执行策略评估，并把结果保存到回放中心。
+- 回放中心：同时支持读取浏览器本地保存的 RL 回放和 `ns-3.46.1` 导入的真实实验帧。
+
+### 1) 更新 `pytorch` Conda 环境
+
+```bash
+bash scripts/update_pytorch_env.sh
+```
+
+该脚本会安装并校验：
+
+- `requirements.txt`（RescueNet-RL）
+- `ns-3.46.1/requirements.txt`（ns-3 回放与工具）
+- `sumolib`（`ns-3.46.1/gen_uniform_trips.py` 依赖）
+
+### 2) 运行顺序（推荐 3 个终端）
+
+终端 A：运行仿真生成实验数据
+
+```bash
+cd ns-3.46.1
+rm -f trace.json simulation_history.db
+./ns3 build
+./ns3 run scratch/disaster-pro
+```
+
+终端 B：启动 ns-3 回放 API（注意与 RescueNet API 端口错开）
+
+```bash
+cd ns-3.46.1
+uvicorn server_pro:app --host 0.0.0.0 --port 8001
+```
+
+终端 C：启动 RescueNet API + 前端
+
+```bash
+uvicorn server.api:app --reload --port 8000
+cd frontend && npm run dev
+```
+
+启动后可分别检查：
+
+- RescueNet API：`http://localhost:8000/api/health`
+- ns-3 API：`http://localhost:8001/api/health`
+- 前端开发页：Vite 默认地址（通常为 `http://localhost:5173`）
+- ns-3 原生回放页：`http://localhost:8080/index.html`（如果你另外启动了静态文件服务）
+
+### 3) 前端回放页配置
+
+在 `frontend/.env.local` 中可配置：
+
+```bash
+VITE_API_BASE=http://localhost:8000/api
+VITE_NS3_API_BASE=http://localhost:8001/api
+VITE_NS3_WEB_BASE=http://localhost:8080/index.html
+```
+
+其中“回放中心”会读取 `VITE_NS3_API_BASE` 下的实验与帧数据，按时间序列播放组网过程。
+
+如果未显式配置，前端会按当前页面主机名自动回退到：
+
+- RescueNet API：`http://<host>:8000/api`
+- ns-3 API：`http://<host>:8001/api`
+- ns-3 原生页：`http://<host>:8080/index.html`
+
+### 4) 回放数据来源
+
+- 训练完成后，前端会基于最新训练产物自动调用 `/api/simulate` 生成一条“训练回放”。
+- 测试中心每次得到结果后，会把逐步部署过程保存为一条“测试回放”。
+- 回放中心既能查看上述本地回放，也能查看 `ns-3.46.1/server_pro.py` 导入到 `simulation_history.db` 的实验列表。
+
+更细的仿真端说明见 [ns-3.46.1/运行说明.md](/home/tingwuren/Projects/RescueNet-RL/ns-3.46.1/运行说明.md)。
+
 ## Docker 一体化部署（前后端同容器）
 
 新增 Docker 化部署，支持把 Vue 前端与 FastAPI 后端打包为单个可运行容器。

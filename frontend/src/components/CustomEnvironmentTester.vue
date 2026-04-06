@@ -83,7 +83,7 @@
         <div class="section-header">
           <div>
             <h3>3. 测试配置</h3>
-            <p>若修改基站配置，需要重新导入场景图以保持测试输入一致。</p>
+            <p>若修改基站配置，需要重新导入场景图以保持测试输入一致。当前测试默认使用固定种子的随机采样策略，以复现训练时接近满覆盖的评估表现。</p>
           </div>
         </div>
 
@@ -114,7 +114,7 @@
           <div class="devices__header">
             <div>
               <p>残余基站</p>
-              <small>未添加即表示完全受灾。</small>
+              <small>未添加时保留场景默认残余网络；添加后会覆盖默认残余基站配置。</small>
             </div>
             <button type="button" @click="addBaseStation" :disabled="!baseStationOptions.length || isRunning">
               添加基站
@@ -145,7 +145,7 @@
             <button type="button" class="remove-btn" @click="removeBaseStation(index)">移除</button>
           </div>
 
-          <p v-if="!baseStations.length" class="hint">尚未添加基站，将按完全受灾进行测试。</p>
+          <p v-if="!baseStations.length" class="hint">尚未自定义残余基站，将沿用当前场景的默认残余网络。</p>
         </div>
 
         <div class="run-actions">
@@ -172,6 +172,9 @@
       <h3>测试结果</h3>
       <p>平均奖励：{{ simulationResult.avg_reward.toFixed(2) }}</p>
       <p>平均覆盖率：{{ (simulationResult.avg_final_coverage * 100).toFixed(2) }}%</p>
+      <div class="export-actions export-actions--replay">
+        <a class="replay-link" href="#/replay">前往回放页选择本次测试结果</a>
+      </div>
       <div v-if="sceneExport" class="export-panel">
         <h4>场景导出</h4>
         <p>受灾场景文件：{{ sceneExport.disaster_scene_path }}</p>
@@ -237,8 +240,10 @@ import axios from "axios";
 import SceneGraphPreview from "./SceneGraphPreview.vue";
 import StreamingTerminal from "./StreamingTerminal.vue";
 import { buildRegionMetrics, formatDistance } from "../utils/regionMetrics";
+import { rescueApiBase } from "../utils/runtimeEndpoints";
+import { saveReplaySessionFromSimulation } from "../utils/replaySessions";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000/api";
+const API_BASE = rescueApiBase;
 
 const scenarios = ref([]);
 const scenarioName = ref("typhoon_residual");
@@ -251,6 +256,7 @@ const algorithms = [
 ];
 const selectedAlgorithm = ref("ppo");
 const checkpointPath = ref("artifacts/ppo_policy.pt");
+const evaluationSeed = ref(13);
 const baseStations = ref([]);
 const importedScene = ref(null);
 const importedSceneSignature = ref("");
@@ -426,7 +432,7 @@ const importSceneGraph = async () => {
     const { data } = await axios.post(`${API_BASE}/simulate/scene`, {
       scenario_name: scenarioName.value,
       env_type: "multimodal",
-      custom_base_stations: baseStations.value,
+      custom_base_stations: buildCustomBaseStationsPayload(),
     });
     importedScene.value = data;
     importedSceneSignature.value = currentSceneSignature.value;
@@ -457,6 +463,8 @@ const buildImportedDevices = () =>
       connected: Boolean(device.connected),
       broadcast_served: Boolean(device.broadcast_served),
     }));
+
+const buildCustomBaseStationsPayload = () => (baseStations.value.length ? baseStations.value : null);
 
 const readErrorResponse = async (response) => {
   const rawText = await response.text();
@@ -493,6 +501,12 @@ const handleSimulationEvent = (event) => {
 
   if (event.type === "result") {
     simulationResult.value = payload;
+    saveReplaySessionFromSimulation({
+      scenarioName: scenarioName.value,
+      algorithm: selectedAlgorithm.value,
+      result: payload,
+    });
+    appendTerminalLine("测试结果已保存，可在回放页直接选择本次测试进行回放。");
     sceneGraphTab.value = payload?.scene_export?.deployment_scene ? "deployment" : "imported";
     return;
   }
@@ -583,9 +597,10 @@ const runSimulation = async () => {
         checkpoint_path: checkpointPath.value,
         env_type: "multimodal",
         stochastic_eval: true,
+        eval_seed: evaluationSeed.value,
         episodes: 1,
         custom_devices: buildImportedDevices(),
-        custom_base_stations: baseStations.value,
+        custom_base_stations: buildCustomBaseStationsPayload(),
       }),
     });
 
@@ -940,6 +955,21 @@ input[type="text"] {
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 10px;
+}
+
+.export-actions--replay {
+  margin-top: 12px;
+}
+
+.replay-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  color: #e0f2fe;
+  text-decoration: none;
+  background: rgba(14, 165, 233, 0.12);
 }
 
 .report {

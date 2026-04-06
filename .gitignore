@@ -18,6 +18,7 @@ env/
 .vscode/
 .idea/
 *.swp
+.codex
 
 # Project outputs
 artifacts/
@@ -31,6 +32,18 @@ frontend/.env.*
 
 # FastAPI/server artifacts
 .uvicorn.log
+
+# NS-3 / SUMO generated artifacts
+ns-3.46.1/cmake-cache/
+ns-3.46.1/.lock-ns3_*_build
+ns-3.46.1/trace.json
+ns-3.46.1/scenario.txt
+ns-3.46.1/simulation_data.json
+ns-3.46.1/simulation_history.db
+ns-3.46.1/sim_result*.db
+ns-3.46.1/trips.trips.xml
+ns-3.46.1/routes.xml
+ns-3.46.1/map.net.xml
 
 # OS files
 .DS_Store
