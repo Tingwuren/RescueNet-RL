@@ -96,3 +96,50 @@ class SimulationResponse(BaseModel):
     avg_final_coverage: float
     reports: List[Dict[str, Any]]
     scene_export: Optional[SceneExport] = None
+
+
+# ---------------------------------------------------------------------------
+# Mahimahi schemas
+# ---------------------------------------------------------------------------
+
+class MahimahiSimulateRequest(BaseModel):
+    trace_name: str = Field(..., description="Name of the trace file (without .trace extension)")
+    duration_s: float = Field(60.0, ge=1, le=300, description="Simulation duration in seconds")
+    rtt_ms: float = Field(80.0, ge=1, le=2000, description="Round-trip time in milliseconds")
+    buffer_packets: int = Field(100, ge=1, le=10000, description="Buffer size in packets")
+    window_ms: int = Field(500, ge=100, le=5000, description="Aggregation window in milliseconds")
+
+
+class MahimahiTraceInfo(BaseModel):
+    name: str
+    filename: str
+    period_ms: int
+    total_packets: int
+    avg_throughput_mbps: float
+
+
+class MahimahiTimePoint(BaseModel):
+    time_s: float
+    value: float
+
+
+class MahimahiStats(BaseModel):
+    avg_capacity_mbps: float
+    avg_throughput_mbps: float
+    avg_sending_rate_mbps: float
+    utilization: float
+    loss_rate: float
+    total_delivered_mb: float
+
+
+class MahimahiSimulateResponse(BaseModel):
+    trace_name: str
+    duration_s: float
+    rtt_ms: float
+    buffer_packets: int
+    window_ms: int
+    mahimahi_native: bool
+    capacity: List[Dict[str, Any]]
+    throughput: List[Dict[str, Any]]
+    sending_rate: List[Dict[str, Any]]
+    stats: MahimahiStats
