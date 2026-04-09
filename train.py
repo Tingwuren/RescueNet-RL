@@ -43,7 +43,7 @@ def build_policy(env, config: Dict[str, Dict[str, object]], env_type: str, devic
         return DQNNetwork(
             obs_dim=obs_dim,
             action_dim=action_dim,
-            hidden_sizes=model_config.get("hidden_sizes", [256, 256]),
+            hidden_sizes=hidden_sizes,
             device=device,
         )
 

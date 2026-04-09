@@ -171,6 +171,49 @@ class MultiModalCommEnv(gym.Env):
             raise ValueError("Decoded site_idx exceeds candidate sites.")
         return site_idx, comm_idx, broadcast_idx
 
+    def get_action_mask(self) -> np.ndarray:
+        """Return a boolean mask of currently valid discrete actions."""
+        if self.remaining_budget <= 0:
+            return np.zeros(self.action_space.n, dtype=bool)
+        valid_comm = (~self.deployment_mask).astype(bool)
+        per_site_masks = [
+            np.tile(valid_comm[site_idx], self.num_broadcast_modes)
+            for site_idx in range(self.candidate_sites)
+        ]
+        if not per_site_masks:
+            return np.zeros(self.action_space.n, dtype=bool)
+        return np.concatenate(per_site_masks, axis=0)
+
+    def action_mask_from_observation(self, obs: np.ndarray) -> np.ndarray:
+        """Reconstruct the valid action mask directly from one or more observations."""
+        obs_arr = np.asarray(obs, dtype=np.float32)
+        single = obs_arr.ndim == 1
+        if single:
+            obs_arr = obs_arr[None, :]
+
+        deploy_offset = self.num_users * self.user_feature_dim
+        deploy_len = self.candidate_sites * self.num_comm_modes
+        deploy_state = obs_arr[:, deploy_offset : deploy_offset + deploy_len].reshape(
+            -1, self.candidate_sites, self.num_comm_modes
+        )
+        remaining_budget_norm = obs_arr[:, -5]
+        valid_comm = deploy_state < 0.5
+        budget_ok = remaining_budget_norm > 0.0
+
+        masks = []
+        for batch_index in range(obs_arr.shape[0]):
+            if not budget_ok[batch_index]:
+                masks.append(np.zeros(self.action_space.n, dtype=bool))
+                continue
+            per_site_masks = [
+                np.tile(valid_comm[batch_index, site_idx], self.num_broadcast_modes)
+                for site_idx in range(self.candidate_sites)
+            ]
+            masks.append(np.concatenate(per_site_masks, axis=0))
+
+        masks_arr = np.stack(masks, axis=0)
+        return masks_arr[0] if single else masks_arr
+
     def _get_time_snapshot(self) -> Tuple[Dict[str, float], Dict[str, float]]:
         idx = min(self.current_time_idx, len(self.scenario.time_series) - 1)
         record = self.scenario.time_series[idx]

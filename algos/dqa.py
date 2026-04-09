@@ -24,6 +24,7 @@ class Transition:
     reward: float
     next_obs: np.ndarray
     done: bool
+    n_steps: int = 1
 
 
 class ReplayBuffer:
@@ -102,13 +103,20 @@ class DQNTrainer:
         self.current_episode_length = 0
         self.log_episodes = bool(self.train_cfg.get("log_episodes", False))
         self.progress_callback = progress_callback
+        self.total_timesteps = int(self.train_cfg["total_timesteps"])
+        self.eval_deterministic = bool(self.train_cfg.get("eval_deterministic", True))
 
         self.artifact_dir = Path(self.log_cfg.get("artifact_dir", "artifacts"))
         self.artifact_dir.mkdir(parents=True, exist_ok=True)
 
         self.epsilon_start = float(self.dqn_cfg["epsilon_start"])
         self.epsilon_end = float(self.dqn_cfg["epsilon_end"])
-        self.epsilon_decay_steps = int(self.dqn_cfg["epsilon_decay_steps"])
+        configured_decay = int(self.dqn_cfg["epsilon_decay_steps"])
+        self.epsilon_decay_steps = min(
+            configured_decay,
+            max(1, int(self.total_timesteps * 0.8)),
+        )
+        self.dqn_cfg["epsilon_decay_steps"] = self.epsilon_decay_steps
         self.target_update_tau = float(self.dqn_cfg.get("target_update_tau", 0.005))
         self.target_update_period = int(self.dqn_cfg.get("target_update_period", 1000))
 
@@ -124,6 +132,16 @@ class DQNTrainer:
         fraction = min(1.0, self.global_step / max(1, self.epsilon_decay_steps))
         return self.epsilon_start + fraction * (self.epsilon_end - self.epsilon_start)
 
+    def _current_action_mask(self, env) -> Optional[np.ndarray]:
+        if hasattr(env, "get_action_mask"):
+            return env.get_action_mask()
+        return None
+
+    def _action_mask_from_observation(self, obs_batch: np.ndarray) -> Optional[np.ndarray]:
+        if hasattr(self.env, "action_mask_from_observation"):
+            return self.env.action_mask_from_observation(obs_batch)
+        return None
+
     def _append_nstep(self, transition: Transition) -> Optional[Transition]:
         self.nstep_buffer.append(transition)
         if len(self.nstep_buffer) < self.n_step and not transition.done:
@@ -133,11 +151,13 @@ class DQNTrainer:
         discount = 1.0
         next_obs = transition.next_obs
         done_flag = transition.done
+        steps_used = 0
         for item in self.nstep_buffer:
             reward_sum += discount * item.reward
             discount *= self.gamma
             next_obs = item.next_obs
             done_flag = item.done
+            steps_used += 1
             if item.done:
                 break
         first = self.nstep_buffer.popleft()
@@ -147,6 +167,7 @@ class DQNTrainer:
             reward=reward_sum,
             next_obs=next_obs,
             done=done_flag,
+            n_steps=steps_used,
         )
 
     def _flush_nstep(self) -> None:
@@ -155,11 +176,13 @@ class DQNTrainer:
             discount = 1.0
             next_obs = self.nstep_buffer[0].next_obs
             done_flag = self.nstep_buffer[0].done
+            steps_used = 0
             for item in list(self.nstep_buffer):
                 reward_sum += discount * item.reward
                 discount *= self.gamma
                 next_obs = item.next_obs
                 done_flag = item.done
+                steps_used += 1
                 if item.done:
                     break
             first = self.nstep_buffer.popleft()
@@ -170,6 +193,7 @@ class DQNTrainer:
                     reward=reward_sum,
                     next_obs=next_obs,
                     done=done_flag,
+                    n_steps=steps_used,
                 )
             )
 
@@ -180,16 +204,29 @@ class DQNTrainer:
         rewards = torch.as_tensor(batch.reward, dtype=torch.float32, device=self.device)
         next_obs = torch.as_tensor(batch.next_obs, dtype=torch.float32, device=self.device)
         dones = torch.as_tensor(batch.done, dtype=torch.float32, device=self.device)
+        n_steps = torch.as_tensor(batch.n_steps, dtype=torch.float32, device=self.device)
 
         q_values: Tensor = self.policy(obs)
         q_action = q_values.gather(1, actions.unsqueeze(-1)).squeeze(-1)
 
         with torch.no_grad():
-            target_q_values = self.target_net(next_obs)
-            max_next_q = target_q_values.max(dim=1)[0]
-            target = rewards + (1.0 - dones) * self.gamma * max_next_q
+            next_action_mask = self._action_mask_from_observation(batch.next_obs)
+            next_policy_q = self.policy(next_obs)
+            next_target_all = self.target_net(next_obs)
+            if next_action_mask is not None:
+                next_mask = torch.as_tensor(next_action_mask, dtype=torch.bool, device=self.device)
+                masked_policy_q = next_policy_q.masked_fill(~next_mask, float("-inf"))
+                next_actions = masked_policy_q.argmax(dim=1, keepdim=True)
+                next_target_q = next_target_all.gather(1, next_actions).squeeze(-1)
+                no_valid = ~next_mask.any(dim=1)
+                next_target_q = next_target_q.masked_fill(no_valid, 0.0)
+            else:
+                next_actions = next_policy_q.argmax(dim=1, keepdim=True)
+                next_target_q = next_target_all.gather(1, next_actions).squeeze(-1)
+            discount = torch.pow(torch.full_like(n_steps, self.gamma), n_steps)
+            target = rewards + (1.0 - dones) * discount * next_target_q
 
-        loss = F.mse_loss(q_action, target)
+        loss = F.smooth_l1_loss(q_action, target)
         self.optimizer.zero_grad()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.policy.parameters(), 5.0)
@@ -232,7 +269,7 @@ class DQNTrainer:
         self.current_episode_length = 0
 
     def train(self) -> Dict[str, Any]:
-        total_timesteps: int = self.train_cfg["total_timesteps"]
+        total_timesteps: int = self.total_timesteps
         log_interval: int = max(1, self.train_cfg["log_interval"])
         eval_interval: int = max(1, self.train_cfg["eval_interval"])
         eval_episodes: int = self.train_cfg["eval_episodes"]
@@ -243,7 +280,11 @@ class DQNTrainer:
 
         while self.global_step < total_timesteps:
             epsilon = self._epsilon()
-            action, _ = self.policy.act(obs, epsilon=epsilon)
+            action, _ = self.policy.act(
+                obs,
+                epsilon=epsilon,
+                action_mask=self._current_action_mask(self.env),
+            )
             next_obs, reward, terminated, truncated, info = self.env.step(action)
             done = bool(terminated or truncated)
 
@@ -285,7 +326,10 @@ class DQNTrainer:
                 )
 
             if self.global_step % eval_interval == 0:
-                eval_reward, eval_cov, eval_broadcast = self.evaluate(episodes=eval_episodes)
+                eval_reward, eval_cov, eval_broadcast = self.evaluate(
+                    episodes=eval_episodes,
+                    deterministic=self.eval_deterministic,
+                )
                 self.eval_history.append(
                     {
                         "step": float(self.global_step),
@@ -331,6 +375,7 @@ class DQNTrainer:
         rewards = []
         coverages = []
         broadcasts = []
+        eval_epsilon = 0.0 if deterministic else self.epsilon_end
         for _ in range(episodes):
             obs, _ = self.eval_env.reset()
             done = False
@@ -338,7 +383,12 @@ class DQNTrainer:
             final_cov = 0.0
             final_broadcast = 0.0
             while not done:
-                action, _ = self.policy.act(obs, epsilon=0.0, deterministic=deterministic)
+                action, _ = self.policy.act(
+                    obs,
+                    epsilon=eval_epsilon,
+                    deterministic=deterministic,
+                    action_mask=self._current_action_mask(self.eval_env),
+                )
                 obs, reward, terminated, truncated, info = self.eval_env.step(action)
                 done = bool(terminated or truncated)
                 ep_reward += reward

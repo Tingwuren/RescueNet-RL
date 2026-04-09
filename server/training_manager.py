@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import queue
+import shutil
 import threading
 import time
 import uuid
@@ -82,6 +83,14 @@ class TrainingManager:
         run.events.put(event)
         run.updated_at = event["timestamp"]
 
+    def _publish_latest_artifacts(self, run_artifact_dir: Path, latest_artifact_dir: Path) -> None:
+        latest_artifact_dir.mkdir(parents=True, exist_ok=True)
+        for name in ("policy_meta.json", "training_metrics.json", "training_coverage_curve.png"):
+            src = run_artifact_dir / name
+            if not src.exists():
+                continue
+            shutil.copy2(src, latest_artifact_dir / name)
+
     def _execute_training(
         self,
         run: TrainingRun,
@@ -106,8 +115,11 @@ class TrainingManager:
                 config["train"]["total_timesteps"] = total_timesteps
             config["train"]["eval_deterministic"] = not stochastic_eval
 
-            artifact_dir = Path(config["logging"]["artifact_dir"])
-            artifact_dir.mkdir(parents=True, exist_ok=True)
+            latest_artifact_dir = Path(config["logging"]["artifact_dir"])
+            latest_artifact_dir.mkdir(parents=True, exist_ok=True)
+            run_artifact_dir = latest_artifact_dir / "runs" / f"{algorithm}_{scenario_name}_{run.run_id}"
+            run_artifact_dir.mkdir(parents=True, exist_ok=True)
+            config["logging"]["artifact_dir"] = str(run_artifact_dir)
 
             env = make_env(config, env_type)
             eval_env = make_env(config, env_type)
@@ -138,11 +150,12 @@ class TrainingManager:
 
             metrics = trainer.train()
             run.metrics = metrics
-            plot_training_metrics(metrics, artifact_dir / "training_coverage_curve.png", skip=1)
+            plot_training_metrics(metrics, run_artifact_dir / "training_coverage_curve.png", skip=1)
+            self._publish_latest_artifacts(run_artifact_dir, latest_artifact_dir)
 
             if env_type == "multimodal":
                 dataset_path = config["multimodal_env"]["dataset_path"]
-                architecture_path = artifact_dir / f"broadcast_architecture_{scenario_name}.json"
+                architecture_path = run_artifact_dir / f"broadcast_architecture_{scenario_name}.json"
                 export_architecture(dataset_path, scenario_name, architecture_path)
 
             run.status = "completed"

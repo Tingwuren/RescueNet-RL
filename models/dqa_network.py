@@ -41,15 +41,34 @@ class DQNNetwork(nn.Module):
         return self.q_net(obs)
 
     @torch.no_grad()
-    def act(self, obs: np.ndarray, epsilon: float = 0.0, deterministic: bool = False) -> Tuple[int, float]:
+    def act(
+        self,
+        obs: np.ndarray,
+        epsilon: float = 0.0,
+        deterministic: bool = False,
+        action_mask: np.ndarray | None = None,
+    ) -> Tuple[int, float]:
         """Return an action index and max-Q value."""
         obs_tensor = torch.as_tensor(obs, dtype=torch.float32, device=self.device).unsqueeze(0)
         q_values = self.q_net(obs_tensor)
+        valid_indices = None
+        masked_q_values = q_values
+        if action_mask is not None:
+            mask_tensor = torch.as_tensor(action_mask, dtype=torch.bool, device=self.device).view(1, -1)
+            valid_indices = torch.nonzero(mask_tensor[0], as_tuple=False).squeeze(-1)
+            if valid_indices.numel() > 0:
+                masked_q_values = q_values.masked_fill(~mask_tensor, float("-inf"))
+
         if deterministic or torch.rand(1).item() > epsilon:
-            action_tensor = torch.argmax(q_values, dim=-1)
+            action_tensor = torch.argmax(masked_q_values, dim=-1)
         else:
-            action_tensor = torch.randint(0, self.action_dim, (1,), device=self.device)
-        q_max = float(torch.max(q_values).item())
+            if valid_indices is not None and valid_indices.numel() > 0:
+                sampled = torch.randint(0, valid_indices.numel(), (1,), device=self.device)
+                action_tensor = valid_indices[sampled]
+            else:
+                action_tensor = torch.randint(0, self.action_dim, (1,), device=self.device)
+        has_masked_finite = bool(torch.isfinite(masked_q_values).any().item())
+        q_max = float(torch.max(masked_q_values if has_masked_finite else q_values).item())
         return int(action_tensor.item()), q_max
 
     def hard_update(self, target_net: "DQNNetwork") -> None:

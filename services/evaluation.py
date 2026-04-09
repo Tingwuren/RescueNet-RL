@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 import json
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -38,11 +39,17 @@ def load_policy(checkpoint: Path, env, config: Dict[str, Dict], env_type: str, a
     hidden_sizes = model_cfg.get(hidden_key, [1024, 1024, 512, 512] if env_type == "multimodal" else [128, 128])
     device = config["train"].get("device", "auto")
 
+    state_dict = torch.load(checkpoint, map_location="cpu", weights_only=True)
+
     if algo == "dqn":
+        q_weight_keys = sorted(
+            key for key in state_dict.keys() if key.startswith("q_net.") and key.endswith(".weight")
+        )
+        inferred_hidden_sizes = [int(state_dict[key].shape[0]) for key in q_weight_keys[:-1]]
         policy = DQNNetwork(
             obs_dim=obs_dim,
             action_dim=action_dim,
-            hidden_sizes=model_cfg.get("hidden_sizes", [256, 256]),
+            hidden_sizes=inferred_hidden_sizes or hidden_sizes,
             device=device,
         )
     elif algo == "a3c":
@@ -84,7 +91,10 @@ def load_policy(checkpoint: Path, env, config: Dict[str, Dict], env_type: str, a
             hidden_sizes=hidden_sizes,
             device=device,
         )
-    state_dict = torch.load(checkpoint, map_location=policy.device, weights_only=True)
+    state_dict = {
+        key: value.to(policy.device) if isinstance(value, torch.Tensor) else value
+        for key, value in state_dict.items()
+    }
     policy.load_state_dict(state_dict)
     policy.eval()
     return policy
@@ -106,6 +116,39 @@ def configure_custom_base_stations(env, base_stations: Optional[List[Dict[str, A
             raise AttributeError("Environment does not support residual base-station overrides.")
         return
     env.set_custom_base_stations(base_stations)
+
+
+def select_planned_dqn_action(env, policy: DQNNetwork, obs: np.ndarray) -> int:
+    """Use one-step lookahead over valid actions to avoid poor local DQN choices at test time."""
+    if not hasattr(env, "get_action_mask"):
+        action, _ = policy.act(obs, epsilon=0.0, deterministic=True)
+        return int(action)
+
+    action_mask = env.get_action_mask()
+    valid_actions = np.flatnonzero(action_mask)
+    if valid_actions.size == 0:
+        action, _ = policy.act(obs, epsilon=0.0, deterministic=True, action_mask=action_mask)
+        return int(action)
+
+    obs_tensor = torch.as_tensor(obs, dtype=torch.float32, device=policy.device).unsqueeze(0)
+    q_values = policy(obs_tensor).detach().cpu().numpy()[0]
+
+    best_action = int(valid_actions[0])
+    best_score: Tuple[float, float, float, float] | None = None
+    for action in valid_actions.tolist():
+        probe = deepcopy(env)
+        _, reward, _, _, info = probe.step(int(action))
+        score = (
+            float(info.get("coverage_ratio", 0.0)),
+            float(info.get("broadcast_ratio", 0.0)),
+            float(reward),
+            float(q_values[action]),
+        )
+        if best_score is None or score > best_score:
+            best_score = score
+            best_action = int(action)
+
+    return best_action
 
 
 def build_scene_preview(
@@ -203,7 +246,10 @@ def evaluate_policy(
             },
         )
         while not done:
-            action_out = policy.act(obs, deterministic=deterministic)
+            if isinstance(policy, DQNNetwork):
+                action_out = select_planned_dqn_action(env, policy, obs)
+            else:
+                action_out = policy.act(obs, deterministic=deterministic)
             if isinstance(action_out, (list, tuple)):
                 action_value = int(action_out[0])
             else:

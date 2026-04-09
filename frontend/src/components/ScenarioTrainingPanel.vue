@@ -146,6 +146,16 @@ const activeRewardProfile = computed(() =>
   rewardProfiles.value.find((profile) => profile.key === selectedRewardMode.value)
 );
 
+watch(selectedAlgorithm, (algorithm) => {
+  if (algorithm === "dqn" && totalTimesteps.value < 40000) {
+    totalTimesteps.value = 40000;
+    return;
+  }
+  if (algorithm !== "dqn" && totalTimesteps.value === 40000) {
+    totalTimesteps.value = 12000;
+  }
+});
+
 const fetchScenarios = async () => {
   isLoadingScenarios.value = true;
   loadError.value = "";
