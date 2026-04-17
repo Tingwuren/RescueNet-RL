@@ -484,7 +484,7 @@
                 
                 async fetchExperiments() {
                     try {
-                        const res = await fetch('http://localhost:8000/api/experiments');
+                        const res = await fetch(`${window.location.origin}/api/experiments`);
                         this.experiments = await res.json();
                         if (this.experiments.length > 0) {
                             this.selectedExp = this.experiments[0].id;
@@ -513,7 +513,7 @@
                     
                     // 加载图表数据
                     try {
-                        const chartRes = await fetch(`http://localhost:8000/api/exp/${this.selectedExp}/charts`);
+                        const chartRes = await fetch(`${window.location.origin}/api/exp/${this.selectedExp}/charts`);
                         const data = await chartRes.json();
                         this.allTimes = data.times || [];
                         this.allTps = data.tps || [];
@@ -541,7 +541,7 @@
                     
                     // 加载帧数据
                     try {
-                        const res = await fetch(`http://localhost:8000/api/exp/${this.selectedExp}/frame/${this.currentIdx}`);
+                        const res = await fetch(`${window.location.origin}/api/exp/${this.selectedExp}/frame/${this.currentIdx}`);
                         const frame = await res.json();
                         
                         if (frame.time) {

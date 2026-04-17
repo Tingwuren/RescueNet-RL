@@ -12,37 +12,65 @@
       </div>
     </div>
 
-    <div class="catalog-grid">
-      <article v-for="item in catalogCards" :key="item.key" class="catalog-card">
-        <img :src="item.image" :alt="item.title" />
-        <div class="catalog-card__body">
-          <span class="catalog-card__tag">{{ item.tag }}</span>
-          <h4>{{ item.title }}</h4>
-          <p>{{ item.description }}</p>
-          <div class="catalog-card__chips">
-            <span v-for="match in item.matches" :key="match">{{ match }}</span>
-            <span v-if="!item.matches.length">当前场景未配置对应设备</span>
+    <div class="equipment-grid">
+      <button
+        v-for="card in equipmentCards"
+        :key="card.key"
+        type="button"
+        class="equipment-card"
+        :class="{ 'equipment-card--active': selectedCatalogKey === card.category }"
+        @click="() => openEquipmentModal(card)"
+      >
+        <div class="equipment-card__media">
+          <img :src="card.image" :alt="card.title" />
+          <span :class="['station-badge', `station-badge--${card.category}`]">{{ card.badge }}</span>
+        </div>
+        <div class="equipment-card__content">
+          <div class="equipment-card__title">
+            <strong>{{ card.title }}</strong>
+            <small>点击查看装备介绍</small>
+          </div>
+          <p>{{ card.description }}</p>
+          <div class="equipment-card__tags" aria-label="标签">
+            <span v-for="tag in card.previewTags" :key="`${card.key}-${tag}`">{{ tag }}</span>
           </div>
         </div>
-      </article>
+      </button>
     </div>
 
-    <div class="station-grid">
-      <article v-for="station in detailedStations" :key="station.name" class="station-card">
-        <div class="station-card__media">
-          <img :src="station.image" :alt="station.label" />
+    <div v-if="activeStation" class="station-modal" role="dialog" aria-modal="true" @click.self="closeStationModal">
+      <article class="station-modal__card">
+        <button type="button" class="station-modal__close" aria-label="关闭设备介绍" @click="closeStationModal">×</button>
+        <div class="station-modal__media">
+          <img :src="activeStation.image" :alt="activeStation.label" />
         </div>
-        <div class="station-card__content">
-          <div class="station-card__title">
-            <strong>{{ station.label }}</strong>
-            <span :class="['station-badge', `station-badge--${station.category}`]">{{ station.categoryLabel }}</span>
+        <div class="station-modal__content">
+          <span :class="['station-badge', `station-badge--${activeStation.category}`]">{{ activeStation.categoryLabel }}</span>
+          <h3>{{ activeStation.label }}</h3>
+          <p>{{ activeStation.intro }}</p>
+          <div v-if="!activeStation.isCatalog" class="station-modal__stats">
+            <span><small>峰值吞吐</small><strong>{{ activeStation.max_throughput.toFixed(0) }} Mbps</strong></span>
+            <span><small>接入用户</small><strong>{{ activeStation.max_users }}</strong></span>
+            <span><small>设备成本</small><strong>{{ activeStation.device_cost.toFixed(2) }}</strong></span>
+            <span><small>带宽成本</small><strong>{{ activeStation.bandwidth_cost.toFixed(3) }}</strong></span>
           </div>
-          <p>支持模式：{{ station.displayModes.join(" / ") }}</p>
-          <div class="station-card__stats">
-            <span>吞吐 {{ station.max_throughput.toFixed(0) }} Mbps</span>
-            <span>用户 {{ station.max_users }}</span>
-            <span>设备成本 {{ station.device_cost.toFixed(2) }}</span>
-            <span>带宽成本 {{ station.bandwidth_cost.toFixed(3) }}</span>
+          <div class="station-modal__sections">
+            <section>
+              <strong>支持模式</strong>
+              <p>{{ activeStation.displayModes.join(" / ") || "未配置" }}</p>
+            </section>
+            <section>
+              <strong>参数设计</strong>
+              <p>{{ activeStation.parameterDesign }}</p>
+            </section>
+            <section>
+              <strong>奖励设计</strong>
+              <p>{{ activeStation.rewardDesign }}</p>
+            </section>
+            <section v-if="activeStation.useCase">
+              <strong>典型用途</strong>
+              <p>{{ activeStation.useCase }}</p>
+            </section>
           </div>
         </div>
       </article>
@@ -52,7 +80,7 @@
       <div class="site-board__main">
         <div class="site-map">
           <svg :viewBox="`0 0 ${mapWidth} ${mapHeight}`" preserveAspectRatio="xMidYMid meet">
-            <rect :x="mapPadding" :y="mapPadding" :width="innerMapWidth" :height="innerMapHeight" rx="20" fill="#08111f" />
+            <rect :x="mapPadding" :y="mapPadding" :width="innerMapWidth" :height="innerMapHeight" rx="20" fill="#f8fafc" />
 
             <g v-for="cell in namedCells" :key="cell.key">
               <rect
@@ -65,7 +93,7 @@
               />
             </g>
 
-            <g stroke="rgba(148, 163, 184, 0.12)" stroke-width="1">
+            <g stroke="rgba(100, 116, 139, 0.22)" stroke-width="1">
               <line
                 v-for="row in gridRows + 1"
                 :key="`row-${row}`"
@@ -121,10 +149,10 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
-import backpackStationImg from "../assets/base-stations/backpack-station.svg";
-import compactStationImg from "../assets/base-stations/compact-station.svg";
-import relayStationImg from "../assets/base-stations/relay-station.svg";
+import { computed, ref } from "vue";
+import backpackStationImg from "../assets/base-stations/photos/backpack-station-real.jpg";
+import compactStationImg from "../assets/base-stations/photos/compact-station-real.jpg";
+import relayStationImg from "../assets/base-stations/photos/relay-station-real.jpg";
 
 const props = defineProps({
   scenario: {
@@ -152,6 +180,10 @@ const categoryMap = {
     tag: "Mobile Pack",
     image: backpackStationImg,
     description: "强调单兵携行和快速进场，适合断路、积水或狭窄街巷中的临时接入。",
+    intro: "面向道路受阻、楼宇遮挡和临时救援点的便携式接入装备，重点体现快速部署和低成本补盲。",
+    parameterDesign: "在仿真中通常给中等吞吐、中等用户容量和较低设备成本，使策略更愿意把它部署到边缘盲区或用户密集但预算有限的位置。",
+    rewardDesign: "奖励侧强调覆盖率提升和设备成本惩罚的平衡：如果它能用较低成本连接更多离线用户，策略会获得更高净收益。",
+    useCase: "适合救援队随行、街巷补盲、临时安置点接入和小范围热点恢复。",
     label: "背负式",
   },
   compact: {
@@ -160,6 +192,10 @@ const categoryMap = {
     tag: "Compact Node",
     image: compactStationImg,
     description: "适合道路交汇、临时指挥点和居民集中区的快速补盲与容量恢复。",
+    intro: "面向局部高并发区域的小型化通信节点，兼顾覆盖范围、吞吐能力和部署成本。",
+    parameterDesign: "在仿真中通常给较高吞吐和较高接入用户上限，同时设备成本高于背负式节点，用来测试算法的容量分配能力。",
+    rewardDesign: "奖励侧更关注吞吐收益和覆盖收益：当候选站点处于人群集中区域时，高容量带来的收益会抵消更高成本。",
+    useCase: "适合临时指挥部、医院周边、居民集中区、交通枢纽和救援物资集散点。",
     label: "小型",
   },
   relay: {
@@ -168,8 +204,24 @@ const categoryMap = {
     tag: "Relay Node",
     image: relayStationImg,
     description: "用于远距离回传、跨障碍覆盖和核心通信链路续接，适合做跨区中继。",
+    intro: "面向跨区连通和回传链路恢复的中继装备，重点解决灾后断链区域之间的通信接续问题。",
+    parameterDesign: "在仿真中通常给更强覆盖或回传能力，但设备成本和带宽成本更高，避免算法无脑铺设中继节点。",
+    rewardDesign: "奖励侧强调广播覆盖、链路恢复和成本约束：只有当它明显改善跨区覆盖或关键区域连通时，策略才会倾向选择。",
+    useCase: "适合山地阻隔、桥梁中断、跨河通信、远距离回传和核心保障区域之间的链路接续。",
     label: "中继",
   },
+};
+
+const selectedCatalogKey = ref("backpack");
+const activeStation = ref(null);
+
+const openEquipmentModal = (card) => {
+  selectedCatalogKey.value = card.category;
+  activeStation.value = card.modal;
+};
+
+const closeStationModal = () => {
+  activeStation.value = null;
 };
 
 const sitePalette = {
@@ -203,6 +255,9 @@ const detailedStations = computed(() =>
       categoryLabel: categoryMap[category].label,
       image: categoryMap[category].image,
       displayModes: resolveDisplayModes(station),
+      intro: `${categoryMap[category].label}装备用于${categoryMap[category].useCase.replace(/。$/, "")}，当前场景中对应 ${station.label}。`,
+      parameterDesign: `${station.label} 的仿真参数设置为峰值吞吐 ${Number(station.max_throughput || 0).toFixed(0)} Mbps、最大接入 ${station.max_users} 用户、设备成本 ${Number(station.device_cost || 0).toFixed(2)}、带宽成本 ${Number(station.bandwidth_cost || 0).toFixed(3)}，用于约束算法在覆盖收益和部署代价之间做权衡。`,
+      rewardDesign: `${station.label} 会通过覆盖率、广播覆盖和吞吐提升获得正向奖励，同时设备成本与带宽成本进入惩罚项，避免策略只追求高性能设备堆叠。`,
     };
   })
 );
@@ -215,6 +270,36 @@ const catalogCards = computed(() =>
       .map((station) => station.label),
   }))
 );
+
+const equipmentCards = computed(() => [
+  ...catalogCards.value.map((card) => ({
+    key: `category-${card.key}`,
+    category: card.key,
+    badge: card.label,
+    title: card.title,
+    image: card.image,
+    description: card.description,
+    previewTags: card.matches.length ? card.matches.slice(0, 2) : ["当前场景未配置"],
+    modal: {
+      ...card,
+      label: `${card.title}介绍`,
+      category: card.key,
+      categoryLabel: card.label,
+      displayModes: card.matches.length ? card.matches : ["当前场景未配置对应设备"],
+      isCatalog: true,
+    },
+  })),
+  ...detailedStations.value.map((station) => ({
+    key: `station-${station.name}`,
+    category: station.category,
+    badge: station.categoryLabel,
+    title: station.label,
+    image: station.image,
+    description: station.intro,
+    previewTags: station.displayModes.slice(0, 2),
+    modal: station,
+  })),
+]);
 
 const mapPadding = 18;
 const cellSize = 18;
@@ -282,7 +367,11 @@ const featuredSites = computed(() => {
   border: 1px solid rgba(148, 163, 184, 0.22);
   border-radius: 18px;
   padding: 20px;
-  background: rgba(15, 23, 42, 0.3);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(14, 165, 233, 0.1), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.94));
+  color: #0f172a;
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.07);
 }
 
 .showcase__header {
@@ -294,14 +383,14 @@ const featuredSites = computed(() => {
 
 .showcase__header h3,
 .site-board__aside-header h4,
-.catalog-card__body h4 {
+.equipment-card__content h4 {
   margin: 0;
 }
 
 .showcase__header p,
 .site-board__aside-header p {
   margin: 6px 0 0;
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .showcase__summary {
@@ -312,95 +401,116 @@ const featuredSites = computed(() => {
 }
 
 .showcase__summary span,
-.site-legend span,
-.catalog-card__chips span {
+.site-legend span {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
   border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  background: rgba(15, 23, 42, 0.5);
-  color: #dbeafe;
+  border: 1px solid rgba(14, 165, 233, 0.16);
+  background: rgba(224, 242, 254, 0.72);
+  color: #075985;
   font-size: 12px;
 }
 
-.catalog-grid,
-.station-grid {
+.equipment-grid {
   display: grid;
-  gap: 16px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  align-items: stretch;
 }
 
-.catalog-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.catalog-card {
+.equipment-card {
   overflow: hidden;
-  border-radius: 18px;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.72), rgba(2, 6, 23, 0.92));
+  border-radius: 22px;
+  border: 1px solid rgba(14, 165, 233, 0.18);
+  background:
+    linear-gradient(135deg, rgba(224, 242, 254, 0.66), rgba(255, 255, 255, 0.97));
+  color: #0f172a;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.07);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  height: 386px;
 }
 
-.catalog-card img,
-.station-card__media img {
+.equipment-card:hover,
+.equipment-card--active {
+  border-color: rgba(2, 132, 199, 0.44);
+  box-shadow: 0 22px 38px rgba(14, 165, 233, 0.15);
+  transform: translateY(-2px);
+}
+
+.equipment-card__media img {
   display: block;
   width: 100%;
-  height: auto;
+  height: 176px;
+  object-fit: cover;
 }
 
-.catalog-card__body,
-.station-card__content {
-  padding: 14px;
+.equipment-card__content {
+  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-height: 210px;
+  height: 210px;
 }
 
-.catalog-card__tag {
-  display: inline-flex;
-  width: fit-content;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(125, 211, 252, 0.12);
-  color: #7dd3fc;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.catalog-card__body p,
-.station-card__content p {
+.equipment-card__content p {
   margin: 0;
-  color: #bfd0e5;
+  color: #475569;
   line-height: 1.6;
-}
-
-.catalog-card__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.station-grid {
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-}
-
-.station-card {
-  display: grid;
-  grid-template-columns: 120px minmax(0, 1fr);
-  gap: 0;
-  border-radius: 16px;
+  display: -webkit-box;
   overflow: hidden;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(15, 23, 42, 0.55);
+  -webkit-box-orient: vertical;
 }
 
-.station-card__media {
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(2, 6, 23, 0.96));
+.equipment-card__content p {
+  min-height: 86px;
+  -webkit-line-clamp: 3;
+  font-size: 13px;
 }
 
-.station-card__title,
+.equipment-card__title {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+  min-height: 48px;
+}
+
+.equipment-card__title strong {
+  font-size: 18px;
+  color: #0f172a;
+  letter-spacing: 0.01em;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.equipment-card__title small {
+  color: #0284c7;
+  font-size: 12px;
+  flex: 0 0 auto;
+}
+
+.equipment-card__media {
+  position: relative;
+  min-height: 176px;
+  background: linear-gradient(180deg, rgba(224, 242, 254, 0.72), rgba(248, 250, 252, 0.96));
+}
+
+.equipment-card__media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 45%, rgba(15, 23, 42, 0.36));
+  pointer-events: none;
+}
+
 .site-card__title {
   display: flex;
   justify-content: space-between;
@@ -408,18 +518,139 @@ const featuredSites = computed(() => {
   align-items: flex-start;
 }
 
-.station-card__stats {
+.equipment-card__tags {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  min-height: 34px;
+  max-height: 34px;
+  overflow: hidden;
+  margin-top: auto;
 }
 
-.station-card__stats span {
+.equipment-card__tags span {
+  padding: 7px 9px;
+  border-radius: 999px;
+  background: rgba(241, 245, 249, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  color: #475569;
   font-size: 12px;
-  color: #dbeafe;
-  padding: 6px 8px;
-  border-radius: 10px;
-  background: rgba(30, 41, 59, 0.72);
+}
+
+.station-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  padding: 32px;
+  background: rgba(15, 23, 42, 0.58);
+  backdrop-filter: blur(10px);
+  display: grid;
+  place-items: center;
+}
+
+.station-modal__card {
+  position: relative;
+  width: min(920px, 100%);
+  max-height: min(760px, calc(100vh - 64px));
+  overflow: auto;
+  display: grid;
+  grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.15fr);
+  gap: 22px;
+  padding: 22px;
+  border-radius: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  background:
+    radial-gradient(circle at 0% 0%, rgba(14, 165, 233, 0.18), transparent 34%),
+    linear-gradient(135deg, rgba(248, 250, 252, 0.98), rgba(255, 255, 255, 0.96));
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.32);
+}
+
+.station-modal__close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: rgba(255, 255, 255, 0.9);
+  color: #0f172a;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.station-modal__media {
+  min-height: 360px;
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(224, 242, 254, 0.5);
+}
+
+.station-modal__media img {
+  width: 100%;
+  height: 100%;
+  min-height: 360px;
+  display: block;
+  object-fit: cover;
+}
+
+.station-modal__content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 10px 10px 10px 0;
+}
+
+.station-modal__content h3,
+.station-modal__content p,
+.station-modal__sections p {
+  margin: 0;
+}
+
+.station-modal__content h3 {
+  font-size: 28px;
+  color: #0f172a;
+}
+
+.station-modal__content p {
+  color: #475569;
+  line-height: 1.75;
+}
+
+.station-modal__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.station-modal__stats span,
+.station-modal__sections section {
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(14, 165, 233, 0.16);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.station-modal__stats span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.station-modal__stats small {
+  color: #64748b;
+}
+
+.station-modal__stats strong,
+.station-modal__sections strong {
+  color: #075985;
+}
+
+.station-modal__sections {
+  display: grid;
+  gap: 10px;
 }
 
 .station-badge,
@@ -429,32 +660,41 @@ const featuredSites = computed(() => {
   font-size: 12px;
 }
 
+.equipment-card__media .station-badge {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 1;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.2);
+}
+
 .station-badge--backpack,
 .site-badge--mobile {
-  background: rgba(192, 132, 252, 0.16);
-  color: #e9d5ff;
+  background: rgba(243, 232, 255, 0.9);
+  color: #7e22ce;
 }
 
 .station-badge--compact,
 .site-badge--core {
-  background: rgba(56, 189, 248, 0.16);
-  color: #bae6fd;
+  background: rgba(224, 242, 254, 0.9);
+  color: #0369a1;
 }
 
 .station-badge--relay,
 .site-badge--relay {
-  background: rgba(249, 115, 22, 0.16);
-  color: #fed7aa;
+  background: rgba(255, 237, 213, 0.95);
+  color: #c2410c;
 }
 
 .site-badge--priority {
-  background: rgba(250, 204, 21, 0.16);
-  color: #fde68a;
+  background: rgba(254, 249, 195, 0.95);
+  color: #a16207;
 }
 
 .site-badge--edge {
-  background: rgba(74, 222, 128, 0.16);
-  color: #bbf7d0;
+  background: rgba(220, 252, 231, 0.95);
+  color: #15803d;
 }
 
 .site-board {
@@ -473,8 +713,9 @@ const featuredSites = computed(() => {
 .site-map {
   border-radius: 18px;
   overflow: hidden;
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.88), rgba(2, 6, 23, 0.95));
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.92));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
 }
 
 .site-map svg {
@@ -499,8 +740,8 @@ const featuredSites = computed(() => {
 .site-card {
   padding: 14px;
   border-radius: 14px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(15, 23, 42, 0.52);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(255, 255, 255, 0.9);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -509,21 +750,31 @@ const featuredSites = computed(() => {
 .site-card p,
 .site-card small {
   margin: 0;
-  color: #bfd0e5;
+  color: #475569;
   line-height: 1.6;
 }
 
 @media (max-width: 1200px) {
-  .catalog-grid,
-  .site-board {
+  .equipment-grid,
+  .site-board,
+  .station-modal__card {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .site-board,
+  .station-modal__card {
     grid-template-columns: 1fr;
+  }
+
+  .station-modal__media,
+  .station-modal__media img {
+    min-height: 260px;
   }
 }
 
 @media (max-width: 820px) {
   .showcase__header,
-  .station-card,
-  .station-card__title,
+  .equipment-card__title,
   .site-card__title {
     grid-template-columns: 1fr;
     flex-direction: column;
@@ -533,9 +784,16 @@ const featuredSites = computed(() => {
     justify-content: flex-start;
   }
 
-  .station-card {
-    display: flex;
-    flex-direction: column;
+  .equipment-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .station-modal {
+    padding: 16px;
+  }
+
+  .station-modal__stats {
+    grid-template-columns: 1fr;
   }
 }
 </style>

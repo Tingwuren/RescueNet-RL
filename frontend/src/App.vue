@@ -1,242 +1,555 @@
 <template>
   <div class="app-shell">
-    <div class="app-shell__glow app-shell__glow--left"></div>
-    <div class="app-shell__glow app-shell__glow--right"></div>
+    <div class="app-shell__aurora app-shell__aurora--left"></div>
+    <div class="app-shell__aurora app-shell__aurora--right"></div>
 
     <header class="topbar">
       <a class="brand" href="#/">
-        <span class="brand__eyebrow">应急广播与通信资源智能决策</span>
-        <strong>智能应急广播与通信资源配置与组网模块</strong>
+        <span class="brand__eyebrow">RescueNet Digital Twin Console</span>
+        <strong>应急通信数字孪生仿真平台</strong>
       </a>
+
       <nav class="topbar__nav" aria-label="主导航">
         <a
           v-for="item in navItems"
           :key="item.key"
           :href="item.href"
-          :class="['nav-link', { 'nav-link--active': currentRoute === item.key }]"
+          :class="['nav-chip', { 'nav-chip--active': currentRoute === item.key }]"
         >
-          {{ item.label }}
+          <span>{{ item.label }}</span>
+          <small>{{ item.subLabel }}</small>
         </a>
       </nav>
     </header>
 
     <main class="app-main">
-      <section v-if="currentRoute === 'home'" class="home-view">
-        <div class="hero">
-          <div class="hero__content panel-surface panel-surface--hero">
-            <span class="eyebrow">Disaster Recovery RL</span>
-            <h1>面向灾后通信恢复的强化学习实验台</h1>
-            <p class="hero__summary">
-              围绕灾害场景建模、组网策略训练与残余设施测试，比较不同强化学习算法在覆盖率、带宽利用和部署成本之间的权衡表现。
-            </p>
-            <div class="hero__actions">
-              <a class="primary-link" href="#/training">进入训练中心</a>
-              <a class="secondary-link" href="#/testing">进入测试中心</a>
-              <a class="secondary-link" href="#/replay">进入回放中心</a>
+      <section v-if="currentRoute === 'home'" class="landing-view landing-view--map">
+        <div class="map-command-screen" :class="`map-command-screen--${activeMissionStage.key}`">
+          <section class="mission-console" aria-label="恢复任务控制台">
+            <div class="map-command-screen__header">
+              <div>
+                <span class="eyebrow">Recovery Mission Console</span>
+                <h1>面向灾害场景的多模融合应急通信仿真平台</h1>
+                <p>播放一次从灾情接入、策略训练到组网回放的恢复任务。</p>
+              </div>
+              <div class="map-command-screen__live">
+                <span></span>
+                <strong>{{ missionPlaying ? "RUNNING" : "READY" }}</strong>
+                <small>{{ activeMissionStage.location }}</small>
+              </div>
+            </div>
+
+            <div class="map-command-screen__status">
+              <span v-for="item in activeMissionStage.metrics" :key="item.label">
+                <small>{{ item.label }}</small>
+                <strong>{{ item.value }}</strong>
+              </span>
+            </div>
+
+            <div class="map-command-screen__timeline" :style="{ '--mission-progress': missionProgress }">
+              <button
+                v-for="(step, index) in missionStages"
+                :key="step.key"
+                type="button"
+                :class="[
+                  'mission-step',
+                  {
+                    'mission-step--active': index === activeMissionIndex,
+                    'mission-step--complete': index < activeMissionIndex,
+                  },
+                ]"
+                @click="selectMissionStage(index)"
+              >
+                <i>{{ step.icon }}</i>
+                <span class="mission-step__copy">
+                  <strong>{{ step.label }}</strong>
+                  <small>{{ step.result }}</small>
+                </span>
+                <em>{{ index < activeMissionIndex ? "已完成" : index === activeMissionIndex ? "进行中" : "待执行" }}</em>
+              </button>
+            </div>
+
+            <div class="map-command-screen__mission">
+              <span class="eyebrow">{{ activeMissionStage.kicker }}</span>
+              <h2>{{ activeMissionStage.title }}</h2>
+              <p>{{ activeMissionStage.summary }}</p>
+              <div class="mission-actions">
+                <button type="button" class="primary-cta" @click="playMission">
+                  {{ missionPlaying ? "重新播放任务" : "播放恢复任务" }}
+                </button>
+                <a class="secondary-cta" href="#/algorithm">进入算法模拟</a>
+              </div>
+            </div>
+          </section>
+
+          <section class="map-command-screen__stage" aria-label="灾情地图与节点基站信息">
+            <SatelliteSceneMap class="map-command-screen__map" :stage="activeMissionStage.key" />
+
+            <div class="mission-path" aria-hidden="true">
+              <span class="mission-path__line"></span>
+              <span class="mission-path__node mission-path__node--a"></span>
+              <span class="mission-path__node mission-path__node--b"></span>
+              <span class="mission-path__node mission-path__node--c"></span>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section v-else-if="currentRoute === 'algorithm'" class="module-view">
+        <section class="algorithm-stage panel-shell">
+          <ScenarioTrainingPanel />
+        </section>
+      </section>
+
+      <section v-else-if="currentRoute === 'scene'" class="module-view">
+        <div class="module-hero panel-shell panel-shell--module panel-shell--scene">
+          <div>
+            <span class="eyebrow">Scene Operations</span>
+            <h1>场景模拟工作台</h1>
+            <p>回放画布与链路分析视图并列，突出时间演进过程。</p>
+          </div>
+          <div class="module-hero__badges">
+            <span>整页主画布</span>
+            <span>回放与链路分析</span>
+            <span>支持演示模式</span>
+          </div>
+        </div>
+
+        <div class="guide-banner panel-shell" v-if="showSceneGuide">
+          <div>
+            <strong>场景模拟页说明</strong>
+            <p>首次进入可看一次引导，关闭后主画布将保持完整展示。</p>
+          </div>
+          <button type="button" class="guide-banner__dismiss" @click="showSceneGuide = false">关闭说明</button>
+        </div>
+
+        <div class="module-toolbar panel-shell panel-shell--toolbar">
+          <div class="segmented-control">
+            <button
+              v-for="tab in sceneTabs"
+              :key="tab.key"
+              type="button"
+              :class="['segment-btn', { 'segment-btn--active': sceneTab === tab.key }]"
+              @click="sceneTab = tab.key"
+            >
+              <strong>{{ tab.label }}</strong>
+              <small>{{ tab.desc }}</small>
+            </button>
+          </div>
+
+          <div class="toolbar-note">
+            <strong>{{ sceneSummary.title }}</strong>
+            <span>{{ sceneSummary.text }}</span>
+          </div>
+        </div>
+
+        <section class="scene-stage panel-shell">
+          <div class="scene-stage__intro">
+            <div>
+              <span class="scene-stage__tag">{{ activeSceneTab.stageTag }}</span>
+              <h2>{{ activeSceneTab.heading }}</h2>
+              <p>{{ activeSceneTab.intro }}</p>
+            </div>
+            <div class="scene-stage__chips">
+              <span v-for="item in sceneChips" :key="item">{{ item }}</span>
             </div>
           </div>
 
-          <div class="hero__metrics">
-            <article v-for="item in metrics" :key="item.label" class="metric-card panel-surface">
-              <span>{{ item.label }}</span>
-              <strong>{{ item.value }}</strong>
-              <p>{{ item.description }}</p>
-            </article>
+          <Ns3ReplayPanel v-if="sceneTab === 'replay'" />
+          <MahimahiSimulator v-else />
+        </section>
+      </section>
+
+      <section v-else-if="currentRoute === 'tester'" class="module-view">
+        <section class="scene-stage panel-shell">
+          <CustomEnvironmentTester />
+        </section>
+      </section>
+
+      <section v-else-if="currentRoute === 'device'" class="module-view">
+        <div class="module-hero panel-shell panel-shell--module panel-shell--device">
+          <div>
+            <span class="eyebrow">Device Operations</span>
+            <h1>虚拟设备模拟工作台</h1>
+            <p>设备能力、适配场景与候选位点联动展示。</p>
+          </div>
+          <div class="module-hero__badges">
+            <span>设备图谱</span>
+            <span>参数与能力解释</span>
+            <span>候选站点预览</span>
           </div>
         </div>
 
-        <div class="feature-grid">
-          <article v-for="card in homeCards" :key="card.title" class="feature-card panel-surface">
-            <span class="feature-card__tag">{{ card.tag }}</span>
-            <h2>{{ card.title }}</h2>
-            <p>{{ card.description }}</p>
-            <a class="feature-card__link" :href="card.href">{{ card.cta }}</a>
+        <div class="device-grid">
+          <article
+            v-for="device in deviceCards"
+            :key="device.key"
+            class="device-card panel-shell"
+            @click="activeDevice = device"
+          >
+            <div class="device-card__media" :style="{ '--device-tone': device.tone }">
+              <span>{{ device.short }}</span>
+            </div>
+            <div class="device-card__body">
+              <div class="device-card__title">
+                <strong>{{ device.title }}</strong>
+                <small>{{ device.tag }}</small>
+              </div>
+              <p>{{ device.description }}</p>
+              <div class="device-card__stats">
+                <span v-for="stat in device.stats" :key="stat">{{ stat }}</span>
+              </div>
+            </div>
           </article>
         </div>
-      </section>
 
-      <section v-else-if="currentRoute === 'training'" class="workspace-view">
-        <div class="workspace-hero">
-          <div>
-            <span class="eyebrow">Training Center</span>
-            <h1>灾害场景训练中心</h1>
-            <p>
-              选择场景、奖励函数与算法组合，启动训练后在同一界面实时观察事件流和状态变化。
-            </p>
+        <section class="device-showcase panel-shell">
+          <div class="device-showcase__header">
+            <div>
+              <span class="eyebrow">Device Catalog</span>
+              <h2>装备能力与候选站点联动预览</h2>
+              <p>直接展示设备和站点关系，用画面解释部署选择。</p>
+            </div>
+            <div class="device-showcase__meta">
+              <span>场景 {{ selectedScenario ? formatScenarioName(selectedScenario.name) : "加载中" }}</span>
+              <span>设备 {{ selectedScenario?.base_stations?.length || 0 }}</span>
+              <span>候选位点 {{ selectedScenario?.candidate_site_preview?.length || 0 }}</span>
+            </div>
           </div>
-          <div class="workspace-meta">
-            <span>场景驱动配置</span>
-            <span>实时事件流监控</span>
-            <span>多算法实验对比</span>
-          </div>
-        </div>
 
-        <div class="workspace-layout">
-          <aside class="workspace-aside panel-surface">
-            <h2>训练流程</h2>
-            <ol>
-              <li>选择灾害场景并确认区域规模。</li>
-              <li>挑选奖励函数策略，明确优化目标。</li>
-              <li>指定算法与训练步数，启动训练。</li>
-              <li>通过事件流观察状态、结果与异常。</li>
-            </ol>
-          </aside>
-          <section class="workspace-content panel-surface">
-            <ScenarioTrainingPanel />
-          </section>
-        </div>
-      </section>
-
-      <section v-else-if="currentRoute === 'testing'" class="workspace-view">
-        <div class="workspace-hero">
-          <div>
-            <span class="eyebrow">Testing Center</span>
-            <h1>自定义环境测试中心</h1>
-            <p>
-              配置残余基站和 checkpoint，复现基础设施受损后的网络恢复条件，独立评估策略表现。
-            </p>
-          </div>
-          <div class="workspace-meta">
-            <span>残余基站配置</span>
-            <span>Checkpoint 快速切换</span>
-            <span>结果与场景导出</span>
-          </div>
-        </div>
-
-        <div class="workspace-layout">
-          <aside class="workspace-aside panel-surface">
-            <h2>测试流程</h2>
-            <ol>
-              <li>选择待验证的灾害场景和算法。</li>
-              <li>指定 checkpoint 路径，按需添加残余基站。</li>
-              <li>执行单轮模拟，查看覆盖率与奖励输出。</li>
-              <li>导出受灾前后场景 JSON 进行复盘。</li>
-            </ol>
-          </aside>
-          <section class="workspace-content panel-surface">
-            <CustomEnvironmentTester />
-          </section>
-        </div>
-      </section>
-
-      <section v-else-if="currentRoute === 'replay'" class="workspace-view">
-        <div class="workspace-hero">
-          <div>
-            <span class="eyebrow">Replay Center</span>
-            <h1>真实场景组网回放中心</h1>
-            <p>
-              接入 ns-3.46.1 生成的实验帧数据，按时间序列回放真实节点连通状态和链路变化。
-            </p>
-          </div>
-          <div class="workspace-meta">
-            <span>ns-3 实验列表</span>
-            <span>逐帧播放控制</span>
-            <span>节点链路实时渲染</span>
-          </div>
-        </div>
-
-        <div class="workspace-layout">
-          <aside class="workspace-aside panel-surface">
-            <h2>回放流程</h2>
-            <ol>
-              <li>先运行 ns-3 仿真并生成 trace / 实验数据。</li>
-              <li>启动 ns-3 回放后端 API（建议 8001 端口）。</li>
-              <li>回放页选择实验，按帧观察组网演进过程。</li>
-              <li>必要时打开 ns-3 原生回放页做细节对照。</li>
-            </ol>
-          </aside>
-          <section class="workspace-content panel-surface">
-            <Ns3ReplayPanel />
-          </section>
-        </div>
-      </section>
-
-      <section v-else-if="currentRoute === 'mahimahi'" class="workspace-view">
-        <div class="workspace-hero">
-          <div>
-            <span class="eyebrow">Network Simulation</span>
-            <h1>Mahimahi 网络仿真</h1>
-          </div>
-        </div>
-
-        <div class="panel-surface" style="padding:28px">
-          <MahimahiSimulator />
-        </div>
+          <BaseStationShowcase v-if="selectedScenario" :scenario="selectedScenario" />
+          <div v-else class="device-showcase__loading">正在加载默认场景与设备目录…</div>
+        </section>
       </section>
     </main>
+
+    <div v-if="activeDevice" class="device-modal" @click.self="activeDevice = null">
+      <div class="device-modal__panel panel-shell">
+        <button type="button" class="device-modal__close" @click="activeDevice = null">关闭</button>
+        <span class="eyebrow">Device Brief</span>
+        <h2>{{ activeDevice.title }}</h2>
+        <p class="device-modal__desc">{{ activeDevice.longDescription }}</p>
+
+        <div class="device-modal__section">
+          <h3>典型用途</h3>
+          <p>{{ activeDevice.useCase }}</p>
+        </div>
+
+        <div class="device-modal__section">
+          <h3>能力说明</h3>
+          <div class="device-modal__chips">
+            <span v-for="stat in activeDevice.stats" :key="stat">{{ stat }}</span>
+          </div>
+        </div>
+
+        <div class="device-modal__section">
+          <h3>与策略设计关系</h3>
+          <p>{{ activeDevice.strategyNote }}</p>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import axios from "axios";
 import ScenarioTrainingPanel from "./components/ScenarioTrainingPanel.vue";
-import CustomEnvironmentTester from "./components/CustomEnvironmentTester.vue";
 import Ns3ReplayPanel from "./components/Ns3ReplayPanel.vue";
 import MahimahiSimulator from "./components/MahimahiSimulator.vue";
+import CustomEnvironmentTester from "./components/CustomEnvironmentTester.vue";
+import BaseStationShowcase from "./components/BaseStationShowcase.vue";
+import SatelliteSceneMap from "./components/SatelliteSceneMap.vue";
+import { rescueApiBase } from "./utils/runtimeEndpoints";
+import { formatScenarioName } from "./utils/scenarioLabels";
 
 const navItems = [
-  { key: "home", label: "首页", href: "#/" },
-  { key: "training", label: "训练", href: "#/training" },
-  { key: "testing", label: "测试", href: "#/testing" },
-  { key: "replay", label: "回放", href: "#/replay" },
-  { key: "mahimahi", label: "网络仿真", href: "#/mahimahi" },
+  { key: "home", label: "首页", subLabel: "Platform", href: "#/" },
+  { key: "algorithm", label: "算法模拟", subLabel: "RL Strategy", href: "#/algorithm" },
+  { key: "tester", label: "策略测试", subLabel: "Strategy Test", href: "#/tester" },
+  { key: "scene", label: "场景模拟", subLabel: "Replay / Mahimahi", href: "#/scene" },
+  { key: "device", label: "设备模拟", subLabel: "Device Catalog", href: "#/device" },
 ];
 
-const metrics = [
-  { label: "Algorithms", value: "4 Models", description: "支持 PPO、DQN、A3C、MPPO 的统一训练与测试。" },
-  { label: "Scenarios", value: "Scenario-Driven", description: "场景配置覆盖灾害类型、区域网格、候选站点与奖励函数。" },
-  { label: "Outputs", value: "Reports", description: "训练侧提供实时事件流，测试侧输出评估报告与场景导出。" },
+const missionModules = [
+  {
+    key: "algorithm",
+    kicker: "01 / RL Training",
+    title: "算法模拟",
+    desc: "调整场景、奖励函数和训练参数。",
+    href: "#/algorithm",
+  },
+  {
+    key: "tester",
+    kicker: "02 / Evaluation",
+    title: "策略测试",
+    desc: "自动匹配权重并验证恢复效果。",
+    href: "#/tester",
+  },
+  {
+    key: "scene",
+    kicker: "03 / Replay",
+    title: "场景模拟",
+    desc: "回放 ns-3 与链路仿真过程。",
+    href: "#/scene",
+  },
 ];
 
-const homeCards = [
+const missionStages = [
   {
-    tag: "Train",
-    title: "训练工作台",
-    description: "按灾害场景配置奖励函数、算法与训练步数，持续观察策略收敛过程和状态事件流。",
-    href: "#/training",
-    cta: "打开训练页",
+    key: "intake",
+    code: "01",
+    icon: "灾",
+    label: "灾情接入",
+    result: "断链区域入库",
+    kicker: "Incident Intake",
+    title: "导入洪涝灾情与断链区域",
+    summary: "读取受灾网格、残余网络和重点保障区域。",
+    location: "广州中心城区 / 洪涝场景",
+    metrics: [
+      { label: "灾情等级", value: "严重" },
+      { label: "断联用户", value: "342" },
+      { label: "残余基站", value: "7" },
+      { label: "广播可达率", value: "24%" },
+    ],
   },
   {
-    tag: "Test",
-    title: "测试工作台",
-    description: "配置残余基站和模型 checkpoint，验证灾后恢复策略在指定条件下的覆盖效果。",
-    href: "#/testing",
-    cta: "打开测试页",
+    key: "sites",
+    code: "02",
+    icon: "点",
+    label: "候选站点",
+    result: "部署点位生成",
+    kicker: "Candidate Sites",
+    title: "生成应急基站候选部署点",
+    summary: "结合人口、道路和设备能力生成部署集合。",
+    location: "候选位点 28 / 重点区域 6",
+    metrics: [
+      { label: "候选站点", value: "28" },
+      { label: "设备类型", value: "3" },
+      { label: "重点区域", value: "6" },
+      { label: "预算上限", value: "12" },
+    ],
   },
   {
-    tag: "Replay",
-    title: "真实仿真回放",
-    description: "将 ns-3.46.1 仿真帧接入前端，按时间顺序回放组网过程并观察链路变化。",
-    href: "#/replay",
-    cta: "打开回放页",
+    key: "training",
+    code: "03",
+    icon: "训",
+    label: "策略训练",
+    result: "推荐序列收敛",
+    kicker: "RL Policy",
+    title: "强化学习策略搜索部署顺序",
+    summary: "PPO 迭代选择站点与设备组合。",
+    location: "PPO 训练 / 演示权重",
+    metrics: [
+      { label: "当前策略", value: "PPO" },
+      { label: "评估覆盖率", value: "68%" },
+      { label: "平均奖励", value: "+42.6" },
+      { label: "有效动作", value: "91%" },
+    ],
   },
   {
-    tag: "Mahimahi",
-    title: "网络仿真",
-    description: "基于 Mahimahi 的 trace 回放仿真，可视化链路容量、吞吐量与发送速率，分析网络传输性能。",
-    href: "#/mahimahi",
-    cta: "进入网络仿真",
+    key: "deploy",
+    code: "04",
+    icon: "网",
+    label: "组网回放",
+    result: "节点链路恢复",
+    kicker: "Deployment Replay",
+    title: "按策略顺序回放应急组网过程",
+    summary: "回放基站与中继节点的部署顺序。",
+    location: "ns-3 回放 / 快速演示",
+    metrics: [
+      { label: "恢复进度", value: "68%" },
+      { label: "部署节点", value: "12" },
+      { label: "恢复用户", value: "233" },
+      { label: "活动链路", value: "19" },
+    ],
+  },
+  {
+    key: "evaluate",
+    code: "05",
+    icon: "测",
+    label: "链路评估",
+    result: "性能指标输出",
+    kicker: "Link Evaluation",
+    title: "评估吞吐、时延与广播覆盖",
+    summary: "输出吞吐、时延和广播覆盖结果。",
+    location: "Mahimahi / Link Trace",
+    metrics: [
+      { label: "覆盖恢复率", value: "81%" },
+      { label: "平均时延", value: "43ms" },
+      { label: "广播可达率", value: "88%" },
+      { label: "任务状态", value: "完成" },
+    ],
   },
 ];
+
+const sceneTabs = [
+  {
+    key: "replay",
+    label: "真实回放",
+    desc: "ns-3 组网过程逐帧可视化",
+    stageTag: "Replay Stage",
+    heading: "真实场景组网回放",
+    intro: "回放页以场景过程为主，缺少结果时可直接生成一轮 ns-3 演练。",
+    summaryTitle: "场景回放",
+    summaryText: "主画布优先，聚焦组网过程。",
+    chips: ["主后端统一接入", "支持预置实验", "逐帧场景重建"],
+  },
+  {
+    key: "mahimahi",
+    label: "链路仿真",
+    desc: "trace 驱动的容量与发送速率分析",
+    stageTag: "Link Analysis",
+    heading: "Mahimahi 网络链路分析",
+    intro: "用 trace 容量、吞吐和发送速率补足场景回放里的链路细节。",
+    summaryTitle: "链路仿真",
+    summaryText: "补充容量、吞吐、发送速率视角。",
+    chips: ["Trace 回放", "发送速率曲线", "容量窗口分析"],
+  },
+];
+
+const deviceCards = [
+  {
+    key: "backpack",
+    title: "背负式应急基站",
+    short: "BP",
+    tag: "Mobile Pack",
+    tone: "#3b82f6",
+    description: "适合灾后快速进场与单兵携行部署，用于盲区接入恢复和应急广播补盲。",
+    longDescription: "背负式应急基站强调快速部署和机动接入，在道路受阻、地形破碎或通信链路断裂场景中具有更高适应性。",
+    useCase: "适用于狭窄街巷、积水区域、局部断电区域和救援队伍伴随式部署。",
+    strategyNote: "在策略设计中通常承担快速恢复覆盖和提升广播可达率的职责，适合作为低成本补盲节点。",
+    stats: ["低时延接入", "单兵携行", "快速开站"],
+  },
+  {
+    key: "compact",
+    title: "高并发小型基站",
+    short: "SC",
+    tag: "Compact Cell",
+    tone: "#14b8a6",
+    description: "适合人群聚集区、临时指挥点和道路交汇点，兼顾覆盖密度和容量恢复。",
+    longDescription: "高并发小型基站面向局部高负载区域，在现场指挥、救援协同和视频回传等任务中具备更好的容量支撑能力。",
+    useCase: "适用于临时指挥中心、安置点、道路汇聚口和高密用户热点区域。",
+    strategyNote: "在奖励设计中通常承担提升吞吐、保障重点区域容量和降低热点拥塞的职责。",
+    stats: ["高容量", "热点覆盖", "多接入模式"],
+  },
+  {
+    key: "relay",
+    title: "多跳自组网中继",
+    short: "RL",
+    tag: "Relay Mesh",
+    tone: "#f59e0b",
+    description: "适用于复杂地形和远距离回传，强调跨障碍、跨区域的链路续接能力。",
+    longDescription: "多跳中继设备用于在公网受损或地形阻断条件下续接链路，通过多跳回传维持跨区通信与任务协同。",
+    useCase: "适用于山地、隧道、断桥、坍塌区周边和广域补链场景。",
+    strategyNote: "在资源调度中通常承担回传稳定性和关键链路打通任务，适合做中继转发或核心续接节点。",
+    stats: ["远距回传", "多跳组网", "跨障碍覆盖"],
+  },
+];
+
+const sceneTab = ref("replay");
+const activeMissionIndex = ref(0);
+const missionPlaying = ref(false);
+let missionTimer = null;
+const activeDevice = ref(null);
+const showSceneGuide = ref(true);
+const currentRoute = ref("home");
+const scenarios = ref([]);
+
+const clearMissionTimer = () => {
+  if (missionTimer) {
+    clearInterval(missionTimer);
+    missionTimer = null;
+  }
+};
+
+const selectMissionStage = (index) => {
+  clearMissionTimer();
+  missionPlaying.value = false;
+  activeMissionIndex.value = index;
+};
+
+const playMission = () => {
+  clearMissionTimer();
+  missionPlaying.value = true;
+  activeMissionIndex.value = 0;
+
+  missionTimer = setInterval(() => {
+    if (activeMissionIndex.value >= missionStages.length - 1) {
+      clearMissionTimer();
+      missionPlaying.value = false;
+      return;
+    }
+    activeMissionIndex.value += 1;
+  }, 1800);
+};
 
 const normalizeRoute = (hash) => {
   const route = hash.replace(/^#\/?/, "").replace(/\/+$/, "").trim();
-  if (!route) return "home";
-  return navItems.some((item) => item.key === route) ? route : "home";
+  if (!route) {
+    return { route: "home", sceneTab: "replay" };
+  }
+  if (route === "training") {
+    return { route: "algorithm", sceneTab: sceneTab.value };
+  }
+  if (route === "testing") {
+    return { route: "tester", sceneTab: sceneTab.value };
+  }
+  if (route === "replay") {
+    return { route: "scene", sceneTab: "replay" };
+  }
+  if (route === "mahimahi") {
+    return { route: "scene", sceneTab: "mahimahi" };
+  }
+  if (navItems.some((item) => item.key === route)) {
+    return { route, sceneTab: sceneTab.value };
+  }
+  return { route: "home", sceneTab: "replay" };
 };
-
-const currentRoute = ref(normalizeRoute(window.location.hash));
 
 const syncRoute = () => {
-  currentRoute.value = normalizeRoute(window.location.hash);
+  const result = normalizeRoute(window.location.hash);
+  currentRoute.value = result.route;
+  sceneTab.value = result.sceneTab;
 };
+
+const fetchScenarios = async () => {
+  try {
+    const { data } = await axios.get(`${rescueApiBase}/scenarios`, { timeout: 10000 });
+    scenarios.value = data?.scenarios || [];
+  } catch {
+    scenarios.value = [];
+  }
+};
+
+const selectedScenario = computed(() => scenarios.value[0] || null);
+
+const activeMissionStage = computed(() => missionStages[activeMissionIndex.value] || missionStages[0]);
+
+const missionProgress = computed(() => {
+  if (missionStages.length <= 1) {
+    return "0%";
+  }
+  return `${(activeMissionIndex.value / (missionStages.length - 1)) * 100}%`;
+});
+
+const activeSceneTab = computed(() => sceneTabs.find((tab) => tab.key === sceneTab.value) || sceneTabs[0]);
+
+const sceneSummary = computed(() => ({
+  title: activeSceneTab.value.summaryTitle,
+  text: activeSceneTab.value.summaryText,
+}));
+
+const sceneChips = computed(() => activeSceneTab.value.chips);
 
 onMounted(() => {
   syncRoute();
+  fetchScenarios();
   window.addEventListener("hashchange", syncRoute);
 });
 
 onBeforeUnmount(() => {
+  clearMissionTimer();
   window.removeEventListener("hashchange", syncRoute);
 });
 </script>
@@ -244,7 +557,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .app-shell {
   position: relative;
-  max-width: 1440px;
+  max-width: 1540px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -252,342 +565,2129 @@ onBeforeUnmount(() => {
   isolation: isolate;
 }
 
-.app-shell__glow {
+.app-shell__aurora {
   position: fixed;
-  width: 30rem;
-  height: 30rem;
+  width: 34rem;
+  height: 34rem;
   border-radius: 999px;
-  pointer-events: none;
-  filter: blur(70px);
-  opacity: 0.28;
+  filter: blur(90px);
+  opacity: 0.32;
   z-index: -1;
+  pointer-events: none;
 }
 
-.app-shell__glow--left {
-  top: -8rem;
-  left: -10rem;
-  background: rgba(14, 165, 233, 0.55);
+.app-shell__aurora--left {
+  top: -12rem;
+  left: -14rem;
+  background: rgba(20, 184, 166, 0.35);
 }
 
-.app-shell__glow--right {
-  top: 8rem;
-  right: -12rem;
-  background: rgba(251, 191, 36, 0.28);
+.app-shell__aurora--right {
+  top: 6rem;
+  right: -14rem;
+  background: rgba(59, 130, 246, 0.3);
 }
 
 .topbar {
-  position: sticky;
-  top: 24px;
-  z-index: 20;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 20px;
   padding: 18px 22px;
-  border-radius: 24px;
-  border: 1px solid rgba(125, 211, 252, 0.18);
-  background: rgba(7, 15, 31, 0.72);
-  backdrop-filter: blur(18px);
-  box-shadow: 0 18px 60px rgba(15, 23, 42, 0.28);
+  border-radius: 8px;
+  border: 1px solid rgba(71, 85, 105, 0.16);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(246, 248, 251, 0.82));
+  backdrop-filter: blur(26px);
+  box-shadow: 0 20px 52px rgba(15, 23, 42, 0.1);
 }
 
 .brand {
   display: inline-flex;
   flex-direction: column;
-  gap: 4px;
-  color: inherit;
+  gap: 6px;
+  color: #081226;
   text-decoration: none;
-  max-width: 34rem;
+  max-width: 42rem;
 }
 
 .brand strong {
-  font-size: clamp(1.05rem, 2vw, 1.45rem);
-  line-height: 1.25;
-  letter-spacing: 0.04em;
+  font-size: clamp(1.12rem, 1.8vw, 1.5rem);
+  line-height: 1.18;
+  letter-spacing: 0.08em;
 }
 
 .brand__eyebrow,
 .eyebrow {
   font-size: 11px;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: #7dd3fc;
+  color: #334155;
 }
 
 .topbar__nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.nav-link {
-  padding: 10px 16px;
-  border-radius: 999px;
-  border: 1px solid transparent;
-  color: #cbd5e1;
-  text-decoration: none;
-  transition: all 0.2s ease;
-}
-
-.nav-link:hover {
-  color: #f8fafc;
-  border-color: rgba(125, 211, 252, 0.24);
-  background: rgba(14, 165, 233, 0.1);
-}
-
-.nav-link--active {
-  color: #f8fafc;
-  border-color: rgba(56, 189, 248, 0.35);
-  background: linear-gradient(135deg, rgba(14, 165, 233, 0.24), rgba(37, 99, 235, 0.16));
-}
-
-.app-main {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.home-view,
-.workspace-view {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(300px, 0.9fr);
-  gap: 24px;
-}
-
-.panel-surface {
-  border-radius: 28px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.78)),
-    radial-gradient(circle at top right, rgba(14, 165, 233, 0.2), transparent 38%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 18px 50px rgba(2, 6, 23, 0.3);
-}
-
-.panel-surface--hero {
-  padding: 36px;
-  min-height: 360px;
-  justify-content: space-between;
-}
-
-.hero__content {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.hero__content h1,
-.workspace-hero h1 {
-  margin: 0;
-  font-size: clamp(2.2rem, 5vw, 4.2rem);
-  line-height: 0.95;
-}
-
-.hero__summary,
-.workspace-hero p {
-  margin: 0;
-  max-width: 56rem;
-  font-size: 1rem;
-  line-height: 1.75;
-  color: #bfd0e5;
-}
-
-.hero__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.primary-link,
-.secondary-link,
-.feature-card__link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 46px;
-  padding: 0 18px;
-  border-radius: 999px;
-  text-decoration: none;
-  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
-}
-
-.primary-link {
-  color: #04111f;
-  background: linear-gradient(135deg, #7dd3fc, #facc15);
-}
-
-.secondary-link,
-.feature-card__link {
-  color: #f8fafc;
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  background: rgba(15, 23, 42, 0.36);
-}
-
-.primary-link:hover,
-.secondary-link:hover,
-.feature-card__link:hover {
-  transform: translateY(-1px);
-}
-
-.hero__metrics {
-  display: grid;
-  gap: 16px;
-}
-
-.metric-card {
-  padding: 22px 24px;
-}
-
-.metric-card span {
-  display: inline-block;
-  margin-bottom: 12px;
-  font-size: 12px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: #94a3b8;
-}
-
-.metric-card strong {
-  display: block;
-  font-size: 1.9rem;
-  color: #f8fafc;
-}
-
-.metric-card p,
-.feature-card p,
-.workspace-aside li {
-  color: #bfd0e5;
-  line-height: 1.65;
-}
-
-.feature-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 20px;
-}
-
-.feature-card {
-  padding: 28px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.feature-card h2,
-.workspace-aside h2 {
-  margin: 0;
-  font-size: 1.25rem;
-}
-
-.feature-card__tag {
-  display: inline-flex;
-  width: fit-content;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(125, 211, 252, 0.12);
-  color: #7dd3fc;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.workspace-hero {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 20px;
-}
-
-.workspace-meta {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 10px;
 }
 
-.workspace-meta span {
-  padding: 9px 12px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.55);
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  color: #dbeafe;
-  font-size: 13px;
+.nav-chip {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 126px;
+  padding: 11px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(71, 85, 105, 0.12);
+  background: rgba(255, 255, 255, 0.72);
+  color: #0f172a;
+  text-decoration: none;
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
-.workspace-layout {
-  display: grid;
-  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+.nav-chip small {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.nav-chip:hover {
+  transform: translateY(-1px);
+  border-color: rgba(30, 41, 59, 0.24);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+}
+
+.nav-chip--active {
+  background: linear-gradient(135deg, rgba(226, 232, 240, 0.78), rgba(241, 245, 249, 0.92));
+  border-color: rgba(30, 41, 59, 0.24);
+}
+
+.app-main {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.landing-view,
+.module-view {
+  display: flex;
+  flex-direction: column;
   gap: 24px;
-  align-items: start;
 }
 
-.workspace-aside {
-  position: sticky;
-  top: 120px;
+.landing-view--map {
+  gap: 0;
+}
+
+.map-command-screen {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(360px, 440px) minmax(0, 1fr);
+  height: clamp(600px, calc(100svh - 126px), 760px);
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #f8fafc;
+  box-shadow:
+    0 26px 64px rgba(15, 23, 42, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.56);
+  animation: commandScreenIn 0.72s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  isolation: isolate;
+}
+
+.mission-console {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: clamp(18px, 2.2vw, 26px);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.92)),
+    radial-gradient(circle at 0% 0%, rgba(20, 184, 166, 0.08), transparent 42%);
+  border-right: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+.map-command-screen__stage {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  background: #dbeafe;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.map-command-screen__map {
+  position: relative;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  isolation: isolate;
+}
+
+.map-command-screen__map :deep(.satellite-board) {
+  min-height: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.map-command-screen__map :deep(.satellite-board__hud) {
+  top: 18px;
+  left: 18px;
+  right: 18px;
+}
+
+.map-command-screen__shade {
+  display: none;
+}
+
+.map-command-screen__header,
+.map-command-screen__status,
+.map-command-screen__mission,
+.map-command-screen__timeline {
+  position: relative;
+  z-index: 3;
+  transform: translateZ(0);
+}
+
+.mission-path {
+  display: none;
+}
+
+.mission-path__line {
+  position: absolute;
+  left: 57%;
+  top: 42%;
+  width: 28%;
+  height: 3px;
+  transform: rotate(23deg);
+  transform-origin: left center;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(8, 145, 178, 0), rgba(8, 145, 178, 0.72), rgba(34, 197, 94, 0.88));
+  box-shadow: 0 0 24px rgba(34, 197, 94, 0.32);
+  clip-path: inset(0 100% 0 0);
+  animation: missionLineDraw 1.35s ease forwards;
+}
+
+.mission-path__node {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: #0891b2;
+  box-shadow:
+    0 0 0 8px rgba(8, 145, 178, 0.16),
+    0 0 20px rgba(8, 145, 178, 0.34);
+  opacity: 0;
+  animation: missionNodeIn 0.6s ease forwards;
+}
+
+.mission-path__node--a {
+  left: 56%;
+  top: 41%;
+}
+
+.mission-path__node--b {
+  left: 68%;
+  top: 48%;
+  animation-delay: 0.42s;
+}
+
+.mission-path__node--c {
+  left: 83%;
+  top: 55%;
+  background: #22c55e;
+  box-shadow:
+    0 0 0 8px rgba(34, 197, 94, 0.16),
+    0 0 24px rgba(34, 197, 94, 0.36);
+  animation-delay: 0.84s;
+}
+
+.map-command-screen--intake .mission-path,
+.map-command-screen--sites .mission-path {
+  opacity: 0.28;
+}
+
+.map-command-screen--training .mission-path,
+.map-command-screen--deploy .mission-path,
+.map-command-screen--evaluate .mission-path {
+  opacity: 1;
+}
+
+.map-command-screen__header {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 12px;
+  padding: 0;
+}
+
+.map-command-screen__header h1 {
+  max-width: 100%;
+  margin: 12px 0 0;
+  color: #07111f;
+  font-size: clamp(1.42rem, 2.05vw, 2.2rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.map-command-screen__header p {
+  max-width: 35rem;
+  margin: 10px 0 0;
+  color: #475569;
+  font-size: 0.92rem;
+}
+
+.map-command-screen__live {
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  gap: 5px 8px;
+  min-width: 190px;
+  width: fit-content;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.08);
+}
+
+.map-command-screen__live span {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #22c55e;
+  box-shadow: 0 0 0 7px rgba(34, 197, 94, 0.14);
+}
+
+.map-command-screen__live strong {
+  color: #0f172a;
+  letter-spacing: 0.16em;
+  font-size: 0.78rem;
+}
+
+.map-command-screen__live small {
+  grid-column: 1 / -1;
+  color: #64748b;
+}
+
+.map-command-screen__status {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: none;
+  gap: 10px 14px;
+  margin: 12px 0 0;
+}
+
+.map-command-screen__status span {
+  min-width: 120px;
+  padding: 7px 0 0;
+  border-top: 1px solid rgba(15, 23, 42, 0.2);
+}
+
+.map-command-screen__status small {
+  display: block;
+  margin-bottom: 4px;
+  color: #64748b;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+}
+
+.map-command-screen__status strong {
+  color: #0f172a;
+  font-size: clamp(1rem, 1.45vw, 1.28rem);
+  letter-spacing: -0.035em;
+}
+
+.map-command-screen__mission {
+  width: 100%;
+  margin: 10px 0 0;
+  padding: 10px 0 0;
+  border-top: 1px solid rgba(15, 23, 42, 0.12);
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
+  animation: missionPanelIn 0.54s ease both;
+}
+
+.map-command-screen__mission h2 {
+  margin: 6px 0 6px;
+  color: #0f172a;
+  font-size: clamp(1rem, 1.35vw, 1.2rem);
+  line-height: 1.18;
+  letter-spacing: -0.02em;
+}
+
+.map-command-screen__mission p {
+  margin: 0;
+  color: #475569;
+  line-height: 1.42;
+  font-size: 0.8rem;
+  max-width: 28rem;
+  min-height: 1.15rem;
+}
+
+.mission-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 9px 0 0;
+}
+
+.map-command-screen__mission .primary-cta,
+.map-command-screen__mission .secondary-cta {
+  min-height: 36px;
+  padding: 0 13px;
+  font-size: 0.86rem;
+}
+
+.mission-links {
+  display: grid;
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.mission-link {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  padding: 13px 14px;
+  color: #0f172a;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.74);
+  transition: transform 0.22s ease, border-color 0.22s ease, background 0.22s ease;
+}
+
+.mission-link:hover {
+  transform: translateX(4px);
+  background: rgba(240, 249, 255, 0.92);
+}
+
+.mission-link small {
+  color: #0891b2;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.mission-link strong {
+  grid-row: 2;
+  font-size: 1.03rem;
+}
+
+.mission-link span {
+  grid-row: 2;
+  color: #64748b;
+  font-size: 0.82rem;
+  text-align: right;
+}
+
+.map-command-screen__timeline {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  max-width: none;
+  margin: 10px 0 0;
+  overflow: visible;
+  padding: 2px 0;
+  border: none;
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+.map-command-screen__timeline::before,
+.map-command-screen__timeline::after {
+  content: "";
+  position: absolute;
+  left: 16px;
+  top: 19px;
+  width: 3px;
+  height: calc(100% - 38px);
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.map-command-screen__timeline::before {
+  background: rgba(148, 163, 184, 0.28);
+}
+
+.map-command-screen__timeline::after {
+  height: calc((100% - 38px) * var(--mission-progress));
+  background: linear-gradient(180deg, #0891b2, #14b8a6, #22c55e);
+  box-shadow: 0 0 18px rgba(20, 184, 166, 0.24);
+  transition: height 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.mission-step {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 40px;
+  padding: 2px 0;
+  border: none;
+  background: transparent;
+  color: #334155;
+  text-align: left;
+  white-space: normal;
+  transition: color 0.24s ease, transform 0.24s ease;
+}
+
+.mission-step i {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.38);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(241, 245, 249, 0.72));
+  color: #475569;
+  font-size: 0.9rem;
+  font-weight: 800;
+  font-style: normal;
+  box-shadow:
+    0 0 0 5px rgba(255, 255, 255, 0.82),
+    0 6px 14px rgba(15, 23, 42, 0.08);
+  transition: transform 0.24s ease, background 0.24s ease, color 0.24s ease, border-color 0.24s ease, box-shadow 0.24s ease;
+}
+
+.mission-step__copy {
+  display: grid;
+  gap: 2px;
+  min-height: auto;
+  min-width: 0;
+}
+
+.mission-step strong,
+.mission-step__copy strong {
+  color: #0f172a;
+  font-size: 0.82rem;
+  line-height: 1.15;
+}
+
+.mission-step small,
+.mission-step__copy small {
+  color: #64748b;
+  font-size: 0.63rem;
+  line-height: 1.2;
+}
+
+.mission-step em {
+  margin-left: auto;
+  padding: 3px 6px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.58);
+  color: #64748b;
+  font-size: 0.6rem;
+  font-style: normal;
+  line-height: 1;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.mission-step--complete i {
+  border-color: rgba(34, 197, 94, 0.5);
+  background: linear-gradient(135deg, #14b8a6, #22c55e);
+  color: #f8fafc;
+  box-shadow:
+    0 0 0 6px rgba(220, 252, 231, 0.84),
+    0 8px 20px rgba(34, 197, 94, 0.18);
+}
+
+.mission-step--complete em {
+  border-color: rgba(34, 197, 94, 0.22);
+  background: rgba(220, 252, 231, 0.72);
+  color: #15803d;
+}
+
+.mission-step--active {
+  transform: translateX(4px);
+}
+
+.mission-step--active i {
+  width: 34px;
+  height: 34px;
+  border-color: #0891b2;
+  background: linear-gradient(135deg, #0f172a, #0891b2);
+  color: #f8fafc;
+  font-size: 1rem;
+  box-shadow:
+    0 0 0 6px rgba(8, 145, 178, 0.14),
+    0 0 0 10px rgba(8, 145, 178, 0.08),
+    0 10px 22px rgba(15, 23, 42, 0.2);
+}
+
+.mission-step--active strong,
+.mission-step--active .mission-step__copy strong {
+  color: #0f172a;
+}
+
+.mission-step--active em {
+  border-color: rgba(8, 145, 178, 0.24);
+  background: rgba(224, 242, 254, 0.78);
+  color: #0891b2;
+  font-weight: 700;
+}
+
+@keyframes commandScreenIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes missionPanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes missionLineDraw {
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes missionNodeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes metricRefresh {
+  from {
+    opacity: 0.72;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes missionStagePulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+.panel-shell {
+  border-radius: 24px;
+  border: 1px solid rgba(71, 85, 105, 0.12);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 249, 252, 0.94)),
+    radial-gradient(circle at top right, rgba(148, 163, 184, 0.07), transparent 42%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 14px 36px rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+}
+
+.panel-shell--hero {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.78fr) minmax(0, 1.22fr);
+  gap: 20px;
+  padding: 30px;
+  min-height: 680px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.22), transparent 28%),
+    radial-gradient(circle at 88% 16%, rgba(249, 115, 22, 0.14), transparent 24%),
+    linear-gradient(135deg, rgba(252, 254, 255, 0.98), rgba(236, 246, 255, 0.94));
+  color: #0f172a;
+}
+
+.landing-hero__copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  max-width: 560px;
+}
+
+.landing-hero__copy h1,
+.module-hero h1 {
+  margin: 0;
+  font-size: clamp(2.2rem, 3.1vw, 3.25rem);
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+}
+
+.landing-hero__copy h1 {
+  width: fit-content;
+  max-width: 100%;
+  white-space: nowrap;
+  color: #0f172a;
+}
+
+.panel-shell--hero .eyebrow {
+  color: #0f766e;
+}
+
+.hero-kicker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hero-kicker__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hero-kicker__meta span {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(56, 189, 248, 0.12);
+  color: #64748b;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+}
+
+.landing-hero__summary,
+.module-hero p {
+  margin: 0;
+  max-width: 44rem;
+  line-height: 1.55;
+  color: #475569;
+  font-size: 0.94rem;
+}
+
+.landing-hero__summary {
+  color: #475569;
+  max-width: 32rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.landing-hero__summary span {
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  color: #334155;
+  font-size: 12px;
+}
+
+.hero-status-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.hero-status-pill {
+  min-width: 108px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(56, 189, 248, 0.14);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 10px 24px rgba(148, 163, 184, 0.12);
+}
+
+.hero-status-pill small {
+  display: block;
+  color: #64748b;
+  font-size: 11px;
+  margin-bottom: 6px;
+  letter-spacing: 0.08em;
+}
+
+.hero-status-pill strong {
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.landing-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.primary-cta,
+.secondary-cta,
+.module-card__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: 8px;
+  text-decoration: none;
+  border: 0;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.primary-cta {
+  background: linear-gradient(135deg, #0891b2, #2563eb);
+  color: #f8fafc;
+  box-shadow: 0 14px 30px rgba(37, 99, 235, 0.24);
+}
+
+.secondary-cta,
+.module-card__link {
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(56, 189, 248, 0.12);
+  color: #0f172a;
+}
+
+.primary-cta:hover,
+.secondary-cta:hover,
+.module-card__link:hover {
+  transform: translateY(-1px);
+}
+
+.module-card__points span,
+.module-card__points span,
+.device-card__stats span,
+.device-showcase__meta span,
+.device-modal__chips span,
+.scene-stage__chips span {
+  padding: 8px 11px;
+  border-radius: 999px;
+  background: rgba(248, 250, 252, 0.92);
+  border: 1px solid rgba(71, 85, 105, 0.12);
+  color: #334155;
+  font-size: 12px;
+}
+
+.hero-command-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.hero-command-card {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.66);
+  border: 1px solid rgba(56, 189, 248, 0.12);
+  box-shadow: 0 12px 24px rgba(148, 163, 184, 0.1);
+}
+
+.hero-command-card small {
+  display: block;
+  margin-bottom: 8px;
+  color: #0891b2;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+}
+
+.hero-command-card strong {
+  color: #0f172a;
+  font-size: 0.98rem;
+}
+
+.scene-cockpit {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.scene-cockpit__stage {
+  position: relative;
+  min-height: 560px;
+  border-radius: 28px;
+  overflow: hidden;
+  border: 1px solid rgba(56, 189, 248, 0.18);
+  background:
+    radial-gradient(circle at 50% 48%, rgba(59, 130, 246, 0.14), transparent 28%),
+    linear-gradient(180deg, rgba(248, 252, 255, 0.96), rgba(226, 240, 251, 0.94));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 28px 48px rgba(96, 165, 250, 0.18);
+}
+
+.scene-cockpit__hud {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  right: 18px;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: rgba(14, 116, 144, 0.72);
+}
+
+.scene-cockpit__legend,
+.scene-cockpit__monitor,
+.scene-cockpit__map-meta {
+  position: absolute;
+  z-index: 4;
+}
+
+.scene-cockpit__legend {
+  left: 12px;
+  bottom: 56px;
+}
+
+.scene-cockpit__monitor {
+  right: 12px;
+  top: 44px;
+}
+
+.legend-card,
+.monitor-card {
+  width: 144px;
+  padding: 10px 11px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(56, 189, 248, 0.14);
+  box-shadow: 0 14px 26px rgba(148, 163, 184, 0.14);
+  backdrop-filter: blur(14px);
+}
+
+.legend-card strong,
+.monitor-card strong {
+  display: block;
+  color: #0f172a;
+}
+
+.legend-list,
+.monitor-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.legend-list span,
+.monitor-list span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #475569;
+  font-size: 11px;
+}
+
+.legend-dot,
+.legend-line {
+  display: inline-block;
+  flex: 0 0 auto;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  margin-right: 6px;
+}
+
+.legend-dot--critical {
+  background: #f87171;
+  box-shadow: 0 0 0 4px rgba(248, 113, 113, 0.18);
+}
+
+.legend-dot--warning {
+  background: #fbbf24;
+  box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.18);
+}
+
+.legend-dot--watch {
+  background: #60a5fa;
+  box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.16);
+}
+
+.legend-line {
+  width: 18px;
+  height: 0;
+  margin-right: 6px;
+  border-top: 2px solid rgba(14, 165, 233, 0.56);
+}
+
+.legend-line--road {
+  border-top-style: dashed;
+  border-top-color: rgba(100, 116, 139, 0.6);
+}
+
+.monitor-card small {
+  display: block;
+  color: #0891b2;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  margin-bottom: 6px;
+}
+
+.monitor-list span {
+  align-items: baseline;
+  padding: 7px 0;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.monitor-list span:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.monitor-list span small {
+  margin: 0;
+  color: #64748b;
+  letter-spacing: 0;
+  font-size: 11px;
+}
+
+.monitor-list span strong {
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.scene-cockpit__grid,
+.scene-cockpit__terrain,
+.scene-cockpit__river,
+.scene-cockpit__impact-zone,
+.scene-cockpit__roads,
+.scene-cockpit__zones,
+.scene-cockpit__sweep,
+.scene-cockpit__corridor {
+  position: absolute;
+  inset: 0;
+}
+
+.scene-cockpit__grid {
+  background-image:
+    linear-gradient(rgba(56, 189, 248, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.1) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.8), transparent 96%);
+}
+
+.scene-cockpit__terrain {
+  background:
+    radial-gradient(circle at 12% 18%, rgba(148, 163, 184, 0.16), transparent 20%),
+    radial-gradient(circle at 82% 72%, rgba(148, 163, 184, 0.14), transparent 18%),
+    radial-gradient(circle at 20% 30%, rgba(16, 185, 129, 0.1), transparent 18%),
+    radial-gradient(circle at 74% 24%, rgba(59, 130, 246, 0.09), transparent 16%),
+    radial-gradient(circle at 36% 72%, rgba(245, 158, 11, 0.08), transparent 14%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.24), rgba(203, 213, 225, 0.12));
+  opacity: 0.92;
+  filter: saturate(1.08) contrast(1.02);
+}
+
+.scene-cockpit__river {
+  inset: 8% 12% 10% 10%;
+  background:
+    linear-gradient(
+      118deg,
+      transparent 0%,
+      transparent 28%,
+      rgba(56, 189, 248, 0.2) 36%,
+      rgba(125, 211, 252, 0.38) 42%,
+      rgba(56, 189, 248, 0.22) 48%,
+      transparent 56%,
+      transparent 100%
+    );
+  filter: blur(8px);
+  opacity: 0.8;
+}
+
+.scene-cockpit__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.scene-cockpit__overlay path {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+
+.scene-cockpit__overlay--hydro {
+  opacity: 0.9;
+}
+
+.scene-cockpit__overlay--hydro path:first-child {
+  stroke: rgba(14, 165, 233, 0.44);
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.18));
+}
+
+.scene-cockpit__overlay--hydro path:last-child {
+  stroke: rgba(56, 189, 248, 0.28);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 6 4;
+}
+
+.scene-cockpit__overlay--districts path {
+  fill: rgba(255, 255, 255, 0.16);
+  stroke: rgba(71, 85, 105, 0.22);
+  stroke-width: 1.35;
+  stroke-linejoin: round;
+}
+
+.scene-cockpit__overlay--districts path:nth-child(2n) {
+  fill: rgba(191, 219, 254, 0.16);
+}
+
+.scene-cockpit__overlay--districts path:nth-child(3n) {
+  fill: rgba(187, 247, 208, 0.14);
+}
+
+.scene-cockpit__impact-zone {
+  z-index: 1;
+}
+
+.impact-zone {
+  position: absolute;
+  display: block;
+  border-radius: 999px;
+  filter: blur(10px);
+  mix-blend-mode: multiply;
+}
+
+.impact-zone--critical {
+  left: 56%;
+  top: 20%;
+  width: 28%;
+  height: 22%;
+  background: radial-gradient(circle, rgba(248, 113, 113, 0.34) 0%, rgba(248, 113, 113, 0.16) 48%, transparent 76%);
+}
+
+.impact-zone--warning {
+  left: 18%;
+  top: 54%;
+  width: 30%;
+  height: 24%;
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.28) 0%, rgba(251, 191, 36, 0.14) 44%, transparent 74%);
+}
+
+.impact-zone--watch {
+  left: 42%;
+  top: 40%;
+  width: 24%;
+  height: 20%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.1) 42%, transparent 72%);
+}
+
+.road {
+  position: absolute;
+  display: block;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(148, 163, 184, 0.1), rgba(255, 255, 255, 0.6), rgba(148, 163, 184, 0.1));
+  box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.08);
+}
+
+.road::after {
+  content: "";
+  position: absolute;
+  inset: 42% 4%;
+  background-image: linear-gradient(90deg, rgba(14, 165, 233, 0.22) 0 12px, transparent 12px 20px);
+  border-radius: 999px;
+}
+
+.road--a {
+  left: 12%;
+  top: 28%;
+  width: 68%;
+  height: 10px;
+  transform: rotate(-12deg);
+}
+
+.road--b {
+  left: 26%;
+  top: 60%;
+  width: 50%;
+  height: 10px;
+  transform: rotate(18deg);
+}
+
+.road--c {
+  left: 46%;
+  top: 16%;
+  width: 8px;
+  height: 62%;
+  transform: rotate(4deg);
+}
+
+.scene-zone {
+  position: absolute;
+  left: var(--zone-x);
+  top: var(--zone-y);
+  width: var(--zone-w);
+  height: var(--zone-h);
+  transform: rotate(var(--zone-rotate));
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(191, 219, 254, 0.12)),
+    repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.08) 0 10px, transparent 10px 20px);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
+
+.scene-cockpit__sweep {
+  background:
+    radial-gradient(circle at 42% 54%, rgba(56, 189, 248, 0.22), transparent 16%),
+    conic-gradient(from 220deg at 42% 54%, transparent 0deg, rgba(56, 189, 248, 0.18) 56deg, transparent 96deg);
+  filter: blur(2px);
+  opacity: 0.85;
+}
+
+.scene-cockpit__corridor {
+  background:
+    linear-gradient(125deg, transparent 34%, rgba(34, 197, 94, 0.16) 47%, transparent 60%),
+    linear-gradient(180deg, transparent 40%, rgba(249, 115, 22, 0.12) 68%, transparent 82%);
+}
+
+.scene-cockpit__core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 180px;
+  padding: 20px 24px;
+  border-radius: 24px;
+  text-align: center;
+  border: 1px solid rgba(56, 189, 248, 0.18);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 18px 36px rgba(148, 163, 184, 0.18);
+}
+
+.scene-cockpit__core span {
+  display: block;
+  margin-bottom: 8px;
+  color: #0891b2;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+}
+
+.scene-cockpit__core strong {
+  color: #0f172a;
+  font-size: 1.5rem;
+  letter-spacing: 0.02em;
+}
+
+.scene-hotspot {
+  position: absolute;
+  left: var(--spot-x);
+  top: var(--spot-y);
+  transform: translate(-50%, -50%);
+  z-index: 3;
+}
+
+.scene-hotspot__pulse {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--spot-tone);
+  box-shadow:
+    0 0 0 8px color-mix(in srgb, var(--spot-tone) 18%, transparent),
+    0 0 22px color-mix(in srgb, var(--spot-tone) 54%, transparent);
+}
+
+.scene-hotspot__label {
+  margin-top: 12px;
+  padding: 9px 11px;
+  border-radius: 14px;
+  min-width: 116px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid color-mix(in srgb, var(--spot-tone) 36%, rgba(148, 163, 184, 0.2));
+  backdrop-filter: blur(14px);
+  box-shadow: 0 14px 24px rgba(148, 163, 184, 0.16);
+}
+
+.scene-hotspot__label strong {
+  display: block;
+  color: #0f172a;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.scene-hotspot__label small {
+  color: #64748b;
+  font-size: 10px;
+}
+
+.scene-label {
+  position: absolute;
+  left: var(--label-x);
+  top: var(--label-y);
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  padding: 7px 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  color: #475569;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 80px;
+}
+
+.scene-label strong {
+  color: #0f172a;
+  font-size: 12px;
+}
+
+.scene-label small {
+  color: #64748b;
+  font-size: 10px;
+}
+
+.scene-label--major {
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 10px 20px rgba(148, 163, 184, 0.14);
+}
+
+.scene-cockpit__map-meta {
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  pointer-events: none;
+}
+
+.map-scale {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #475569;
+  font-size: 11px;
+}
+
+.map-scale span {
+  display: block;
+  width: 86px;
+  height: 10px;
+  border-left: 2px solid rgba(15, 23, 42, 0.54);
+  border-right: 2px solid rgba(15, 23, 42, 0.54);
+  border-top: 2px solid rgba(15, 23, 42, 0.54);
+}
+
+.map-coords {
+  display: flex;
+  gap: 12px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.66);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  color: #64748b;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.scene-cockpit__footer {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.command-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(56, 189, 248, 0.12);
+  box-shadow: 0 12px 24px rgba(148, 163, 184, 0.12);
+  animation: cardReveal 0.7s ease both;
+}
+
+.command-card:nth-child(2) {
+  animation-delay: 0.12s;
+}
+
+.command-card:nth-child(3) {
+  animation-delay: 0.24s;
+}
+
+.command-card small {
+  color: #0891b2;
+  letter-spacing: 0.14em;
+  font-size: 10px;
+}
+
+.command-card strong {
+  color: #0f172a;
+}
+
+.command-card span {
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@keyframes cockpitSweep {
+  0% {
+    transform: rotate(0deg) scale(1);
+    opacity: 0.45;
+  }
+  50% {
+    transform: rotate(180deg) scale(1.04);
+    opacity: 0.88;
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+    opacity: 0.45;
+  }
+}
+
+@keyframes hotspotPulse {
+  0% {
+    transform: scale(0.96);
+    box-shadow:
+      0 0 0 0 color-mix(in srgb, var(--spot-tone) 30%, transparent),
+      0 0 18px color-mix(in srgb, var(--spot-tone) 44%, transparent);
+  }
+  70% {
+    transform: scale(1.08);
+    box-shadow:
+      0 0 0 14px color-mix(in srgb, var(--spot-tone) 0%, transparent),
+      0 0 26px color-mix(in srgb, var(--spot-tone) 56%, transparent);
+  }
+  100% {
+    transform: scale(0.96);
+    box-shadow:
+      0 0 0 0 color-mix(in srgb, var(--spot-tone) 0%, transparent),
+      0 0 18px color-mix(in srgb, var(--spot-tone) 44%, transparent);
+  }
+}
+
+@keyframes cardFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes corridorGlow {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+@keyframes cardReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes impactPulse {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-cockpit__sweep,
+  .scene-cockpit__corridor,
+  .scene-hotspot__pulse,
+  .scene-hotspot__label,
+  .command-card,
+  .impact-zone {
+    animation: none;
+  }
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.stat-card {
   padding: 24px;
+  min-height: 156px;
 }
 
-.workspace-aside ol {
-  margin: 18px 0 0;
-  padding-left: 20px;
+.stat-card__label {
+  display: inline-block;
+  margin-bottom: 12px;
+  color: #475569;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+
+.stat-card strong {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 1.45rem;
+}
+
+.stat-card p,
+.module-card p,
+.info-card p,
+.toolbar-note span,
+.device-card p,
+.device-modal__desc,
+.device-modal__section p,
+.guide-banner p,
+.scene-stage__intro p {
+  margin: 0;
+  color: #475569;
+  line-height: 1.75;
+}
+
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.module-card {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 32px;
+  min-height: 300px;
+}
+
+.module-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 18% 16%, rgba(15, 23, 42, 0.08), transparent 24%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.26), transparent 56%);
+  pointer-events: none;
+}
+
+.module-card > * {
+  position: relative;
+}
+
+.module-card__head {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.module-card__head strong,
+.info-card h3,
+.scene-stage__intro h2,
+.device-showcase__header h2,
+.device-modal h2 {
+  font-size: 1.35rem;
+  margin: 0;
+}
+
+.module-card__tag,
+.scene-stage__tag {
+  display: inline-flex;
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.05);
+  color: #334155;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.module-card__head strong {
+  font-size: clamp(1.9rem, 2.6vw, 3rem);
+  line-height: 1;
+  letter-spacing: -0.06em;
+}
+
+.module-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 28px 30px;
+}
+
+.panel-shell--module {
+  background:
+    linear-gradient(180deg, rgba(250, 251, 252, 0.98), rgba(245, 247, 250, 0.94)),
+    radial-gradient(circle at right top, rgba(148, 163, 184, 0.08), transparent 38%);
+}
+
+.panel-shell--scene {
+  background:
+    linear-gradient(180deg, rgba(249, 251, 253, 0.98), rgba(242, 246, 250, 0.94)),
+    radial-gradient(circle at right top, rgba(100, 116, 139, 0.1), transparent 42%);
+}
+
+.panel-shell--device {
+  background:
+    linear-gradient(180deg, rgba(251, 250, 248, 0.98), rgba(247, 244, 239, 0.94)),
+    radial-gradient(circle at right top, rgba(120, 113, 108, 0.08), transparent 42%);
+}
+
+.module-hero__badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.module-hero__badges span,
+.toolbar-note strong {
+  padding: 10px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(71, 85, 105, 0.12);
+}
+
+.panel-shell--toolbar {
+  padding: 16px 18px;
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+}
+
+.segmented-control {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.segment-btn {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 180px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(71, 85, 105, 0.12);
+  background: rgba(255, 255, 255, 0.8);
+  color: #0f172a;
+}
+
+.segment-btn small {
+  color: #64748b;
+}
+
+.segment-btn--active {
+  background: linear-gradient(135deg, rgba(226, 232, 240, 0.76), rgba(241, 245, 249, 0.92));
+  border-color: rgba(30, 41, 59, 0.18);
+}
+
+.toolbar-note {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 26rem;
+}
+
+.algorithm-stage {
+  padding: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.algorithm-stage__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.algorithm-stage__header h2 {
+  margin: 12px 0 8px;
+  font-size: clamp(1.8rem, 3vw, 3rem);
+  line-height: 1;
+  letter-spacing: -0.055em;
+}
+
+.algorithm-stage__header p {
+  max-width: 58rem;
+  margin: 0;
+  color: #475569;
+  line-height: 1.75;
+}
+
+.algorithm-stage__chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.algorithm-stage__chips span {
+  padding: 8px 11px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.05);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  color: #334155;
+  font-size: 12px;
+}
+
+.info-card {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 150px;
+}
+
+.info-card__eyebrow {
+  color: #475569;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+.guide-banner {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: center;
+  padding: 16px 20px;
+}
+
+.guide-banner strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.guide-banner__dismiss,
+.device-modal__close {
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(71, 85, 105, 0.12);
+  background: rgba(255, 255, 255, 0.9);
+  color: #0f172a;
+}
+
+.scene-stage {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.info-card__list,
+.info-card__steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.info-card__list span,
+.info-card__steps span {
+  padding: 8px 11px;
+  border-radius: 999px;
+  background: rgba(248, 250, 252, 0.92);
+  border: 1px solid rgba(71, 85, 105, 0.12);
+  color: #334155;
+  font-size: 12px;
+}
+
+.scene-stage__intro,
+.device-showcase__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.device-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.device-card {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 18px;
+  padding: 22px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.device-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
+}
+
+.device-card__media {
+  width: 88px;
+  height: 88px;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--device-tone) 14%, white 86%);
+  border: 1px solid color-mix(in srgb, var(--device-tone) 32%, white 68%);
+  color: #0f172a;
+  font-weight: 800;
+  font-size: 1.4rem;
+}
+
+.device-card__body {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.workspace-content {
-  padding: 28px;
+.device-card__title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-@media (max-width: 1100px) {
-  .hero,
-  .workspace-layout {
+.device-card__title small {
+  color: #64748b;
+}
+
+.device-showcase {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.device-showcase__loading {
+  padding: 28px;
+  border-radius: 22px;
+  border: 1px dashed rgba(148, 163, 184, 0.24);
+  color: #64748b;
+  text-align: center;
+}
+
+.device-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.42);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 50;
+}
+
+.device-modal__panel {
+  width: min(760px, 100%);
+  padding: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: relative;
+}
+
+.device-modal__close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+}
+
+.device-modal__section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.device-modal__section h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+@media (max-width: 1200px) {
+  .panel-shell--hero,
+  .device-grid,
+  .module-grid,
+  .stats-grid {
     grid-template-columns: 1fr;
   }
 
-  .feature-grid {
-    grid-template-columns: repeat(2, minmax(200px, 1fr));
+  .scene-cockpit__footer {
+    grid-template-columns: 1fr;
   }
 
-  .workspace-aside {
-    position: static;
+  .hero-command-row {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-shell--hero {
+    min-height: auto;
+    padding: 24px;
+  }
+
+  .map-command-screen {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 0;
+  }
+
+  .mission-console {
+    border-right: none;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+  }
+
+  .map-command-screen__stage,
+  .map-command-screen__map {
+    min-height: 460px;
+  }
+
+  .map-command-screen__header {
+    flex-direction: column;
+  }
+
+  .map-command-screen__header h1 {
+    white-space: normal;
+  }
+
+  .map-command-screen__status {
+    max-width: 560px;
+  }
+
+  .landing-hero__copy {
+    max-width: none;
+  }
+
+  .scene-cockpit__stage {
+    min-height: 440px;
+  }
+
+  .scene-cockpit__monitor {
+    top: 40px;
+    right: 10px;
+  }
+
+  .scene-cockpit__legend {
+    left: 10px;
+    bottom: 52px;
+  }
+
+  .module-hero,
+  .panel-shell--toolbar,
+  .scene-stage__intro,
+  .device-showcase__header {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 
-@media (max-width: 720px) {
-  .topbar,
-  .workspace-hero {
+@media (max-width: 900px) {
+  .topbar {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .topbar {
-    top: 12px;
-    border-radius: 20px;
-    padding: 16px;
-  }
-
-  .feature-grid {
+  .device-card {
     grid-template-columns: 1fr;
   }
 
-  .panel-surface--hero,
-  .workspace-content,
-  .workspace-aside,
-  .feature-card {
+  .device-card__media {
+    width: 72px;
+    height: 72px;
+  }
+}
+
+@media (max-width: 720px) {
+  .topbar {
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .map-command-screen {
+    min-height: 760px;
+    border-radius: 8px;
+  }
+
+  .map-command-screen__shade {
+    background:
+      linear-gradient(180deg, rgba(248, 250, 252, 0.94) 0%, rgba(248, 250, 252, 0.72) 44%, rgba(248, 250, 252, 0.2) 100%),
+      linear-gradient(0deg, rgba(15, 23, 42, 0.18), transparent 42%);
+  }
+
+  .map-command-screen__header {
+    padding: 22px;
+  }
+
+  .map-command-screen__status {
+    margin: 20px 22px 0;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .map-command-screen__status span {
+    padding: 12px;
+  }
+
+  .map-command-screen__mission {
+    width: auto;
+    margin: 26px 22px 0;
+    padding: 18px;
+  }
+
+  .mission-path {
+    display: none;
+  }
+
+  .mission-link {
+    grid-template-columns: 1fr;
+  }
+
+  .mission-link span {
+    grid-row: auto;
+    text-align: left;
+  }
+
+  .map-command-screen__timeline {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 6px;
+    width: auto;
+    max-width: none;
+    margin: 18px 22px 0;
+    padding: 18px 12px 14px;
+    border-radius: 8px;
+  }
+
+  .map-command-screen__timeline::before,
+  .map-command-screen__timeline::after {
+    display: none;
+  }
+
+  .mission-step {
+    min-height: 62px;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 10px;
+    text-align: left;
+    padding: 8px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.56);
+  }
+
+  .mission-step i {
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    box-shadow: none;
+  }
+
+  .mission-step__copy {
+    min-height: auto;
+  }
+
+  .mission-step em {
+    margin-left: auto;
+  }
+
+  .mission-step--active {
+    transform: none;
+    background: rgba(240, 249, 255, 0.86);
+  }
+
+  .mission-step--active i {
+    width: 40px;
+    height: 40px;
+  }
+
+  .panel-shell--hero,
+  .module-hero,
+  .algorithm-stage,
+  .scene-stage,
+  .device-showcase,
+  .device-modal__panel,
+  .module-card,
+  .stat-card,
+  .info-card {
     padding: 20px;
   }
 
-  .hero__content h1,
-  .workspace-hero h1 {
-    line-height: 1.02;
+  .scene-cockpit__stage {
+    min-height: 340px;
+  }
+
+  .legend-card,
+  .monitor-card {
+    width: 128px;
+    padding: 9px 10px;
+  }
+
+  .scene-cockpit__legend,
+  .scene-cockpit__monitor,
+  .scene-cockpit__map-meta {
+    transform: scale(0.94);
+    transform-origin: bottom left;
+  }
+
+  .landing-hero__copy h1,
+  .module-hero h1 {
+    line-height: 1;
+  }
+
+  .landing-hero__copy h1 {
+    white-space: normal;
   }
 }
 </style>

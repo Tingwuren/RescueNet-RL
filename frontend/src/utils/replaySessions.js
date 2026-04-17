@@ -1,6 +1,10 @@
 const STORAGE_KEY = "rescuenet.replaySessions";
 const ACTIVE_KEY = "rescuenet.activeReplaySession";
 const SESSION_SCHEMA_VERSION = 2;
+const MAX_PERSISTED_SESSIONS = 6;
+const PRIMARY_FRAME_LIMIT = 96;
+const FALLBACK_FRAME_LIMIT = 48;
+const LAST_RESORT_FRAME_LIMIT = 24;
 
 const MAP_WIDTH = 5000;
 const MAP_HEIGHT = 5000;
@@ -20,6 +24,172 @@ const readStorage = () => {
 const writeStorage = (sessions) => {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+};
+
+const isStorageQuotaError = (error) =>
+  error?.name === "QuotaExceededError" ||
+  error?.name === "NS_ERROR_DOM_QUOTA_REACHED" ||
+  error?.code === 22 ||
+  error?.code === 1014;
+
+const roundMetric = (value, precision = 3) => {
+  const numeric = Number(value || 0);
+  if (!Number.isFinite(numeric)) return 0;
+  const factor = 10 ** precision;
+  return Math.round(numeric * factor) / factor;
+};
+
+const sampleFrames = (frames, limit) => {
+  if (!Array.isArray(frames)) return [];
+  if (frames.length <= limit) return frames;
+  if (limit <= 2) return [frames[0], frames.at(-1)].filter(Boolean);
+  const selected = new Set([0, frames.length - 1]);
+  const span = frames.length - 1;
+  for (let index = 1; index < limit - 1; index += 1) {
+    selected.add(Math.round((index / (limit - 1)) * span));
+  }
+  return Array.from(selected)
+    .sort((left, right) => left - right)
+    .map((index) => frames[index])
+    .filter(Boolean);
+};
+
+const compactNode = (node) => {
+  if (Array.isArray(node)) {
+    return {
+      id: Number(node[0] ?? 0),
+      type: Number(node[1] ?? 0),
+      x: roundMetric(node[2], 1),
+      y: roundMetric(node[3], 1),
+      online: Number(node[5] ?? 1) === 1,
+      broadcastServed: false,
+      kind: null,
+    };
+  }
+  return {
+    id: Number(node?.id ?? 0),
+    type: Number(node?.type ?? 0),
+    x: roundMetric(node?.x, 1),
+    y: roundMetric(node?.y, 1),
+    online: Boolean(node?.online ?? true),
+    broadcastServed: Boolean(node?.broadcastServed ?? false),
+    kind: node?.kind || null,
+    coverageRadius: node?.coverageRadius == null ? undefined : roundMetric(node.coverageRadius, 1),
+    siteIndex: node?.siteIndex == null ? undefined : Number(node.siteIndex),
+    commMode: node?.commMode || undefined,
+    broadcastMode: node?.broadcastMode || undefined,
+  };
+};
+
+const compactLink = (link) => {
+  if (Array.isArray(link)) {
+    return {
+      src: Number(link[0] ?? 0),
+      dst: Number(link[1] ?? 0),
+      protocol: Number(link[2] ?? 0),
+    };
+  }
+  return {
+    src: Number(link?.src ?? link?.srcId ?? 0),
+    dst: Number(link?.dst ?? link?.dstId ?? 0),
+    protocol: Number(link?.protocol ?? 0),
+  };
+};
+
+const compactActionDesc = (action) => {
+  if (!action) return null;
+  return {
+    site_index: action.site_index,
+    location: action.location,
+    region_label: action.region_label,
+    comm_mode: action.comm_mode,
+    broadcast_mode: action.broadcast_mode,
+  };
+};
+
+const compactFrame = (frame) => ({
+  frameIndex: Number(frame?.frameIndex ?? 0),
+  time: roundMetric(frame?.time, 2),
+  tp: roundMetric(frame?.tp, 3),
+  loss: roundMetric(frame?.loss, 4),
+  disaster: Number(frame?.disaster ?? 1),
+  nodes: (frame?.nodes || []).map(compactNode),
+  links: (frame?.links || []).map(compactLink),
+  coverageRatio: roundMetric(frame?.coverageRatio, 4),
+  broadcastRatio: roundMetric(frame?.broadcastRatio, 4),
+  remainingBudget: roundMetric(frame?.remainingBudget, 2),
+  reward: roundMetric(frame?.reward, 3),
+  label: frame?.label || "",
+  actionDesc: compactActionDesc(frame?.actionDesc),
+  latestDeploymentId: frame?.latestDeploymentId == null ? null : Number(frame.latestDeploymentId),
+  userCount: Number(frame?.userCount ?? 0),
+  stationCount: Number(frame?.stationCount ?? 0),
+  connectedUsers: Number(frame?.connectedUsers ?? 0),
+  broadcastUsers: Number(frame?.broadcastUsers ?? 0),
+});
+
+const compactSessionForStorage = (session, frameLimit = PRIMARY_FRAME_LIMIT) => ({
+  id: session.id,
+  source: session.source,
+  schemaVersion: session.schemaVersion,
+  createdAt: session.createdAt,
+  scenarioName: session.scenarioName,
+  algorithm: session.algorithm,
+  artifactSignature: session.artifactSignature,
+  title: session.title,
+  mapWidth: session.mapWidth,
+  mapHeight: session.mapHeight,
+  frames: sampleFrames(session.frames, frameLimit).map(compactFrame),
+  summary: session.summary,
+});
+
+const writeStorageWithQuotaFallback = (session, existingSessions) => {
+  if (typeof window === "undefined") return true;
+  const uniqueExisting = existingSessions.filter((item) => item.id !== session.id);
+  const attempts = [
+    {
+      frameLimit: PRIMARY_FRAME_LIMIT,
+      oldSessionLimit: MAX_PERSISTED_SESSIONS - 1,
+    },
+    {
+      frameLimit: FALLBACK_FRAME_LIMIT,
+      oldSessionLimit: 2,
+    },
+    {
+      frameLimit: LAST_RESORT_FRAME_LIMIT,
+      oldSessionLimit: 0,
+    },
+  ];
+
+  for (const attempt of attempts) {
+    const sessions = [
+      compactSessionForStorage(session, attempt.frameLimit),
+      ...uniqueExisting
+        .slice(0, attempt.oldSessionLimit)
+        .map((item) => compactSessionForStorage(item, Math.min(attempt.frameLimit, FALLBACK_FRAME_LIMIT))),
+    ];
+    try {
+      writeStorage(sessions);
+      return true;
+    } catch (error) {
+      if (!isStorageQuotaError(error)) {
+        throw error;
+      }
+      console.warn("Replay session storage quota exceeded, retrying with smaller payload.", error);
+    }
+  }
+
+  try {
+    window.localStorage.removeItem(STORAGE_KEY);
+    writeStorage([compactSessionForStorage(session, LAST_RESORT_FRAME_LIMIT)]);
+    return true;
+  } catch (error) {
+    if (!isStorageQuotaError(error)) {
+      throw error;
+    }
+  }
+
+  return false;
 };
 
 const gridToCoords = (row, col, rows, cols) => ({
@@ -264,11 +434,15 @@ export const getActiveReplaySessionId = () => {
 
 export const setActiveReplaySessionId = (id) => {
   if (typeof window === "undefined") return;
-  if (!id) {
-    window.localStorage.removeItem(ACTIVE_KEY);
-    return;
+  try {
+    if (!id) {
+      window.localStorage.removeItem(ACTIVE_KEY);
+      return;
+    }
+    window.localStorage.setItem(ACTIVE_KEY, id);
+  } catch (error) {
+    console.warn("Failed to update active replay session id.", error);
   }
-  window.localStorage.setItem(ACTIVE_KEY, id);
 };
 
 export const saveReplaySessionFromSimulation = ({
@@ -317,10 +491,18 @@ export const saveReplaySessionFromSimulation = ({
     .filter((item) => item.id !== sessionId)
     .filter((item) => !(artifactSignature && item.source === source && item.artifactSignature === artifactSignature))
     .filter((item) => !(item.source === source && item.title === session.title))
-    .slice(0, 19);
+    .slice(0, MAX_PERSISTED_SESSIONS - 1);
+  let persisted = !persist;
   if (persist) {
-    writeStorage([session, ...sessions]);
-    setActiveReplaySessionId(sessionId);
+    persisted = writeStorageWithQuotaFallback(session, sessions);
+    if (persisted) {
+      setActiveReplaySessionId(sessionId);
+    } else {
+      console.warn("Replay session was generated but not persisted because localStorage quota is exhausted.");
+    }
   }
-  return session;
+  return {
+    ...session,
+    persisted,
+  };
 };

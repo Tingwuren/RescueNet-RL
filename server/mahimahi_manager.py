@@ -144,9 +144,34 @@ class MahimahiManager:
     def simulate(self, trace_name: str, duration_s: float = 60, window_ms: int = 500, **_kwargs) -> Dict[str, Any]:
         """返回 trace 的容量时间序列，供前端回放展示。"""
         a = self._get_analyzer(trace_name)
+        capacity = a.capacity_series(duration_s, window_ms)
+
+        # This project currently visualizes a synthetic sender curve rather than
+        # running native mahimahi, so keep the API contract stable with derived data.
+        throughput = [{"time_s": p["time_s"], "value": round(p["value"] * 0.82, 3)} for p in capacity]
+        sending_rate = [{"time_s": p["time_s"], "value": round(p["value"] * 0.9, 3)} for p in capacity]
+
+        avg_capacity = round(sum(p["value"] for p in capacity) / len(capacity), 3) if capacity else 0.0
+        avg_throughput = round(sum(p["value"] for p in throughput) / len(throughput), 3) if throughput else 0.0
+        avg_sending_rate = round(sum(p["value"] for p in sending_rate) / len(sending_rate), 3) if sending_rate else 0.0
+        utilization = round(avg_throughput / avg_capacity, 4) if avg_capacity > 0 else 0.0
+
         return {
             "trace_name": trace_name,
             "duration_s": duration_s,
+            "rtt_ms": float(_kwargs.get("rtt_ms", 80)),
+            "buffer_packets": int(_kwargs.get("buffer_packets", 100)),
             "window_ms": window_ms,
-            "capacity": a.capacity_series(duration_s, window_ms),
+            "mahimahi_native": False,
+            "capacity": capacity,
+            "throughput": throughput,
+            "sending_rate": sending_rate,
+            "stats": {
+                "avg_capacity_mbps": avg_capacity,
+                "avg_throughput_mbps": avg_throughput,
+                "avg_sending_rate_mbps": avg_sending_rate,
+                "utilization": utilization,
+                "loss_rate": 0.0,
+                "total_delivered_mb": round(avg_throughput * duration_s / 8, 3),
+            },
         }

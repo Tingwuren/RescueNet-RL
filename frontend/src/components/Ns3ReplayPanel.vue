@@ -12,11 +12,15 @@
       <button type="button" @click="loadReplaySources" :disabled="loadingExperiments">
         {{ loadingExperiments ? "刷新中..." : "刷新回放列表" }}
       </button>
+      <button type="button" @click="runNs3Simulation" :disabled="ns3Running">
+        {{ ns3Running ? "ns-3 生成中..." : "生成 ns-3 演练" }}
+      </button>
       <a class="native-link" :href="nativeReplayUrl" target="_blank" rel="noreferrer">打开 ns-3 原生回放页</a>
     </div>
 
     <div v-if="errorMessage" class="error-banner">{{ errorMessage }}</div>
     <div v-if="localReplayWarning" class="warning-banner">{{ localReplayWarning }}</div>
+    <div v-if="ns3StatusText" class="warning-banner">{{ ns3StatusText }}</div>
 
     <div class="native-shell">
       <aside class="native-panel native-panel--left">
@@ -175,6 +179,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import axios from "axios";
 import { ns3ApiBase, ns3WebBase, rescueApiBase } from "../utils/runtimeEndpoints";
+import { formatScenarioName } from "../utils/scenarioLabels";
 import {
   getActiveReplaySessionId,
   listReplaySessions,
@@ -197,6 +202,7 @@ const errorMessage = ref("");
 const isPlaying = ref(false);
 const canvasRef = ref(null);
 const activeSource = ref("none");
+const ns3Status = ref(null);
 
 let timer = null;
 
@@ -294,7 +300,7 @@ const replayOptions = computed(() => {
       ? [
           {
             key: "train:latest",
-            label: `[训练] 最新训练产物 / ${latestTrainingArtifact.value.scenario_name || "unknown"} / ${(latestTrainingArtifact.value.algorithm || "ppo").toUpperCase()} (点击后生成回放)`,
+            label: `[训练] 最新训练产物 / ${formatScenarioName(latestTrainingArtifact.value.scenario_name)} / ${(latestTrainingArtifact.value.algorithm || "ppo").toUpperCase()} (点击后生成回放)`,
           },
         ]
       : [];
@@ -429,7 +435,7 @@ const sourceDescription = computed(() => {
     return activeLocalSession.value.title;
   }
   if (activeTrainingArtifact.value) {
-    return `最新训练产物：${activeTrainingArtifact.value.scenario_name || "unknown"} / ${(activeTrainingArtifact.value.algorithm || "ppo").toUpperCase()}`;
+    return `最新训练产物：${formatScenarioName(activeTrainingArtifact.value.scenario_name)} / ${(activeTrainingArtifact.value.algorithm || "ppo").toUpperCase()}`;
   }
   if (activeNs3Experiment.value) {
     return `实验 #${activeNs3Experiment.value.id} ${activeNs3Experiment.value.name || "演练"}`;
@@ -462,6 +468,15 @@ const localReplayWarning = computed(() => {
   if (!activeLocalSession.value) return "";
   if (Number(activeLocalSession.value.schemaVersion || 0) >= 2) return "";
   return "该测试回放来自旧版本地会话结构，建议重新执行一次测试，以获得完整的累计基站、用户和连线展示。";
+});
+
+const ns3Running = computed(() => Boolean(ns3Status.value?.running));
+const ns3StatusText = computed(() => {
+  if (!ns3Status.value) return "";
+  if (ns3Status.value.running) return "主后端正在后台执行 ns-3 仿真，完成后会自动导入并出现在回放列表中。";
+  if (ns3Status.value.last_error) return `ns-3 状态异常: ${ns3Status.value.last_error}`;
+  if (!Number(ns3Status.value.experiment_count || 0)) return "当前还没有 ns-3 实验记录，可点击“生成 ns-3 演练”。";
+  return "";
 });
 
 const frameSummary = computed(() => {
@@ -752,6 +767,8 @@ const loadReplaySources = async () => {
   try {
     await fetchLatestTrainingArtifact();
     localSessions.value = listReplaySessions();
+    const statusResponse = await axios.get(`${ns3ApiBase}/ns3/status`, { timeout: 10000 });
+    ns3Status.value = statusResponse.data || null;
     const { data } = await axios.get(`${ns3ApiBase}/experiments`, { timeout: 10000 });
     experiments.value = Array.isArray(data) ? data : [];
   } catch (error) {
@@ -774,6 +791,19 @@ const loadReplaySources = async () => {
       await onReplayChange();
     }
     loadingExperiments.value = false;
+  }
+};
+
+const runNs3Simulation = async () => {
+  try {
+    const { data } = await axios.post(`${ns3ApiBase}/ns3/run`, {}, { timeout: 10000 });
+    ns3Status.value = data || null;
+    errorMessage.value = "";
+    setTimeout(() => {
+      loadReplaySources();
+    }, 1500);
+  } catch (error) {
+    errorMessage.value = `启动 ns-3 仿真失败: ${error?.message || "未知错误"}`;
   }
 };
 

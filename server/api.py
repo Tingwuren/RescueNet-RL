@@ -34,6 +34,7 @@ from server.schemas import (
 )
 from server.training_manager import TrainingManager
 from server.mahimahi_manager import MahimahiManager
+from server.ns3_replay_manager import Ns3ReplayManager
 from services.evaluation import build_env, build_scene_preview, evaluate_policy, export_episode_scene, load_policy
 
 app = FastAPI(title="RescueNet-RL API", version="0.1.0")
@@ -46,6 +47,7 @@ app.add_middleware(
 
 training_manager = TrainingManager()
 mahimahi_manager = MahimahiManager()
+ns3_replay_manager = Ns3ReplayManager()
 default_config = get_default_config()
 dataset_path = Path(default_config["multimodal_env"]["dataset_path"])
 dataset = ResourceDataset(dataset_path)
@@ -140,6 +142,57 @@ def latest_training_artifact() -> Dict[str, object]:
         "reward_mode": multimodal_cfg.get("reward_mode"),
         "updated_at": updated_at,
     }
+
+
+@app.get("/api/train/artifacts")
+def list_training_artifacts() -> Dict[str, List[Dict[str, object]]]:
+    artifact_dir = Path(default_config["logging"]["artifact_dir"])
+    runs_dir = artifact_dir / "runs"
+    artifacts: List[Dict[str, object]] = []
+    if not runs_dir.exists():
+        return {"artifacts": artifacts}
+
+    for meta_path in runs_dir.glob("*/policy_meta.json"):
+        metrics_path = meta_path.with_name("training_metrics.json")
+        try:
+            with meta_path.open("r", encoding="utf-8") as handle:
+                meta = json.load(handle)
+        except (OSError, json.JSONDecodeError):
+            continue
+
+        metrics = {}
+        if metrics_path.exists():
+            try:
+                with metrics_path.open("r", encoding="utf-8") as handle:
+                    metrics = json.load(handle)
+            except (OSError, json.JSONDecodeError):
+                metrics = {}
+
+        config = metrics.get("config", {}) if isinstance(metrics, dict) else {}
+        experiment_cfg = config.get("experiment", {}) if isinstance(config, dict) else {}
+        multimodal_cfg = config.get("multimodal_env", {}) if isinstance(config, dict) else {}
+        policy_path = meta.get("policy_path")
+        if not policy_path:
+            continue
+
+        updated_at = max(
+            meta_path.stat().st_mtime if meta_path.exists() else 0.0,
+            metrics_path.stat().st_mtime if metrics_path.exists() else 0.0,
+        )
+        artifacts.append(
+            {
+                "algorithm": meta.get("algorithm") or experiment_cfg.get("algorithm") or "ppo",
+                "env_type": meta.get("env_type") or experiment_cfg.get("env_type") or "multimodal",
+                "checkpoint_path": policy_path,
+                "scenario_name": multimodal_cfg.get("scenario_name"),
+                "reward_mode": multimodal_cfg.get("reward_mode"),
+                "updated_at": updated_at,
+                "run_dir": str(meta_path.parent),
+            }
+        )
+
+    artifacts.sort(key=lambda item: float(item.get("updated_at") or 0), reverse=True)
+    return {"artifacts": artifacts}
 
 
 @app.get("/api/scenarios")
@@ -262,6 +315,8 @@ def simulate_strategy(request: SimulationRequest) -> SimulationResponse:
         np.random.seed(request.eval_seed)
 
     checkpoint_path = Path(request.checkpoint_path)
+    if not checkpoint_path.exists():
+        raise HTTPException(status_code=404, detail=f"Checkpoint not found: {checkpoint_path}")
     env = build_env(config, request.env_type)
     try:
         policy = load_policy(checkpoint_path, env, config, request.env_type, algorithm=request.algorithm)
@@ -354,6 +409,8 @@ def stream_simulation(request: SimulationRequest):
                 np.random.seed(request.eval_seed)
 
             checkpoint_path = Path(request.checkpoint_path)
+            if not checkpoint_path.exists():
+                raise FileNotFoundError(f"Checkpoint not found: {checkpoint_path}")
             env = build_env(config, request.env_type)
             custom_state = [device.model_dump() for device in request.custom_devices]
             custom_base_stations = (
@@ -539,6 +596,50 @@ def mahimahi_simulate_stream(request: MahimahiSimulateRequest):
     return StreamingResponse(generator(), media_type="text/event-stream")
 
 
+@app.on_event("startup")
+async def startup_event() -> None:
+    ns3_replay_manager.start()
+
+
+@app.on_event("shutdown")
+async def shutdown_event() -> None:
+    ns3_replay_manager.stop()
+
+
+@app.get("/api/ns3/status")
+def ns3_status() -> Dict[str, object]:
+    return ns3_replay_manager.status()
+
+
+@app.post("/api/ns3/run")
+def ns3_run() -> Dict[str, object]:
+    return ns3_replay_manager.start_simulation()
+
+
+@app.post("/api/import")
+def ns3_manual_import() -> Dict[str, object]:
+    exp_id = ns3_replay_manager.import_trace()
+    return {"success": exp_id is not None, "exp_id": exp_id}
+
+
+@app.get("/api/experiments")
+def list_ns3_experiments() -> List[Dict[str, object]]:
+    return ns3_replay_manager.list_experiments()
+
+
+@app.get("/api/exp/{exp_id}/charts")
+def get_ns3_charts(exp_id: int) -> Dict[str, List[float]]:
+    return ns3_replay_manager.get_charts(exp_id)
+
+
+@app.get("/api/exp/{exp_id}/frame/{frame_idx}")
+def get_ns3_frame(exp_id: int, frame_idx: int) -> Dict[str, object]:
+    frame = ns3_replay_manager.get_frame(exp_id, frame_idx)
+    if frame is None:
+        raise HTTPException(status_code=404, detail="Frame not found.")
+    return frame
+
+
 def _resolve_frontend_dist() -> Path:
     configured = Path(os.environ.get("FRONTEND_DIST", "frontend/dist"))
     if configured.is_absolute():
@@ -556,4 +657,11 @@ def _mount_frontend_static() -> None:
     app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
 
 
+def _mount_ns3_native_static() -> None:
+    if not ns3_replay_manager.ns3_root.exists():
+        return
+    app.mount("/ns3-native", StaticFiles(directory=ns3_replay_manager.ns3_root, html=True), name="ns3-native")
+
+
+_mount_ns3_native_static()
 _mount_frontend_static()

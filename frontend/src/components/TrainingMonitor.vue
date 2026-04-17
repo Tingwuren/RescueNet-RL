@@ -10,6 +10,7 @@
       <p class="monitor__value">{{ latestUpdate }}</p>
     </div>
   </div>
+    <div class="monitor__charts">
     <div class="monitor__chart">
       <div class="chart__header">
         <div>
@@ -40,10 +41,13 @@
             stroke="#38bdf8"
             stroke-width="2"
           />
-          <g v-for="(point, idx) in coveragePoints" :key="`cov-${idx}`">
-            <circle :cx="point.x" :cy="point.y" r="2.5" fill="#22d3ee" />
-          </g>
         </svg>
+        <span
+          v-for="(point, idx) in coveragePoints"
+          :key="`cov-${idx}`"
+          class="chart-point chart-point--coverage"
+          :style="pointStyle(point)"
+        />
         <p v-if="!coveragePoints.length" class="monitor__placeholder">暂无覆盖率数据，等待训练事件...</p>
       </div>
     </div>
@@ -77,21 +81,25 @@
             stroke="#a855f7"
             stroke-width="2"
           />
-          <g v-for="(point, idx) in broadcastPoints" :key="`bc-${idx}`">
-            <circle :cx="point.x" :cy="point.y" r="2.5" fill="#d946ef" />
-          </g>
         </svg>
+        <span
+          v-for="(point, idx) in broadcastPoints"
+          :key="`bc-${idx}`"
+          class="chart-point chart-point--broadcast"
+          :style="pointStyle(point)"
+        />
         <p v-if="!broadcastPoints.length" class="monitor__placeholder">暂无广播率数据，等待训练事件...</p>
       </div>
     </div>
+    </div>
   <div class="monitor__events">
-    <p class="monitor__label">实时事件</p>
-    <div class="monitor__event-list">
-      <div v-for="(event, idx) in events" :key="idx" class="event">
-        <p class="event__type">{{ event.type }}</p>
-          <pre>{{ formatPayload(event.payload) }}</pre>
-        </div>
-        <p v-if="!events.length" class="monitor__placeholder">暂无事件，请启动训练。</p>
+    <div class="console__header">
+      <p class="monitor__label">训练控制台</p>
+      <span>{{ consoleLines.length }} lines</span>
+    </div>
+    <div class="monitor__event-list console">
+      <pre v-for="(line, idx) in consoleLines" :key="idx" class="console__line">{{ line }}</pre>
+      <p v-if="!consoleLines.length" class="monitor__placeholder console__placeholder">暂无控制台输出，请启动训练。</p>
       </div>
     </div>
   </div>
@@ -183,34 +191,72 @@ const coverageAreaPath = computed(() => areaPathFrom(coveragePoints.value));
 const broadcastLinePath = computed(() => linePathFrom(broadcastPoints.value));
 const broadcastAreaPath = computed(() => areaPathFrom(broadcastPoints.value));
 
-const formatPayload = (payload) => {
-  if (!payload) {
-    return "";
-  }
-  try {
-    return JSON.stringify(payload, null, 2);
-  } catch (err) {
-    return String(payload);
-  }
+const pointStyle = (point) => ({
+  left: `${(point.x / chartWidth) * 100}%`,
+  top: `${(point.y / chartHeight) * 100}%`,
+});
+
+const percent = (value) => `${(Math.max(0, Math.min(1, Number(value || 0))) * 100).toFixed(2)}%`;
+const fixed = (value, digits = 3) => Number(value || 0).toFixed(digits);
+const timeText = (timestamp) => {
+  if (!timestamp) return "--:--:--";
+  return new Date(timestamp * 1000).toLocaleTimeString("zh-CN", { hour12: false });
 };
+
+const formatConsoleLine = (event) => {
+  const payload = event?.payload || {};
+  const prefix = `[${timeText(event?.timestamp)}]`;
+  if (event?.message) return `${prefix} ${event.message}`;
+  if (event?.type === "experiment_config") {
+    return `${prefix} loaded config lr=${payload.learningRate ?? "-"} gamma=${payload.discountFactor ?? "-"} batch=${payload.batchSize ?? "-"} rollout=${payload.rolloutSteps ?? "-"}`;
+  }
+  if (event?.type === "status") {
+    const step = payload.step != null ? ` step=${payload.step}` : "";
+    return `${prefix} status=${payload.state || "unknown"}${step}`;
+  }
+  if (event?.type === "episode") {
+    const parts = [
+      `episode=${payload.episode ?? "-"}`,
+      `reward=${fixed(payload.reward)}`,
+      `coverage=${percent(payload.coverage)}`,
+      `broadcast=${percent(payload.broadcast)}`,
+    ];
+    if (payload.steps != null) parts.push(`steps=${payload.steps}`);
+    if (payload.total_timesteps != null) parts.push(`timesteps=${payload.total_timesteps}`);
+    return `${prefix} ${parts.join(" | ")}`;
+  }
+  if (event?.type === "train") {
+    return `${prefix} train step=${payload.step ?? "-"} reward=${fixed(payload.reward)} loss=${fixed(payload.loss)}`;
+  }
+  if (event?.type === "error" || event?.type === "training_replay_error") {
+    return `${prefix} error: ${payload.message || "unknown error"}`;
+  }
+  if (event?.type === "training_replay_ready") {
+    return `${prefix} replay: ${event.message || "训练回放已生成"}`;
+  }
+  return `${prefix} ${event?.type || "event"} ${JSON.stringify(payload)}`;
+};
+
+const consoleLines = computed(() => props.events.map(formatConsoleLine).slice(-80));
 </script>
 
 <style scoped>
 .monitor {
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  border-radius: 12px;
+  border: 1px solid rgba(100, 116, 139, 0.22);
+  border-radius: 16px;
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  background: rgba(15, 23, 42, 0.4);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.9));
+  color: #0f172a;
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.06);
 }
 
 .monitor__status {
-  display: flex;
-  justify-content: space-between;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
-  padding-bottom: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .monitor__label {
@@ -218,13 +264,21 @@ const formatPayload = (payload) => {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .monitor__value {
   margin: 2px 0 0;
   font-size: 18px;
   font-weight: 600;
+  color: #0f172a;
+}
+
+.monitor__status > div {
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(14, 165, 233, 0.16);
+  background: rgba(224, 242, 254, 0.74);
 }
 
 .monitor__events {
@@ -233,11 +287,28 @@ const formatPayload = (payload) => {
   gap: 8px;
 }
 
+.console__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.console__header span {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.monitor__charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
 .monitor__chart {
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  border: 1px solid rgba(100, 116, 139, 0.2);
   border-radius: 12px;
   padding: 12px;
-  background: rgba(15, 23, 42, 0.35);
+  background: rgba(255, 255, 255, 0.86);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -250,7 +321,7 @@ const formatPayload = (payload) => {
 }
 
 .chart__hint {
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .chart__viewport {
@@ -262,14 +333,63 @@ const formatPayload = (payload) => {
 .chart__viewport svg {
   width: 100%;
   height: 160px;
+  display: block;
+}
+
+.chart-point {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  stroke: rgba(255, 255, 255, 0.95);
+  stroke-width: 1.4;
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.18);
+  pointer-events: none;
+}
+
+.chart-point--coverage {
+  background: #22d3ee;
+}
+
+.chart-point--broadcast {
+  background: #d946ef;
 }
 
 .monitor__event-list {
-  max-height: 200px;
+  max-height: 280px;
   overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+}
+
+.console {
+  min-height: 220px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.18);
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(2, 6, 23, 0.96));
+  box-shadow: inset 0 1px 0 rgba(148, 163, 184, 0.14);
+}
+
+.console__line {
+  margin: 0;
+  padding: 3px 0;
+  color: #dbeafe;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.console__line::before {
+  content: ">";
+  margin-right: 8px;
+  color: #38bdf8;
+}
+
+.console__placeholder {
+  color: #94a3b8;
 }
 
 .monitor__placeholder {
@@ -277,23 +397,13 @@ const formatPayload = (payload) => {
   color: #64748b;
 }
 
-.event {
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: 8px;
-  padding: 8px;
-  background: rgba(30, 64, 175, 0.15);
-}
+@media (max-width: 720px) {
+  .monitor__status {
+    grid-template-columns: 1fr;
+  }
 
-.event__type {
-  margin: 0 0 4px;
-  font-weight: 600;
-  color: #93c5fd;
-}
-
-pre {
-  margin: 0;
-  font-size: 12px;
-  color: #e2e8f0;
-  white-space: pre-wrap;
+  .monitor__charts {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

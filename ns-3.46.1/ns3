@@ -1878,6 +1878,8 @@ def sudo_step(args, target_to_run, configure_post_build: set):
 
 def refuse_run_as_root():
     # Check if the user is root and refuse to run
+    if os.getenv("NS3_ALLOW_ROOT", "") == "1":
+        return
     username = os.getenv("USER", "")
     if username == "root":
         raise Exception(

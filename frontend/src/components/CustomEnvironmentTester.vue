@@ -2,9 +2,7 @@
   <div class="tester">
     <div class="tester__intro">
       <h2>自定义环境测试</h2>
-      <p class="subtitle">
-        选择场景后先导入灾情场景图，再启动策略测试；测试过程会在页面终端中实时输出。
-      </p>
+      <p class="subtitle">导入场景图后直接启动测试，终端持续输出过程日志。</p>
     </div>
 
     <div v-if="errorMessage" class="error-banner">
@@ -13,24 +11,37 @@
 
     <form class="tester__form" @submit.prevent="runSimulation">
       <section class="tester__section">
-        <div class="section-header">
-          <div>
-            <h3>1. 导入场景图</h3>
-            <p>导入后的灾情快照会直接作为后续测试的输入。</p>
-          </div>
-          <button type="button" class="import-btn" @click="importSceneGraph" :disabled="isImporting || isRunning">
-            {{ isImporting ? "导入中..." : "导入场景图" }}
-          </button>
-        </div>
-
         <label>
           场景选择
           <select v-model="scenarioName">
             <option v-for="scenario in scenarios" :key="scenario.name" :value="scenario.name">
-              {{ scenario.name }} ({{ scenario.disaster_type }})
+              {{ formatScenarioName(scenario.name) }}
             </option>
           </select>
         </label>
+
+      </section>
+
+      <section v-if="activeSceneGraph" class="tester__section">
+        <div class="section-header">
+          <div v-if="sceneTabOptions.length > 1" class="scene-tabs">
+            <button
+              v-for="option in sceneTabOptions"
+              :key="option.key"
+              type="button"
+              :class="['scene-tab', { 'scene-tab--active': sceneGraphTab === option.key }]"
+              @click="sceneGraphTab = option.key"
+            >
+              {{ option.label }}
+            </button>
+          </div>
+        </div>
+
+        <SceneGraphPreview
+          :scene="activeSceneGraph"
+          :scenario-name="scenarioName"
+          :scene-kind="sceneGraphTab"
+        />
 
         <div v-if="regionGrid" class="region-hint">
           <p>
@@ -47,43 +58,12 @@
           </p>
         </div>
 
-        <div class="scene-status" :class="`scene-status--${sceneStatusTone}`">
-          <strong>{{ sceneStatusText }}</strong>
-          <small v-if="sceneSummaryText">{{ sceneSummaryText }}</small>
-        </div>
-      </section>
-
-      <section v-if="activeSceneGraph" class="tester__section">
-        <div class="section-header">
-          <div>
-            <h3>2. 场景图</h3>
-            <p>先确认灾情节点分布，再执行策略测试。</p>
-          </div>
-          <div v-if="sceneTabOptions.length > 1" class="scene-tabs">
-            <button
-              v-for="option in sceneTabOptions"
-              :key="option.key"
-              type="button"
-              :class="['scene-tab', { 'scene-tab--active': sceneGraphTab === option.key }]"
-              @click="sceneGraphTab = option.key"
-            >
-              {{ option.label }}
-            </button>
-          </div>
-        </div>
-
-        <SceneGraphPreview
-          :scene="activeSceneGraph"
-          :title="activeSceneTitle"
-          :subtitle="activeSceneSubtitle"
-        />
       </section>
 
       <section class="tester__section">
         <div class="section-header">
           <div>
-            <h3>3. 测试配置</h3>
-            <p>若修改基站配置，需要重新导入场景图以保持测试输入一致。当前测试默认使用固定种子的随机采样策略，以复现训练时接近满覆盖的评估表现。</p>
+            <h3>测试配置</h3>
           </div>
         </div>
 
@@ -105,16 +85,11 @@
           </div>
         </label>
 
-        <label>
-          Checkpoint 路径
-          <input type="text" v-model="checkpointPath" placeholder="artifacts/ppo_policy.pt" />
-        </label>
-
         <div class="devices">
           <div class="devices__header">
             <div>
               <p>残余基站</p>
-              <small>未添加时保留场景默认残余网络；添加后会覆盖默认残余基站配置。</small>
+              <small>留空则沿用场景默认配置。</small>
             </div>
             <button type="button" @click="addBaseStation" :disabled="!baseStationOptions.length || isRunning">
               添加基站
@@ -149,11 +124,14 @@
         </div>
 
         <div class="run-actions">
-          <button type="submit" class="run-btn" :disabled="isRunning || !isSceneReady">
-            {{ isRunning ? "测试中..." : "开始测试" }}
+          <button type="submit" class="run-btn" :disabled="isRunning || isImporting || !hasMatchingCheckpoint">
+            {{ isRunning ? "测试中..." : isImporting ? "同步场景中..." : "开始测试" }}
           </button>
+          <p class="run-hint" v-if="!hasMatchingCheckpoint">
+            当前场景和算法没有匹配的训练权重，请先在算法模拟中训练该组合。
+          </p>
           <p class="run-hint" v-if="!isSceneReady">
-            请先导入与当前配置一致的场景图。
+            场景图会自动同步，完成后即可开始测试。
           </p>
         </div>
       </section>
@@ -162,7 +140,7 @@
     <div class="tester__section tester__section--terminal">
       <StreamingTerminal
         title="实时输出终端"
-        subtitle="测试状态、部署动作和恢复指标会持续写入这里。"
+        subtitle="状态、动作和恢复指标会持续写入这里。"
         :lines="terminalLines"
         :status="terminalStatus"
       />
@@ -235,13 +213,14 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import axios from "axios";
 import SceneGraphPreview from "./SceneGraphPreview.vue";
 import StreamingTerminal from "./StreamingTerminal.vue";
 import { buildRegionMetrics, formatDistance } from "../utils/regionMetrics";
 import { rescueApiBase } from "../utils/runtimeEndpoints";
 import { saveReplaySessionFromSimulation } from "../utils/replaySessions";
+import { formatScenarioName } from "../utils/scenarioLabels";
 
 const API_BASE = rescueApiBase;
 
@@ -256,6 +235,7 @@ const algorithms = [
 ];
 const selectedAlgorithm = ref("ppo");
 const checkpointPath = ref("artifacts/ppo_policy.pt");
+const trainingArtifacts = ref([]);
 const evaluationSeed = ref(13);
 const baseStations = ref([]);
 const importedScene = ref(null);
@@ -267,6 +247,7 @@ const sceneGraphTab = ref("imported");
 const isImporting = ref(false);
 const isRunning = ref(false);
 const errorMessage = ref("");
+let autoImportTimer = null;
 
 const currentScenario = computed(() => scenarios.value.find((scenario) => scenario.name === scenarioName.value));
 const baseStationOptions = computed(() => currentScenario.value?.base_stations || []);
@@ -277,6 +258,15 @@ const gridRows = computed(() => regionGrid.value?.rows || currentScenario.value?
 const gridCols = computed(() => regionGrid.value?.cols || currentScenario.value?.grid_size || 10);
 const gridRowLimit = computed(() => Math.max(0, gridRows.value - 1));
 const gridColLimit = computed(() => Math.max(0, gridCols.value - 1));
+const matchingCheckpoint = computed(() =>
+  trainingArtifacts.value.find(
+    (artifact) =>
+      artifact.scenario_name === scenarioName.value &&
+      artifact.algorithm === selectedAlgorithm.value &&
+      artifact.checkpoint_path
+  )
+);
+const hasMatchingCheckpoint = computed(() => Boolean(matchingCheckpoint.value));
 
 const currentSceneSignature = computed(() =>
   JSON.stringify({
@@ -301,21 +291,6 @@ const sceneStatusTone = computed(() => {
   return "idle";
 });
 
-const sceneStatusText = computed(() => {
-  if (isImporting.value) return "场景图导入中...";
-  if (isSceneReady.value) return "场景图已导入，可开始测试。";
-  if (importedScene.value) return "场景配置已变化，请重新导入场景图。";
-  return "请选择场景并导入场景图。";
-});
-
-const sceneSummaryText = computed(() => {
-  const initialState = importedScene.value?.initial_state;
-  if (!initialState) return "";
-  const users = initialState.total_users ?? 0;
-  const residuals = (initialState.residual_base_stations || []).length;
-  return `当前快照包含 ${users} 个用户节点，${residuals} 个残余基站。`;
-});
-
 const sceneTabOptions = computed(() => {
   const tabs = [];
   if (importedScene.value?.scene) {
@@ -334,16 +309,6 @@ const activeSceneGraph = computed(() => {
   return importedScene.value?.scene || null;
 });
 
-const activeSceneTitle = computed(() =>
-  sceneGraphTab.value === "deployment" ? "部署后场景图" : "导入场景图"
-);
-
-const activeSceneSubtitle = computed(() =>
-  sceneGraphTab.value === "deployment"
-    ? "展示策略执行后新增部署节点与最终网络拓扑。"
-    : "展示测试前导入的灾情节点分布。"
-);
-
 const fetchScenarios = async () => {
   try {
     const { data } = await axios.get(`${API_BASE}/scenarios`);
@@ -354,6 +319,22 @@ const fetchScenarios = async () => {
   } catch (error) {
     console.error("Failed to load scenarios", error);
   }
+};
+
+const fetchTrainingArtifacts = async () => {
+  try {
+    const { data } = await axios.get(`${API_BASE}/train/artifacts`, { timeout: 10000 });
+    trainingArtifacts.value = Array.isArray(data?.artifacts) ? data.artifacts : [];
+    syncCheckpointPath();
+  } catch (error) {
+    console.warn("Failed to load training artifacts", error);
+    trainingArtifacts.value = [];
+    syncCheckpointPath();
+  }
+};
+
+const syncCheckpointPath = () => {
+  checkpointPath.value = matchingCheckpoint.value?.checkpoint_path || "";
 };
 
 const resolveDefaultMode = (baseKey) => {
@@ -422,6 +403,8 @@ const appendTerminalLine = (message, timestamp = Date.now()) => {
 };
 
 const importSceneGraph = async () => {
+  if (!scenarioName.value || isRunning.value) return false;
+  const importSignature = currentSceneSignature.value;
   isImporting.value = true;
   errorMessage.value = "";
   simulationResult.value = null;
@@ -434,23 +417,39 @@ const importSceneGraph = async () => {
       env_type: "multimodal",
       custom_base_stations: buildCustomBaseStationsPayload(),
     });
+    if (importSignature !== currentSceneSignature.value) {
+      return false;
+    }
     importedScene.value = data;
-    importedSceneSignature.value = currentSceneSignature.value;
+    importedSceneSignature.value = importSignature;
     appendTerminalLine(
-      `已导入场景 ${scenarioName.value}，用户 ${data.initial_state?.total_users ?? 0}，残余基站 ${
+      `已自动同步场景 ${scenarioName.value}，用户 ${data.initial_state?.total_users ?? 0}，残余基站 ${
         (data.initial_state?.residual_base_stations || []).length
       } 个。`
     );
     terminalStatus.value = "idle";
+    return true;
   } catch (error) {
     console.error("Failed to import scene graph", error);
     const apiMsg = error?.response?.data?.detail || error?.message || "场景图导入失败";
     errorMessage.value = typeof apiMsg === "string" ? apiMsg : JSON.stringify(apiMsg);
     appendTerminalLine(`场景图导入失败：${errorMessage.value}`);
     terminalStatus.value = "failed";
+    return false;
   } finally {
     isImporting.value = false;
   }
+};
+
+const scheduleSceneImport = (delay = 500) => {
+  if (!scenarioName.value || isRunning.value) return;
+  if (autoImportTimer) {
+    clearTimeout(autoImportTimer);
+  }
+  autoImportTimer = window.setTimeout(() => {
+    autoImportTimer = null;
+    void importSceneGraph();
+  }, delay);
 };
 
 const buildImportedDevices = () =>
@@ -501,12 +500,16 @@ const handleSimulationEvent = (event) => {
 
   if (event.type === "result") {
     simulationResult.value = payload;
-    saveReplaySessionFromSimulation({
+    const savedReplay = saveReplaySessionFromSimulation({
       scenarioName: scenarioName.value,
       algorithm: selectedAlgorithm.value,
       result: payload,
     });
-    appendTerminalLine("测试结果已保存，可在回放页直接选择本次测试进行回放。");
+    appendTerminalLine(
+      savedReplay?.persisted
+        ? "测试结果已保存，可在回放页直接选择本次测试进行回放。"
+        : "测试结果已生成回放，但浏览器本地存储空间不足，未能持久保存。"
+    );
     sceneGraphTab.value = payload?.scene_export?.deployment_scene ? "deployment" : "imported";
     return;
   }
@@ -572,9 +575,19 @@ const consumeSimulationStream = async (response) => {
 };
 
 const runSimulation = async () => {
-  if (!isSceneReady.value) {
-    errorMessage.value = "请先导入与当前配置一致的场景图。";
+  syncCheckpointPath();
+  if (!checkpointPath.value) {
+    errorMessage.value = "当前场景和算法没有匹配的训练权重，请先在算法模拟中训练该组合。";
+    appendTerminalLine(errorMessage.value);
     return;
+  }
+  if (!isSceneReady.value) {
+    appendTerminalLine("场景图不是最新，正在自动同步后启动测试。");
+    const imported = await importSceneGraph();
+    if (!imported || !isSceneReady.value) {
+      errorMessage.value = "场景图自动同步失败，请检查后端连接后重试。";
+      return;
+    }
   }
 
   isRunning.value = true;
@@ -626,6 +639,7 @@ const runSimulation = async () => {
 };
 
 watch(scenarioName, () => {
+  syncCheckpointPath();
   baseStations.value = [];
   importedScene.value = null;
   importedSceneSignature.value = "";
@@ -634,15 +648,19 @@ watch(scenarioName, () => {
   terminalStatus.value = "idle";
   errorMessage.value = "";
   sceneGraphTab.value = "imported";
+  scheduleSceneImport(0);
 });
 
 watch(
   baseStations,
   () => {
     errorMessage.value = "";
+    simulationResult.value = null;
+    importedSceneSignature.value = "";
     if (sceneGraphTab.value === "deployment") {
       sceneGraphTab.value = "imported";
     }
+    scheduleSceneImport(500);
   },
   { deep: true }
 );
@@ -650,13 +668,21 @@ watch(
 watch(
   selectedAlgorithm,
   (algo) => {
-    checkpointPath.value = `artifacts/${algo}_policy.pt`;
+    syncCheckpointPath();
   },
   { immediate: true }
 );
 
-onMounted(() => {
-  fetchScenarios();
+onMounted(async () => {
+  await fetchScenarios();
+  await fetchTrainingArtifacts();
+  scheduleSceneImport(0);
+});
+
+onBeforeUnmount(() => {
+  if (autoImportTimer) {
+    clearTimeout(autoImportTimer);
+  }
 });
 </script>
 
@@ -665,6 +691,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  color: #0f172a;
 }
 
 .tester__intro h2 {
@@ -673,7 +700,7 @@ onMounted(() => {
 
 .subtitle {
   margin: 6px 0 0;
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .tester__form,
@@ -682,7 +709,11 @@ onMounted(() => {
   border: 1px solid rgba(148, 163, 184, 0.3);
   border-radius: 16px;
   padding: 18px;
-  background: rgba(15, 23, 42, 0.4);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(14, 165, 233, 0.09), transparent 32%),
+    rgba(255, 255, 255, 0.94);
+  color: #0f172a;
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.06);
 }
 
 .tester__form {
@@ -715,7 +746,7 @@ onMounted(() => {
 
 .section-header p {
   margin: 6px 0 0;
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .import-btn,
@@ -724,9 +755,10 @@ onMounted(() => {
 .export-actions button {
   padding: 8px 14px;
   border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.4);
-  background: rgba(15, 23, 42, 0.45);
-  color: inherit;
+  border: 1px solid rgba(14, 165, 233, 0.22);
+  background: rgba(224, 242, 254, 0.72);
+  color: #075985;
+  font-weight: 600;
 }
 
 .import-btn {
@@ -740,55 +772,22 @@ onMounted(() => {
 }
 
 .scene-tab--active {
-  border-color: rgba(56, 189, 248, 0.45);
-  background: rgba(14, 165, 233, 0.14);
-  color: #e0f2fe;
-}
-
-.scene-status {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(15, 23, 42, 0.35);
-}
-
-.scene-status strong {
-  font-size: 14px;
-}
-
-.scene-status small {
-  color: #cbd5f5;
-}
-
-.scene-status--ready {
-  border-color: rgba(74, 222, 128, 0.24);
-  background: rgba(34, 197, 94, 0.08);
-}
-
-.scene-status--stale {
-  border-color: rgba(250, 204, 21, 0.24);
-  background: rgba(234, 179, 8, 0.08);
-}
-
-.scene-status--loading {
-  border-color: rgba(56, 189, 248, 0.24);
-  background: rgba(14, 165, 233, 0.08);
+  border-color: rgba(2, 132, 199, 0.42);
+  background: rgba(14, 165, 233, 0.16);
+  color: #075985;
 }
 
 .region-hint {
   border-left: 4px solid #0ea5e9;
-  background: rgba(14, 165, 233, 0.08);
+  background: rgba(224, 242, 254, 0.72);
   padding: 8px 12px;
   border-radius: 10px;
-  color: #e2e8f0;
+  color: #0f172a;
 }
 
 .region-hint .bounds {
   margin: 4px 0 0;
-  color: #cbd5f5;
+  color: #64748b;
   font-size: 13px;
 }
 
@@ -808,9 +807,9 @@ input[type="text"] {
   width: 100%;
   padding: 10px 12px;
   border-radius: 10px;
-  border: 1px solid rgba(148, 163, 184, 0.6);
-  background: rgba(15, 23, 42, 0.2);
-  color: inherit;
+  border: 1px solid rgba(100, 116, 139, 0.28);
+  background: rgba(255, 255, 255, 0.96);
+  color: #0f172a;
 }
 
 .algo-options {
@@ -826,10 +825,11 @@ input[type="text"] {
   gap: 4px;
   padding: 10px 12px;
   border-radius: 10px;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  background: rgba(148, 163, 184, 0.08);
-  color: #e2e8f0;
+  border: 1px solid rgba(100, 116, 139, 0.22);
+  background: rgba(255, 255, 255, 0.94);
+  color: #0f172a;
   transition: all 0.2s ease;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
 }
 
 .algo-chip:disabled {
@@ -838,9 +838,10 @@ input[type="text"] {
 }
 
 .algo-chip--active {
-  border-color: #38bdf8;
-  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.25);
-  background: linear-gradient(120deg, rgba(56, 189, 248, 0.1), rgba(14, 165, 233, 0.08));
+  border-color: #0284c7;
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.16);
+  background: rgba(224, 242, 254, 0.96);
+  color: #075985;
 }
 
 .devices {
@@ -850,6 +851,7 @@ input[type="text"] {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  background: rgba(248, 250, 252, 0.72);
 }
 
 .devices__header {
@@ -869,16 +871,17 @@ input[type="text"] {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 12px;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 14px;
   padding: 12px;
   align-items: end;
+  background: rgba(255, 255, 255, 0.92);
 }
 
 .remove-btn {
   border: none;
-  background: rgba(239, 68, 68, 0.2);
-  color: #fecaca;
+  background: rgba(254, 226, 226, 0.95);
+  color: #b91c1c;
   border-radius: 999px;
   padding: 8px 12px;
 }
@@ -888,13 +891,13 @@ input[type="text"] {
   flex-direction: column;
   gap: 4px;
   font-size: 12px;
-  color: #cbd5f5;
+  color: #64748b;
   padding: 4px 0;
 }
 
 .hint {
   margin: 0;
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .run-actions {
@@ -914,7 +917,7 @@ input[type="text"] {
 
 .run-hint {
   margin: 0;
-  color: #fbbf24;
+  color: #b45309;
   font-size: 13px;
 }
 
@@ -926,23 +929,23 @@ input[type="text"] {
 }
 
 .tester__result {
-  background: rgba(15, 23, 42, 0.4);
+  background: rgba(255, 255, 255, 0.94);
 }
 
 .error-banner {
   border: 1px solid rgba(239, 68, 68, 0.4);
-  background: rgba(239, 68, 68, 0.15);
-  color: #fecaca;
+  background: rgba(254, 226, 226, 0.92);
+  color: #991b1b;
   border-radius: 10px;
   padding: 10px 12px;
 }
 
 .export-panel {
   margin-top: 16px;
-  border: 1px solid rgba(56, 189, 248, 0.25);
+  border: 1px solid rgba(14, 165, 233, 0.2);
   border-radius: 10px;
   padding: 12px;
-  background: rgba(14, 165, 233, 0.08);
+  background: rgba(224, 242, 254, 0.72);
 }
 
 .export-panel p {
@@ -966,10 +969,10 @@ input[type="text"] {
   align-items: center;
   padding: 8px 14px;
   border-radius: 999px;
-  border: 1px solid rgba(56, 189, 248, 0.45);
-  color: #e0f2fe;
+  border: 1px solid rgba(14, 165, 233, 0.28);
+  color: #075985;
   text-decoration: none;
-  background: rgba(14, 165, 233, 0.12);
+  background: rgba(224, 242, 254, 0.88);
 }
 
 .report {
@@ -995,6 +998,15 @@ td {
   border: 1px solid rgba(148, 163, 184, 0.3);
   padding: 6px;
   text-align: center;
+}
+
+th {
+  background: rgba(241, 245, 249, 0.9);
+  color: #334155;
+}
+
+td {
+  background: rgba(255, 255, 255, 0.78);
 }
 
 @media (max-width: 720px) {

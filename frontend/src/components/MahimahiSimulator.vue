@@ -62,7 +62,9 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import axios from "axios";
 
-const API = import.meta.env.VITE_API_BASE || "http://localhost:8000/api";
+import { rescueApiBase } from "../utils/runtimeEndpoints";
+
+const API = rescueApiBase;
 
 const traces = ref([]);
 const selectedTrace = ref("");

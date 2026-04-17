@@ -1,10 +1,6 @@
 <template>
   <div class="training-panel">
     <div class="panel-header">
-      <div>
-        <h2>灾害场景训练</h2>
-        <p>选择场景，触发训练（支持 PPO / DQN / A3C / MPPO，自创算法按钮已预留），并通过事件流实时查看指标。</p>
-      </div>
       <div class="scenario-select">
         <label>训练场景</label>
         <div class="scenario-options">
@@ -14,8 +10,7 @@
             :class="['scenario-chip', { 'scenario-chip--active': scenario.name === selectedScenario }]"
             @click="() => selectScenario(scenario.name)"
           >
-            <strong>{{ scenario.name }}</strong>
-            <small>{{ scenario.disaster_type }}</small>
+            <strong>{{ formatScenarioName(scenario.name) }}</strong>
           </button>
         </div>
       </div>
@@ -27,15 +22,11 @@
 
     <div class="panel-body">
       <div class="scenario-details" v-if="currentScenario">
-        <p>用户数：{{ currentScenario.num_users }}</p>
-        <p>候选站点：{{ currentScenario.candidate_sites }}</p>
-        <p>最大步长：{{ currentScenario.max_steps }}</p>
-        <p v-if="regionMetrics">
-          区域跨度：约 {{ formatDistance(regionMetrics.widthKm) }} × {{ formatDistance(regionMetrics.heightKm) }}
-        </p>
-        <p v-if="regionMetrics">
-          单网格：约 {{ formatDistance(regionMetrics.cellWidthKm) }} × {{ formatDistance(regionMetrics.cellHeightKm) }}
-        </p>
+        <article v-for="metric in scenarioMetrics" :key="metric.label" class="scenario-metric">
+          <span>{{ metric.label }}</span>
+          <strong>{{ metric.value }}</strong>
+          <small>{{ metric.hint }}</small>
+        </article>
       </div>
       <div class="reward-panel" v-if="rewardProfiles.length">
         <div class="reward-panel__header">
@@ -43,7 +34,7 @@
           <p>
             当前选择：
             <strong>{{ activeRewardProfile?.label || "默认" }}</strong>
-            <span v-if="activeRewardProfile?.description">（{{ activeRewardProfile.description }}）</span>
+            <span v-if="activeRewardProfile?.description"> · {{ activeRewardProfile.description }}</span>
           </p>
         </div>
         <div class="reward-grid">
@@ -70,12 +61,46 @@
         </div>
       </div>
       <form class="training-form" @submit.prevent="startTraining">
-        <label>
-          总训练步数
-          <input type="number" min="2000" step="1000" v-model.number="totalTimesteps" />
-        </label>
-        <label>
-          训练算法
+        <div class="training-form__header">
+          <div>
+            <h3>实验参数配置</h3>
+            <p>默认参数可直接运行，也可以按实验需求手动修改。</p>
+          </div>
+          <span>Preset: disaster-rl-default</span>
+        </div>
+
+        <section class="config-section">
+          <div class="config-section__title">
+            <strong>基础训练参数</strong>
+            <small>直接参与后端训练请求</small>
+          </div>
+          <div class="config-grid">
+            <label class="config-field">
+              <span>总训练步数</span>
+              <input type="number" min="2000" step="1000" v-model.number="totalTimesteps" />
+            </label>
+            <label class="config-field">
+              <span>环境类型</span>
+              <select v-model="envType">
+                <option value="multimodal">多模融合环境</option>
+                <option value="baseline">基线环境</option>
+              </select>
+            </label>
+            <label class="config-field">
+              <span>评估方式</span>
+              <select v-model="stochasticEval">
+                <option :value="true">随机策略评估</option>
+                <option :value="false">确定性策略评估</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section class="config-section">
+          <div class="config-section__title">
+            <strong>算法选择</strong>
+            <small>选择训练策略，未接入项保持禁用</small>
+          </div>
           <div class="algo-options">
             <button
               type="button"
@@ -90,7 +115,65 @@
               <small>{{ algo.desc }}</small>
             </button>
           </div>
-        </label>
+        </section>
+
+        <section class="config-section">
+          <div class="config-section__title">
+            <strong>高级算法参数</strong>
+            <small>用于实验记录与后续算法扩展</small>
+          </div>
+          <div class="config-grid">
+            <label class="config-field">
+              <span>学习率</span>
+              <input type="number" min="0.00001" max="0.01" step="0.00001" v-model.number="learningRate" />
+            </label>
+            <label class="config-field">
+              <span>折扣因子 γ</span>
+              <input type="number" min="0.8" max="0.999" step="0.001" v-model.number="discountFactor" />
+            </label>
+            <label class="config-field">
+              <span>Batch Size</span>
+              <input type="number" min="32" max="2048" step="32" v-model.number="batchSize" />
+            </label>
+            <label class="config-field">
+              <span>Rollout 步长</span>
+              <input type="number" min="64" max="4096" step="64" v-model.number="rolloutSteps" />
+            </label>
+            <label class="config-field">
+              <span>熵系数</span>
+              <input type="number" min="0" max="0.2" step="0.001" v-model.number="entropyCoef" />
+            </label>
+            <label class="config-field">
+              <span>Clip Range</span>
+              <input type="number" min="0.05" max="0.5" step="0.01" v-model.number="clipRange" />
+            </label>
+          </div>
+        </section>
+
+        <section class="config-section">
+          <div class="config-section__title">
+            <strong>输出与演示参数</strong>
+            <small>控制日志、回放和可视化输出</small>
+          </div>
+          <div class="config-grid">
+            <label class="config-field">
+              <span>日志刷新窗口</span>
+              <input type="number" min="10" max="200" step="5" v-model.number="logWindow" />
+            </label>
+            <label class="config-field">
+              <span>评估间隔</span>
+              <input type="number" min="1000" max="50000" step="1000" v-model.number="evalInterval" />
+            </label>
+            <label class="config-field">
+              <span>训练后回放</span>
+              <select v-model="autoReplay">
+                <option :value="true">自动生成回放</option>
+                <option :value="false">仅保留训练日志</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
         <button type="submit" :disabled="!selectedScenario || isStarting || isLoadingScenarios">
           {{ isStarting ? "启动中..." : "开始训练" }}
         </button>
@@ -100,8 +183,6 @@
       </form>
     </div>
 
-    <BaseStationShowcase v-if="currentScenario" :scenario="currentScenario" />
-
     <TrainingMonitor :events="eventLog" :status="runStatus" />
   </div>
 </template>
@@ -110,10 +191,10 @@
 import { onMounted, ref, computed, watch } from "vue";
 import axios from "axios";
 import TrainingMonitor from "./TrainingMonitor.vue";
-import BaseStationShowcase from "./BaseStationShowcase.vue";
 import { buildRegionMetrics, formatDistance } from "../utils/regionMetrics";
 import { rescueApiBase } from "../utils/runtimeEndpoints";
 import { saveReplaySessionFromSimulation } from "../utils/replaySessions";
+import { formatScenarioName } from "../utils/scenarioLabels";
 
 const API_BASE = rescueApiBase;
 
@@ -129,6 +210,17 @@ const selectedScenario = ref(null);
 const selectedRewardMode = ref(null);
 const selectedAlgorithm = ref("ppo");
 const totalTimesteps = ref(12000);
+const envType = ref("multimodal");
+const stochasticEval = ref(true);
+const learningRate = ref(0.0003);
+const discountFactor = ref(0.99);
+const batchSize = ref(256);
+const rolloutSteps = ref(1024);
+const entropyCoef = ref(0.01);
+const clipRange = ref(0.2);
+const logWindow = ref(50);
+const evalInterval = ref(5000);
+const autoReplay = ref(true);
 const isStarting = ref(false);
 const isLoadingScenarios = ref(false);
 const eventLog = ref([]);
@@ -142,6 +234,41 @@ let eventSource = null;
 const currentScenario = computed(() => scenarios.value.find((item) => item.name === selectedScenario.value));
 const rewardProfiles = computed(() => currentScenario.value?.reward_profiles || []);
 const regionMetrics = computed(() => buildRegionMetrics(currentScenario.value?.region_grid));
+const scenarioMetrics = computed(() => {
+  if (!currentScenario.value) return [];
+  const metrics = [
+    {
+      label: "用户规模",
+      value: Number(currentScenario.value.num_users || 0).toLocaleString("zh-CN"),
+      hint: "受灾终端数量",
+    },
+    {
+      label: "候选站点",
+      value: Number(currentScenario.value.candidate_sites || 0).toLocaleString("zh-CN"),
+      hint: "可部署位置",
+    },
+    {
+      label: "最大步长",
+      value: Number(currentScenario.value.max_steps || 0).toLocaleString("zh-CN"),
+      hint: "单次训练上限",
+    },
+  ];
+  if (regionMetrics.value) {
+    metrics.push(
+      {
+        label: "区域跨度",
+        value: `${formatDistance(regionMetrics.value.widthKm)} × ${formatDistance(regionMetrics.value.heightKm)}`,
+        hint: "灾区覆盖范围",
+      },
+      {
+        label: "单网格",
+        value: `${formatDistance(regionMetrics.value.cellWidthKm)} × ${formatDistance(regionMetrics.value.cellHeightKm)}`,
+        hint: "空间离散粒度",
+      }
+    );
+  }
+  return metrics;
+});
 const activeRewardProfile = computed(() =>
   rewardProfiles.value.find((profile) => profile.key === selectedRewardMode.value)
 );
@@ -201,24 +328,47 @@ const selectAlgorithm = (value) => {
   selectedAlgorithm.value = value;
 };
 
-const checkpointPathForAlgorithm = (algorithm) => `artifacts/${algorithm}_policy.pt`;
+const resolveTrainingCheckpoint = async (runMeta) => {
+  const matchesRun = (artifact) =>
+    artifact?.checkpoint_path &&
+    artifact?.scenario_name === runMeta.scenarioName &&
+    artifact?.algorithm === runMeta.algorithm;
+
+  try {
+    const { data } = await axios.get(`${API_BASE}/train/latest-artifact`, { timeout: 10000 });
+    if (matchesRun(data)) {
+      return data.checkpoint_path;
+    }
+  } catch (error) {
+    console.warn("Failed to load latest training artifact", error);
+  }
+
+  const { data } = await axios.get(`${API_BASE}/train/artifacts`, { timeout: 10000 });
+  const match = (Array.isArray(data?.artifacts) ? data.artifacts : []).find(matchesRun);
+  if (!match?.checkpoint_path) {
+    throw new Error(`未找到 ${runMeta.scenarioName} / ${runMeta.algorithm.toUpperCase()} 的训练权重。`);
+  }
+  return match.checkpoint_path;
+};
 
 const generateReplayFromTraining = async (runMeta) => {
+  if (!autoReplay.value) return;
   if (!runMeta?.runId) return;
   if (replayRunIdInFlight.value === runMeta.runId) return;
   replayRunIdInFlight.value = runMeta.runId;
   try {
+    const checkpointPath = await resolveTrainingCheckpoint(runMeta);
     const { data } = await axios.post(`${API_BASE}/simulate`, {
       scenario_name: runMeta.scenarioName,
       env_type: "multimodal",
       algorithm: runMeta.algorithm,
-      checkpoint_path: checkpointPathForAlgorithm(runMeta.algorithm),
+      checkpoint_path: checkpointPath,
       reward_mode: runMeta.rewardMode,
       stochastic_eval: true,
       eval_seed: 13,
       episodes: 1,
     });
-    saveReplaySessionFromSimulation({
+    const savedReplay = saveReplaySessionFromSimulation({
       scenarioName: runMeta.scenarioName,
       algorithm: runMeta.algorithm,
       result: {
@@ -235,7 +385,9 @@ const generateReplayFromTraining = async (runMeta) => {
           scenario: runMeta.scenarioName,
           algorithm: runMeta.algorithm,
         },
-        message: "训练完成后已自动生成一条回放，可在回放页刷新列表后查看。",
+        message: savedReplay?.persisted
+          ? "训练完成后已自动生成一条回放，可在回放页刷新列表后查看。"
+          : "训练完成后已生成回放，但浏览器本地存储空间不足，未能持久保存。",
       },
     ];
   } catch (error) {
@@ -267,10 +419,10 @@ const startTraining = async () => {
   try {
     const { data } = await axios.post(`${API_BASE}/train`, {
       scenario_name: selectedScenario.value,
-      env_type: "multimodal",
+      env_type: envType.value,
       algorithm: selectedAlgorithm.value,
       total_timesteps: totalTimesteps.value,
-      stochastic_eval: true,
+      stochastic_eval: stochasticEval.value,
       reward_mode: selectedRewardMode.value,
     });
     activeRunMeta.value = {
@@ -278,7 +430,26 @@ const startTraining = async () => {
       scenarioName: selectedScenario.value,
       algorithm: selectedAlgorithm.value,
       rewardMode: selectedRewardMode.value,
+      config: {
+        learningRate: learningRate.value,
+        discountFactor: discountFactor.value,
+        batchSize: batchSize.value,
+        rolloutSteps: rolloutSteps.value,
+        entropyCoef: entropyCoef.value,
+        clipRange: clipRange.value,
+        logWindow: logWindow.value,
+        evalInterval: evalInterval.value,
+        autoReplay: autoReplay.value,
+      },
     };
+    eventLog.value = [
+      {
+        type: "experiment_config",
+        timestamp: Date.now() / 1000,
+        payload: activeRunMeta.value.config,
+        message: "已加载前端实验参数配置，后端开始执行训练任务。",
+      },
+    ];
     subscribeToEvents(data.run_id);
   } catch (error) {
     console.error("Failed to start training", error);
@@ -368,7 +539,7 @@ onMounted(fetchScenarios);
 
 .scenario-select label {
   font-size: 12px;
-  color: #94a3b8;
+  color: #475569;
 }
 
 .scenario-options {
@@ -379,43 +550,80 @@ onMounted(fetchScenarios);
 }
 
 .scenario-chip {
-  background: rgba(30, 41, 59, 0.7);
-  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: rgba(248, 250, 252, 0.94);
+  border: 1px solid rgba(100, 116, 139, 0.28);
   border-radius: 10px;
   padding: 10px 16px;
-  color: inherit;
+  color: #0f172a;
   min-width: 140px;
   text-align: left;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
 }
 
 .scenario-chip--active {
-  border-color: #38bdf8;
-  background: rgba(56, 189, 248, 0.1);
+  border-color: #0284c7;
+  background: rgba(224, 242, 254, 0.95);
+  color: #075985;
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.18);
 }
 
 .panel-body {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 24px;
-  flex-wrap: wrap;
+  align-items: start;
 }
 
 .scenario-details {
-  flex: 1 1 200px;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  border-radius: 12px;
-  padding: 16px;
-  background: rgba(15, 23, 42, 0.4);
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.scenario-metric {
+  min-height: 104px;
+  border: 1px solid rgba(14, 165, 233, 0.18);
+  border-radius: 16px;
+  padding: 14px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.12), transparent 42%),
+    rgba(255, 255, 255, 0.92);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: #0f172a;
+}
+
+.scenario-metric span {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: #64748b;
+}
+
+.scenario-metric strong {
+  font-size: 20px;
+  line-height: 1.2;
+  color: #075985;
+}
+
+.scenario-metric small {
+  color: #64748b;
 }
 
 .reward-panel {
-  flex: 1 1 360px;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  border-radius: 12px;
+  grid-column: span 6;
+  border: 1px solid rgba(100, 116, 139, 0.22);
+  border-radius: 16px;
   padding: 16px;
-  background: rgba(15, 23, 42, 0.4);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.9));
   display: flex;
   flex-direction: column;
   gap: 12px;
+  color: #1e293b;
+  min-height: 100%;
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.06);
 }
 
 .reward-panel__header h3 {
@@ -426,54 +634,64 @@ onMounted(fetchScenarios);
 .reward-panel__header p {
   margin: 4px 0 0;
   font-size: 12px;
-  color: #cbd5f5;
+  color: #475569;
 }
 
 .reward-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
 }
 
 .reward-card {
-  flex: 1 1 160px;
-  border-radius: 10px;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  padding: 10px 12px;
+  min-height: 168px;
+  border-radius: 14px;
+  border: 1px solid rgba(100, 116, 139, 0.24);
+  padding: 16px;
   text-align: left;
-  background: rgba(15, 23, 42, 0.6);
-  color: inherit;
+  background: rgba(255, 255, 255, 0.96);
+  color: #0f172a;
   transition: border-color 0.2s ease, background 0.2s ease;
   cursor: pointer;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
 }
 
 .reward-card--active {
-  border-color: #38bdf8;
-  background: rgba(56, 189, 248, 0.15);
+  border-color: #0284c7;
+  background: rgba(224, 242, 254, 0.96);
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.16);
 }
 
 .reward-card__title {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  margin-bottom: 8px;
+  gap: 6px;
+  margin-bottom: 14px;
 }
 
 .reward-card__title strong {
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .reward-card__title small {
-  font-size: 11px;
-  color: #94a3b8;
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.5;
 }
 
 .reward-card__weights {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-  gap: 4px;
-  font-size: 11px;
-  color: #cbd5f5;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 8px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.reward-card__weights span {
+  padding: 7px 9px;
+  border-radius: 999px;
+  background: rgba(241, 245, 249, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.14);
 }
 
 .algo-options {
@@ -489,11 +707,12 @@ onMounted(fetchScenarios);
   gap: 4px;
   padding: 10px 12px;
   border-radius: 10px;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  background: rgba(148, 163, 184, 0.08);
-  color: #e2e8f0;
+  border: 1px solid rgba(100, 116, 139, 0.24);
+  background: rgba(255, 255, 255, 0.94);
+  color: #0f172a;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
 }
 
 .algo-chip:disabled {
@@ -502,9 +721,10 @@ onMounted(fetchScenarios);
 }
 
 .algo-chip--active {
-  border-color: #38bdf8;
-  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.25);
-  background: linear-gradient(120deg, rgba(56, 189, 248, 0.1), rgba(14, 165, 233, 0.08));
+  border-color: #0284c7;
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.16);
+  background: rgba(224, 242, 254, 0.96);
+  color: #075985;
 }
 
 .algo-chip strong {
@@ -512,14 +732,97 @@ onMounted(fetchScenarios);
 }
 
 .algo-chip small {
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .training-form {
-  flex: 1 1 240px;
+  grid-column: span 6;
   display: flex;
   flex-direction: column;
+  gap: 14px;
+  border: 1px solid rgba(100, 116, 139, 0.22);
+  border-radius: 16px;
+  padding: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.9));
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.06);
+  min-height: 100%;
+}
+
+.training-form__header {
+  display: flex;
+  justify-content: space-between;
   gap: 12px;
+  align-items: flex-start;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.training-form__header h3 {
+  margin: 0;
+  font-size: 17px;
+  color: #0f172a;
+}
+
+.training-form__header p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.training-form__header > span {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(224, 242, 254, 0.8);
+  color: #075985;
+  font-size: 11px;
+  border: 1px solid rgba(14, 165, 233, 0.18);
+}
+
+.config-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(241, 245, 249, 0.62);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.config-section__title {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.config-section__title strong {
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.config-section__title small {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.config-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.config-field span,
+.training-form label > span {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .form-hint {
@@ -528,13 +831,14 @@ onMounted(fetchScenarios);
   font-size: 0.92rem;
 }
 
-input[type="number"] {
+input[type="number"],
+select {
   width: 100%;
   padding: 10px 12px;
   border-radius: 8px;
-  border: 1px solid rgba(148, 163, 184, 0.6);
-  background: rgba(15, 23, 42, 0.2);
-  color: inherit;
+  border: 1px solid rgba(100, 116, 139, 0.28);
+  background: rgba(255, 255, 255, 0.95);
+  color: #0f172a;
 }
 
 button[type="submit"] {
@@ -550,5 +854,22 @@ button[type="submit"] {
 button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+@media (max-width: 1100px) {
+  .reward-panel,
+  .training-form {
+    grid-column: 1 / -1;
+  }
+
+  .scenario-details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .scenario-details {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

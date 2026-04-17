@@ -11,7 +11,7 @@ export const rescueApiBase =
   import.meta.env.VITE_API_BASE || `${resolveOrigin(8000)}/api`;
 
 export const ns3ApiBase =
-  import.meta.env.VITE_NS3_API_BASE || `${resolveOrigin(8001)}/api`;
+  import.meta.env.VITE_NS3_API_BASE || `${resolveOrigin(8000)}/api`;
 
 export const ns3WebBase =
-  import.meta.env.VITE_NS3_WEB_BASE || `${resolveOrigin(8080)}/index.html`;
+  import.meta.env.VITE_NS3_WEB_BASE || `${resolveOrigin(8000)}/ns3-native/index.html`;

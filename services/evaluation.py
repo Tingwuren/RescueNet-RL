@@ -526,6 +526,7 @@ def _build_scene_payload(report: Dict[str, Any], env, include_deployments: bool)
     final_state = report.get("final_state", {}) or {}
     user_details = final_state.get("user_details") or initial_state.get("user_details") or []
     grid_rows, grid_cols = _grid_shape(env)
+    region_grid = getattr(env, "region_grid", None)
 
     nodes: List[Dict[str, Any]] = []
     node_id = 0
@@ -536,7 +537,16 @@ def _build_scene_payload(report: Dict[str, Any], env, include_deployments: bool)
             continue
         row, col = int(position[0]), int(position[1])
         x, y = _grid_to_real_coords(row, col, grid_rows, grid_cols)
-        nodes.append({"id": node_id, "type": "USER", "x": x, "y": y})
+        node = {
+            "id": node_id,
+            "type": "USER",
+            "x": x,
+            "y": y,
+            "connected": bool(detail.get("connected", False)),
+            "broadcast_served": bool(detail.get("broadcast_served", False)),
+        }
+        node.update(_node_geo_center(region_grid, row, col))
+        nodes.append(node)
         node_id += 1
 
     for station in initial_state.get("residual_base_stations", []) or []:
@@ -545,33 +555,59 @@ def _build_scene_payload(report: Dict[str, Any], env, include_deployments: bool)
         if row is None or col is None:
             continue
         x, y = _grid_to_real_coords(int(row), int(col), grid_rows, grid_cols)
+        node = {
+            "id": node_id,
+            "type": _base_station_node_type(station.get("base_station")),
+            "x": x,
+            "y": y,
+        }
+        node.update(_node_geo_center(region_grid, int(row), int(col)))
         nodes.append(
-            {
-                "id": node_id,
-                "type": _base_station_node_type(station.get("base_station")),
-                "x": x,
-                "y": y,
-            }
+            node
         )
         node_id += 1
 
     if include_deployments:
         for station in _collect_deployed_station_nodes(report, env):
             x, y = _grid_to_real_coords(station["row"], station["col"], grid_rows, grid_cols)
+            node = {
+                "id": node_id,
+                "type": station["type"],
+                "x": x,
+                "y": y,
+            }
+            node.update(_node_geo_center(region_grid, station["row"], station["col"]))
             nodes.append(
-                {
-                    "id": node_id,
-                    "type": station["type"],
-                    "x": x,
-                    "y": y,
-                }
+                node
             )
             node_id += 1
 
     return {
         "map_width": REAL_MAP_WIDTH,
         "map_height": REAL_MAP_HEIGHT,
+        "geo_bounds": _geo_bounds(region_grid),
         "nodes": nodes,
+    }
+
+
+def _geo_bounds(region_grid) -> Optional[Dict[str, float]]:
+    if not region_grid:
+        return None
+    return {
+        "lat_min": float(region_grid.lat_min),
+        "lat_max": float(region_grid.lat_max),
+        "lon_min": float(region_grid.lon_min),
+        "lon_max": float(region_grid.lon_max),
+    }
+
+
+def _node_geo_center(region_grid, row: int, col: int) -> Dict[str, float]:
+    if not region_grid:
+        return {}
+    lat_min, lat_max, lon_min, lon_max = region_grid.cell_bounds(row, col)
+    return {
+        "lat": (float(lat_min) + float(lat_max)) / 2,
+        "lon": (float(lon_min) + float(lon_max)) / 2,
     }
 
 
