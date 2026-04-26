@@ -2,13 +2,13 @@
   <section class="showcase">
     <div class="showcase__header">
       <div>
-        <h3>基站装备与候选站点</h3>
-        <p>展示背负式、小型、中继基站形态，并结合当前场景的候选站点分布做部署预览。</p>
+        <h3>基站装备展示</h3>
+        <p>展示背负式、小型、中继基站形态，并查看设备参数和用途说明。</p>
       </div>
       <div class="showcase__summary">
-        <span>候选站点 {{ candidateSites.length }}</span>
-        <span>命名区域 {{ namedRegionCount }}</span>
         <span>设备类型 {{ stationProfiles.length }}</span>
+        <span>目录分类 3</span>
+        <span>展示卡片 {{ equipmentCards.length }}</span>
       </div>
     </div>
 
@@ -76,75 +76,6 @@
       </article>
     </div>
 
-    <div class="site-board">
-      <div class="site-board__main">
-        <div class="site-map">
-          <svg :viewBox="`0 0 ${mapWidth} ${mapHeight}`" preserveAspectRatio="xMidYMid meet">
-            <rect :x="mapPadding" :y="mapPadding" :width="innerMapWidth" :height="innerMapHeight" rx="20" fill="#f8fafc" />
-
-            <g v-for="cell in namedCells" :key="cell.key">
-              <rect
-                :x="mapPadding + cell.col * cellSize"
-                :y="mapPadding + cell.row * cellSize"
-                :width="cellSize"
-                :height="cellSize"
-                fill="rgba(250, 204, 21, 0.12)"
-                stroke="rgba(250, 204, 21, 0.35)"
-              />
-            </g>
-
-            <g stroke="rgba(100, 116, 139, 0.22)" stroke-width="1">
-              <line
-                v-for="row in gridRows + 1"
-                :key="`row-${row}`"
-                :x1="mapPadding"
-                :y1="mapPadding + (row - 1) * cellSize"
-                :x2="mapPadding + innerMapWidth"
-                :y2="mapPadding + (row - 1) * cellSize"
-              />
-              <line
-                v-for="col in gridCols + 1"
-                :key="`col-${col}`"
-                :x1="mapPadding + (col - 1) * cellSize"
-                :y1="mapPadding"
-                :x2="mapPadding + (col - 1) * cellSize"
-                :y2="mapPadding + innerMapHeight"
-              />
-            </g>
-
-            <g v-for="site in candidateSiteMarkers" :key="site.site_index">
-              <circle :cx="site.cx" :cy="site.cy" :r="site.radius" :fill="site.color" :stroke="site.stroke" stroke-width="2" />
-            </g>
-          </svg>
-        </div>
-
-        <div class="site-legend">
-          <span v-for="item in siteLegend" :key="item.key">
-            <i :style="{ background: item.color }"></i>
-            {{ item.label }} {{ item.count }}
-          </span>
-        </div>
-      </div>
-
-      <div class="site-board__aside">
-        <div class="site-board__aside-header">
-          <h4>代表性候选站点</h4>
-          <p>优先展示命名区域和不同站点态势。</p>
-        </div>
-        <article v-for="site in featuredSites" :key="site.site_index" class="site-card">
-          <div class="site-card__title">
-            <strong>站点 #{{ site.site_index }}</strong>
-            <span :class="['site-badge', `site-badge--${site.categoryKey}`]">{{ site.category }}</span>
-          </div>
-          <p>{{ site.region_label }}</p>
-          <small>网格 {{ site.x }}, {{ site.y }}</small>
-          <small>
-            纬度 {{ site.lat_lon_bounds.lat_min.toFixed(3) }} - {{ site.lat_lon_bounds.lat_max.toFixed(3) }}，
-            经度 {{ site.lat_lon_bounds.lon_min.toFixed(3) }} - {{ site.lat_lon_bounds.lon_max.toFixed(3) }}
-          </small>
-        </article>
-      </div>
-    </div>
   </section>
 </template>
 
@@ -162,17 +93,6 @@ const props = defineProps({
 });
 
 const stationProfiles = computed(() => props.scenario?.base_stations || []);
-const candidateSites = computed(() => props.scenario?.candidate_site_preview || []);
-const gridRows = computed(() => props.scenario?.region_grid?.rows || 1);
-const gridCols = computed(() => props.scenario?.region_grid?.cols || 1);
-const namedCells = computed(() =>
-  Object.entries(props.scenario?.region_grid?.cell_labels || {}).map(([key, label]) => {
-    const [row, col] = key.split(",").map((value) => Number(value));
-    return { key, row, col, label };
-  })
-);
-const namedRegionCount = computed(() => namedCells.value.length);
-
 const categoryMap = {
   backpack: {
     key: "backpack",
@@ -222,14 +142,6 @@ const openEquipmentModal = (card) => {
 
 const closeStationModal = () => {
   activeStation.value = null;
-};
-
-const sitePalette = {
-  "重点保障": { key: "priority", label: "重点保障", color: "#facc15", stroke: "#fef3c7" },
-  "核心覆盖": { key: "core", label: "核心覆盖", color: "#38bdf8", stroke: "#dbeafe" },
-  "中继转发": { key: "relay", label: "中继转发", color: "#f97316", stroke: "#ffedd5" },
-  "边缘补盲": { key: "edge", label: "边缘补盲", color: "#4ade80", stroke: "#dcfce7" },
-  "机动接入": { key: "mobile", label: "机动接入", color: "#c084fc", stroke: "#f3e8ff" },
 };
 
 const resolveStationCategory = (station) => {
@@ -300,63 +212,6 @@ const equipmentCards = computed(() => [
     modal: station,
   })),
 ]);
-
-const mapPadding = 18;
-const cellSize = 18;
-const innerMapWidth = computed(() => gridCols.value * cellSize);
-const innerMapHeight = computed(() => gridRows.value * cellSize);
-const mapWidth = computed(() => innerMapWidth.value + mapPadding * 2);
-const mapHeight = computed(() => innerMapHeight.value + mapPadding * 2);
-
-const candidateSiteMarkers = computed(() =>
-  candidateSites.value.map((site) => {
-    const palette = sitePalette[site.category] || sitePalette["机动接入"];
-    return {
-      ...site,
-      color: palette.color,
-      stroke: palette.stroke,
-      radius: site.category === "重点保障" ? 5.5 : 4.2,
-      cx: mapPadding + (Number(site.y) + 0.5) * cellSize,
-      cy: mapPadding + (Number(site.x) + 0.5) * cellSize,
-    };
-  })
-);
-
-const siteLegend = computed(() =>
-  Object.entries(sitePalette).map(([label, palette]) => ({
-    key: palette.key,
-    label,
-    color: palette.color,
-    count: candidateSites.value.filter((site) => site.category === label).length,
-  }))
-);
-
-const featuredSites = computed(() => {
-  const selected = [];
-  const seen = new Set();
-  const ordered = [...candidateSites.value].sort((left, right) => left.site_index - right.site_index);
-
-  for (const site of ordered) {
-    if (site.region_label && !String(site.region_label).startsWith("cell-")) {
-      selected.push(site);
-      seen.add(site.site_index);
-      if (selected.length >= 4) break;
-    }
-  }
-
-  for (const key of Object.keys(sitePalette)) {
-    const match = ordered.find((site) => site.category === key && !seen.has(site.site_index));
-    if (match) {
-      selected.push(match);
-      seen.add(match.site_index);
-    }
-  }
-
-  return selected.slice(0, 8).map((site) => ({
-    ...site,
-    categoryKey: (sitePalette[site.category] || sitePalette["机动接入"]).key,
-  }));
-});
 </script>
 
 <style scoped>
@@ -381,14 +236,11 @@ const featuredSites = computed(() => {
   gap: 16px;
 }
 
-.showcase__header h3,
-.site-board__aside-header h4,
-.equipment-card__content h4 {
+.showcase__header h3 {
   margin: 0;
 }
 
-.showcase__header p,
-.site-board__aside-header p {
+.showcase__header p {
   margin: 6px 0 0;
   color: #64748b;
 }
@@ -400,8 +252,7 @@ const featuredSites = computed(() => {
   gap: 8px;
 }
 
-.showcase__summary span,
-.site-legend span {
+.showcase__summary span {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -509,13 +360,6 @@ const featuredSites = computed(() => {
   inset: 0;
   background: linear-gradient(180deg, transparent 45%, rgba(15, 23, 42, 0.36));
   pointer-events: none;
-}
-
-.site-card__title {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  align-items: flex-start;
 }
 
 .equipment-card__tags {
@@ -653,8 +497,7 @@ const featuredSites = computed(() => {
   gap: 10px;
 }
 
-.station-badge,
-.site-badge {
+.station-badge {
   padding: 6px 10px;
   border-radius: 999px;
   font-size: 12px;
@@ -682,86 +525,17 @@ const featuredSites = computed(() => {
 }
 
 .station-badge--relay,
-.site-badge--relay {
+.station-badge--relay {
   background: rgba(255, 237, 213, 0.95);
   color: #c2410c;
 }
 
-.site-badge--priority {
-  background: rgba(254, 249, 195, 0.95);
-  color: #a16207;
-}
-
-.site-badge--edge {
-  background: rgba(220, 252, 231, 0.95);
-  color: #15803d;
-}
-
-.site-board {
-  display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.9fr);
-  gap: 20px;
-}
-
-.site-board__main,
-.site-board__aside {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.site-map {
-  border-radius: 18px;
-  overflow: hidden;
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.92));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
-}
-
-.site-map svg {
-  width: 100%;
-  height: auto;
-  display: block;
-}
-
-.site-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.site-legend i {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  display: inline-block;
-}
-
-.site-card {
-  padding: 14px;
-  border-radius: 14px;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  background: rgba(255, 255, 255, 0.9);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.site-card p,
-.site-card small {
-  margin: 0;
-  color: #475569;
-  line-height: 1.6;
-}
-
 @media (max-width: 1200px) {
   .equipment-grid,
-  .site-board,
   .station-modal__card {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .site-board,
   .station-modal__card {
     grid-template-columns: 1fr;
   }
@@ -774,9 +548,7 @@ const featuredSites = computed(() => {
 
 @media (max-width: 820px) {
   .showcase__header,
-  .equipment-card__title,
-  .site-card__title {
-    grid-template-columns: 1fr;
+  .equipment-card__title {
     flex-direction: column;
   }
 

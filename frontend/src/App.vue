@@ -4,20 +4,29 @@
     <div class="app-shell__aurora app-shell__aurora--right"></div>
 
     <header class="topbar">
-      <a class="brand" href="#/">
-        <span class="brand__eyebrow">RescueNet Digital Twin Console</span>
-        <strong>应急通信数字孪生仿真平台</strong>
-      </a>
+      <div class="topbar__head">
+        <a class="brand" href="#/">
+          <span class="brand__mark" aria-hidden="true">
+            <i></i>
+            <i></i>
+            <i></i>
+          </span>
+          <div class="brand__copy">
+            <span class="brand__eyebrow">指挥控制台</span>
+            <strong>应急通信数字孪生<span>仿真平台</span></strong>
+            <p>灾情接入、场景训练、真实回放与链路评估统一工作台。</p>
+          </div>
+        </a>
+      </div>
 
       <nav class="topbar__nav" aria-label="主导航">
         <a
           v-for="item in navItems"
           :key="item.key"
           :href="item.href"
-          :class="['nav-chip', { 'nav-chip--active': currentRoute === item.key }]"
+          :class="['nav-chip', { 'nav-chip--active': isNavItemActive(item) }]"
         >
-          <span>{{ item.label }}</span>
-          <small>{{ item.subLabel }}</small>
+          <strong class="nav-chip__label">{{ item.label }}</strong>
         </a>
       </nav>
     </header>
@@ -70,14 +79,11 @@
             </div>
 
             <div class="map-command-screen__mission">
-              <span class="eyebrow">{{ activeMissionStage.kicker }}</span>
-              <h2>{{ activeMissionStage.title }}</h2>
-              <p>{{ activeMissionStage.summary }}</p>
               <div class="mission-actions">
                 <button type="button" class="primary-cta" @click="playMission">
                   {{ missionPlaying ? "重新播放任务" : "播放恢复任务" }}
                 </button>
-                <a class="secondary-cta" href="#/algorithm">进入算法模拟</a>
+                <a class="secondary-cta" href="#/algorithm">进入场景&环境导入</a>
               </div>
             </div>
           </section>
@@ -102,48 +108,9 @@
       </section>
 
       <section v-else-if="currentRoute === 'scene'" class="module-view">
-        <div class="module-hero panel-shell panel-shell--module panel-shell--scene">
-          <div>
-            <span class="eyebrow">Scene Operations</span>
-            <h1>场景模拟工作台</h1>
-            <p>回放画布与链路分析视图并列，突出时间演进过程。</p>
-          </div>
-          <div class="module-hero__badges">
-            <span>整页主画布</span>
-            <span>回放与链路分析</span>
-            <span>支持演示模式</span>
-          </div>
-        </div>
+        <Ns3ReplayPanel v-if="sceneTab === 'replay'" />
 
-        <div class="guide-banner panel-shell" v-if="showSceneGuide">
-          <div>
-            <strong>场景模拟页说明</strong>
-            <p>首次进入可看一次引导，关闭后主画布将保持完整展示。</p>
-          </div>
-          <button type="button" class="guide-banner__dismiss" @click="showSceneGuide = false">关闭说明</button>
-        </div>
-
-        <div class="module-toolbar panel-shell panel-shell--toolbar">
-          <div class="segmented-control">
-            <button
-              v-for="tab in sceneTabs"
-              :key="tab.key"
-              type="button"
-              :class="['segment-btn', { 'segment-btn--active': sceneTab === tab.key }]"
-              @click="sceneTab = tab.key"
-            >
-              <strong>{{ tab.label }}</strong>
-              <small>{{ tab.desc }}</small>
-            </button>
-          </div>
-
-          <div class="toolbar-note">
-            <strong>{{ sceneSummary.title }}</strong>
-            <span>{{ sceneSummary.text }}</span>
-          </div>
-        </div>
-
-        <section class="scene-stage panel-shell">
+        <section v-else class="scene-stage panel-shell">
           <div class="scene-stage__intro">
             <div>
               <span class="scene-stage__tag">{{ activeSceneTab.stageTag }}</span>
@@ -155,8 +122,7 @@
             </div>
           </div>
 
-          <Ns3ReplayPanel v-if="sceneTab === 'replay'" />
-          <MahimahiSimulator v-else />
+          <MahimahiSimulator />
         </section>
       </section>
 
@@ -171,12 +137,12 @@
           <div>
             <span class="eyebrow">Device Operations</span>
             <h1>虚拟设备模拟工作台</h1>
-            <p>设备能力、适配场景与候选位点联动展示。</p>
+            <p>设备能力与适配场景集中展示。</p>
           </div>
           <div class="module-hero__badges">
             <span>设备图谱</span>
             <span>参数与能力解释</span>
-            <span>候选站点预览</span>
+            <span>装备介绍</span>
           </div>
         </div>
 
@@ -207,13 +173,13 @@
           <div class="device-showcase__header">
             <div>
               <span class="eyebrow">Device Catalog</span>
-              <h2>装备能力与候选站点联动预览</h2>
-              <p>直接展示设备和站点关系，用画面解释部署选择。</p>
+              <h2>装备能力展示</h2>
+              <p>直接展示设备能力、参数说明和典型用途。</p>
             </div>
             <div class="device-showcase__meta">
               <span>场景 {{ selectedScenario ? formatScenarioName(selectedScenario.name) : "加载中" }}</span>
               <span>设备 {{ selectedScenario?.base_stations?.length || 0 }}</span>
-              <span>候选位点 {{ selectedScenario?.candidate_site_preview?.length || 0 }}</span>
+              <span>目录 {{ deviceCards.length }}</span>
             </div>
           </div>
 
@@ -264,19 +230,20 @@ import { rescueApiBase } from "./utils/runtimeEndpoints";
 import { formatScenarioName } from "./utils/scenarioLabels";
 
 const navItems = [
-  { key: "home", label: "首页", subLabel: "Platform", href: "#/" },
-  { key: "algorithm", label: "算法模拟", subLabel: "RL Strategy", href: "#/algorithm" },
-  { key: "tester", label: "策略测试", subLabel: "Strategy Test", href: "#/tester" },
-  { key: "scene", label: "场景模拟", subLabel: "Replay / Mahimahi", href: "#/scene" },
-  { key: "device", label: "设备模拟", subLabel: "Device Catalog", href: "#/device" },
+  { key: "home", label: "首页", href: "#/" },
+  { key: "algorithm", label: "场景&环境导入", href: "#/algorithm" },
+  { key: "tester", label: "策略测试", href: "#/tester" },
+  { key: "replay", label: "真实回放", href: "#/replay" },
+  { key: "mahimahi", label: "链路仿真", href: "#/mahimahi" },
+  { key: "device", label: "设备模拟", href: "#/device" },
 ];
 
 const missionModules = [
   {
     key: "algorithm",
-    kicker: "01 / RL Training",
-    title: "算法模拟",
-    desc: "调整场景、奖励函数和训练参数。",
+    kicker: "01 / Scene Intake",
+    title: "场景&环境导入",
+    desc: "录入灾区、设备与 RL 组网算法，再配置高级设置。",
     href: "#/algorithm",
   },
   {
@@ -451,8 +418,14 @@ const sceneTab = ref("replay");
 const activeMissionIndex = ref(0);
 const missionPlaying = ref(false);
 let missionTimer = null;
+const missionStageDurations = {
+  intake: 1800,
+  sites: 2600,
+  training: 8600,
+  deploy: 3600,
+  evaluate: 2200,
+};
 const activeDevice = ref(null);
-const showSceneGuide = ref(true);
 const currentRoute = ref("home");
 const scenarios = ref([]);
 
@@ -474,14 +447,18 @@ const playMission = () => {
   missionPlaying.value = true;
   activeMissionIndex.value = 0;
 
-  missionTimer = setInterval(() => {
+  const advanceMission = () => {
     if (activeMissionIndex.value >= missionStages.length - 1) {
       clearMissionTimer();
       missionPlaying.value = false;
       return;
     }
     activeMissionIndex.value += 1;
-  }, 1800);
+    const stageKey = missionStages[activeMissionIndex.value]?.key;
+    missionTimer = setTimeout(advanceMission, missionStageDurations[stageKey] || 1800);
+  };
+
+  missionTimer = setTimeout(advanceMission, missionStageDurations.intake);
 };
 
 const normalizeRoute = (hash) => {
@@ -495,6 +472,9 @@ const normalizeRoute = (hash) => {
   if (route === "testing") {
     return { route: "tester", sceneTab: sceneTab.value };
   }
+  if (route === "scene") {
+    return { route: "scene", sceneTab: "replay" };
+  }
   if (route === "replay") {
     return { route: "scene", sceneTab: "replay" };
   }
@@ -505,6 +485,13 @@ const normalizeRoute = (hash) => {
     return { route, sceneTab: sceneTab.value };
   }
   return { route: "home", sceneTab: "replay" };
+};
+
+const isNavItemActive = (item) => {
+  if (item.key === "replay" || item.key === "mahimahi") {
+    return currentRoute.value === "scene" && sceneTab.value === item.key;
+  }
+  return currentRoute.value === item.key;
 };
 
 const syncRoute = () => {
@@ -535,11 +522,6 @@ const missionProgress = computed(() => {
 
 const activeSceneTab = computed(() => sceneTabs.find((tab) => tab.key === sceneTab.value) || sceneTabs[0]);
 
-const sceneSummary = computed(() => ({
-  title: activeSceneTab.value.summaryTitle,
-  text: activeSceneTab.value.summaryText,
-}));
-
 const sceneChips = computed(() => activeSceneTab.value.chips);
 
 onMounted(() => {
@@ -556,24 +538,17 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .app-shell {
+  --sidebar-width: 282px;
   position: relative;
-  max-width: 1540px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 28px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  min-height: 100vh;
   isolation: isolate;
 }
 
 .app-shell__aurora {
-  position: fixed;
-  width: 34rem;
-  height: 34rem;
-  border-radius: 999px;
-  filter: blur(90px);
-  opacity: 0.32;
-  z-index: -1;
-  pointer-events: none;
+  display: none;
 }
 
 .app-shell__aurora--left {
@@ -589,34 +564,129 @@ onBeforeUnmount(() => {
 }
 
 .topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: calc(var(--sidebar-width) + 1px);
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 20px;
-  padding: 18px 22px;
-  border-radius: 8px;
-  border: 1px solid rgba(71, 85, 105, 0.16);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(246, 248, 251, 0.82));
-  backdrop-filter: blur(26px);
-  box-shadow: 0 20px 52px rgba(15, 23, 42, 0.1);
+  flex-direction: column;
+  align-items: stretch;
+  gap: 18px;
+  min-height: 0;
+  padding: 22px 18px 18px;
+  border: none;
+  border-right: 1px solid rgba(71, 85, 105, 0.16);
+  background: linear-gradient(180deg, #ffffff, #f3f6fa 68%, #eef3f8);
+  backdrop-filter: blur(22px);
+  box-shadow: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  z-index: 40;
+}
+
+.topbar::before {
+  display: none;
+}
+
+.topbar__head {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .brand {
-  display: inline-flex;
+  display: flex;
   flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  gap: 14px;
   color: #081226;
   text-decoration: none;
-  max-width: 42rem;
+  max-width: 100%;
+  text-align: center;
+}
+
+.brand__mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 70px;
+  height: 70px;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.95), rgba(226, 232, 240, 0.9)),
+    linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(226, 232, 240, 0.9));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.84),
+    0 14px 30px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
+
+.brand__mark::after {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  border-radius: 16px;
+  border: 1px solid rgba(14, 165, 233, 0.12);
+}
+
+.brand__mark i {
+  position: absolute;
+  display: block;
+  width: 10px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #0ea5e9, #0f172a);
+  animation: sidebarSignalPulse 2.6s ease-in-out infinite;
+}
+
+.brand__mark i:nth-child(1) {
+  left: 22px;
+  height: 22px;
+  bottom: 22px;
+}
+
+.brand__mark i:nth-child(2) {
+  left: calc(50% - 5px);
+  height: 32px;
+  bottom: 18px;
+}
+
+.brand__mark i:nth-child(3) {
+  right: 22px;
+  height: 42px;
+  bottom: 14px;
+}
+
+.brand__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.brand__eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: #475569;
 }
 
 .brand strong {
   font-size: clamp(1.12rem, 1.8vw, 1.5rem);
   line-height: 1.18;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
 }
 
-.brand__eyebrow,
+.brand strong span {
+  display: block;
+}
+
+.brand p {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
 .eyebrow {
   font-size: 11px;
   letter-spacing: 0.24em;
@@ -626,45 +696,102 @@ onBeforeUnmount(() => {
 
 .topbar__nav {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 10px;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 8px;
+  width: 100%;
+  flex: 1 1 auto;
 }
 
 .nav-chip {
-  display: inline-flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 126px;
-  padding: 11px 14px;
-  border-radius: 8px;
-  border: 1px solid rgba(71, 85, 105, 0.12);
-  background: rgba(255, 255, 255, 0.72);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  width: 100%;
+  padding: 14px 16px;
+  min-height: 58px;
+  border: none;
+  border-left: 4px solid transparent;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(244, 247, 250, 0.72));
   color: #0f172a;
   text-decoration: none;
-  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  text-align: center;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.16);
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
-.nav-chip small {
-  color: #64748b;
-  font-size: 11px;
+.nav-chip::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.56), transparent);
+  transform: translateX(-130%);
+  transition: transform 0.36s ease;
+  pointer-events: none;
+}
+
+.nav-chip__label {
+  display: block;
+  width: 100%;
+  font-size: 15px;
+  line-height: 1.15;
+  letter-spacing: 0.04em;
+  color: #0f172a;
 }
 
 .nav-chip:hover {
-  transform: translateY(-1px);
-  border-color: rgba(30, 41, 59, 0.24);
-  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+  transform: translateX(2px);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(233, 239, 245, 0.84));
+  border-left-color: rgba(30, 41, 59, 0.32);
+  box-shadow:
+    inset 0 0 0 1px rgba(100, 116, 139, 0.2),
+    0 10px 18px rgba(15, 23, 42, 0.05);
+}
+
+.nav-chip:hover::after {
+  transform: translateX(125%);
 }
 
 .nav-chip--active {
-  background: linear-gradient(135deg, rgba(226, 232, 240, 0.78), rgba(241, 245, 249, 0.92));
-  border-color: rgba(30, 41, 59, 0.24);
+  background:
+    linear-gradient(135deg, rgba(224, 242, 254, 0.94), rgba(241, 245, 249, 0.96)),
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.12), transparent 44%);
+  border-left-color: #0ea5e9;
+  box-shadow:
+    inset 0 0 0 1px rgba(14, 165, 233, 0.12),
+    0 16px 28px rgba(15, 23, 42, 0.06);
+}
+
+.nav-chip--active .nav-chip__label {
+  color: #075985;
+}
+
+@keyframes sidebarSignalPulse {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translateY(-1px);
+    opacity: 1;
+  }
 }
 
 .app-main {
   display: flex;
   flex-direction: column;
   gap: 28px;
+  min-height: 100vh;
+  margin-left: var(--sidebar-width);
 }
 
 .landing-view,
@@ -676,43 +803,52 @@ onBeforeUnmount(() => {
 
 .landing-view--map {
   gap: 0;
+  min-height: 100vh;
 }
 
 .map-command-screen {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(360px, 440px) minmax(0, 1fr);
-  height: clamp(600px, calc(100svh - 126px), 760px);
+  grid-template-columns: minmax(0, 1fr) clamp(360px, 28vw, 430px);
+  height: 100vh;
   min-height: 0;
   overflow: hidden;
-  border-radius: 8px;
-  border: 1px solid rgba(15, 23, 42, 0.12);
+  border: none;
   background: #f8fafc;
-  box-shadow:
-    0 26px 64px rgba(15, 23, 42, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.56);
+  box-shadow: none;
   animation: commandScreenIn 0.72s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   isolation: isolate;
+}
+
+.module-view > .panel-shell {
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
 }
 
 .mission-console {
   position: relative;
   z-index: 2;
-  display: flex;
-  flex-direction: column;
+  grid-column: 2;
+  grid-row: 1;
+  display: grid;
+  grid-template-rows: auto auto minmax(260px, 1fr) auto;
+  gap: clamp(12px, 1.5vh, 18px);
   min-height: 0;
-  padding: clamp(18px, 2.2vw, 26px);
+  padding: clamp(18px, 1.85vw, 24px);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.92)),
     radial-gradient(circle at 0% 0%, rgba(20, 184, 166, 0.08), transparent 42%);
-  border-right: 1px solid rgba(15, 23, 42, 0.1);
+  border-left: 1px solid rgba(15, 23, 42, 0.1);
 }
 
 .map-command-screen__stage {
   position: relative;
+  grid-column: 1;
+  grid-row: 1;
   min-width: 0;
   min-height: 0;
-  background: #dbeafe;
+  background: #0f172a;
   overflow: hidden;
   isolation: isolate;
 }
@@ -825,39 +961,43 @@ onBeforeUnmount(() => {
   flex-direction: column;
   justify-content: space-between;
   align-items: stretch;
-  gap: 12px;
+  gap: 10px;
   padding: 0;
 }
 
 .map-command-screen__header h1 {
   max-width: 100%;
-  margin: 12px 0 0;
+  margin: 10px 0 0;
   color: #07111f;
-  font-size: clamp(1.42rem, 2.05vw, 2.2rem);
+  font-size: clamp(1.32rem, 1.72vw, 1.86rem);
   line-height: 1;
   letter-spacing: -0.03em;
 }
 
 .map-command-screen__header p {
   max-width: 35rem;
-  margin: 10px 0 0;
+  margin: 8px 0 0;
   color: #475569;
-  font-size: 0.92rem;
+  font-size: 0.88rem;
 }
 
 .map-command-screen__live {
   display: inline-grid;
   grid-template-columns: auto auto;
+  justify-content: center;
+  justify-items: center;
   align-items: center;
   gap: 5px 8px;
   min-width: 190px;
   width: fit-content;
+  align-self: center;
   padding: 9px 12px;
   border-radius: 8px;
   border: 1px solid rgba(15, 23, 42, 0.1);
   background: rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(16px);
   box-shadow: 0 18px 34px rgba(15, 23, 42, 0.08);
+  text-align: center;
 }
 
 .map-command-screen__live span {
@@ -884,7 +1024,7 @@ onBeforeUnmount(() => {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   max-width: none;
   gap: 10px 14px;
-  margin: 12px 0 0;
+  margin: 0;
 }
 
 .map-command-screen__status span {
@@ -909,9 +1049,11 @@ onBeforeUnmount(() => {
 
 .map-command-screen__mission {
   width: 100%;
-  margin: 10px 0 0;
-  padding: 10px 0 0;
-  border-top: 1px solid rgba(15, 23, 42, 0.12);
+  align-self: end;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
   background: transparent;
   backdrop-filter: none;
   box-shadow: none;
@@ -930,22 +1072,24 @@ onBeforeUnmount(() => {
   margin: 0;
   color: #475569;
   line-height: 1.42;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   max-width: 28rem;
   min-height: 1.15rem;
 }
 
 .mission-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
-  margin: 9px 0 0;
+  margin: 0;
 }
 
 .map-command-screen__mission .primary-cta,
 .map-command-screen__mission .secondary-cta {
-  min-height: 36px;
-  padding: 0 13px;
+  flex: 1 1 0;
+  min-height: 40px;
+  justify-content: center;
+  padding: 0 12px;
   font-size: 0.86rem;
 }
 
@@ -997,10 +1141,12 @@ onBeforeUnmount(() => {
   position: relative;
   z-index: 4;
   display: grid;
-  gap: 2px;
+  grid-template-rows: repeat(5, minmax(54px, 1fr));
+  gap: 1px;
   width: 100%;
   max-width: none;
-  margin: 10px 0 0;
+  min-height: 0;
+  margin: 0;
   overflow: visible;
   padding: 2px 0;
   border: none;
@@ -1014,9 +1160,9 @@ onBeforeUnmount(() => {
   content: "";
   position: absolute;
   left: 16px;
-  top: 19px;
+  top: 28px;
   width: 3px;
-  height: calc(100% - 38px);
+  height: calc(100% - 56px);
   border-radius: 999px;
   pointer-events: none;
 }
@@ -1026,7 +1172,7 @@ onBeforeUnmount(() => {
 }
 
 .map-command-screen__timeline::after {
-  height: calc((100% - 38px) * var(--mission-progress));
+  height: calc((100% - 56px) * var(--mission-progress));
   background: linear-gradient(180deg, #0891b2, #14b8a6, #22c55e);
   box-shadow: 0 0 18px rgba(20, 184, 166, 0.24);
   transition: height 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -1040,8 +1186,8 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 10px;
   min-width: 0;
-  min-height: 40px;
-  padding: 2px 0;
+  min-height: 0;
+  padding: 6px 0;
   border: none;
   background: transparent;
   color: #334155;
@@ -1053,8 +1199,8 @@ onBeforeUnmount(() => {
 .mission-step i {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 29px;
+  height: 29px;
   border-radius: 8px;
   border: 1px solid rgba(148, 163, 184, 0.38);
   background:
@@ -2088,7 +2234,6 @@ onBeforeUnmount(() => {
 .device-card p,
 .device-modal__desc,
 .device-modal__section p,
-.guide-banner p,
 .scene-stage__intro p {
   margin: 0;
   color: #475569;
@@ -2248,6 +2393,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-height: 100vh;
 }
 
 .algorithm-stage__header {
@@ -2302,20 +2448,6 @@ onBeforeUnmount(() => {
   font-size: 11px;
 }
 
-.guide-banner {
-  display: flex;
-  justify-content: space-between;
-  gap: 20px;
-  align-items: center;
-  padding: 16px 20px;
-}
-
-.guide-banner strong {
-  display: block;
-  margin-bottom: 4px;
-}
-
-.guide-banner__dismiss,
 .device-modal__close {
   padding: 10px 14px;
   border-radius: 999px;
@@ -2329,6 +2461,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  min-height: 100vh;
 }
 
 .info-card__list,
@@ -2487,8 +2620,15 @@ onBeforeUnmount(() => {
   }
 
   .mission-console {
-    border-right: none;
+    grid-column: auto;
+    grid-row: auto;
+    border-left: none;
     border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+  }
+
+  .map-command-screen__stage {
+    grid-column: auto;
+    grid-row: auto;
   }
 
   .map-command-screen__stage,
@@ -2535,10 +2675,85 @@ onBeforeUnmount(() => {
   }
 }
 
+@media (min-width: 981px) and (max-width: 1200px) {
+  .map-command-screen {
+    grid-template-columns: minmax(0, 1fr) clamp(330px, 31vw, 380px);
+    height: 100vh;
+    min-height: 620px;
+  }
+
+  .mission-console {
+    grid-column: 2;
+    grid-row: 1;
+    border-left: 1px solid rgba(15, 23, 42, 0.1);
+    border-bottom: none;
+  }
+
+  .map-command-screen__stage {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .map-command-screen__stage,
+  .map-command-screen__map {
+    min-height: 0;
+  }
+}
+
 @media (max-width: 900px) {
+  .app-shell {
+    --sidebar-width: 196px;
+  }
+
   .topbar {
-    flex-direction: column;
-    align-items: stretch;
+    padding: 16px 12px 14px;
+  }
+
+  .brand__mark {
+    width: 58px;
+    height: 58px;
+    border-radius: 18px;
+  }
+
+  .brand__mark::after {
+    inset: 8px;
+    border-radius: 14px;
+  }
+
+  .brand__mark i {
+    width: 8px;
+  }
+
+  .brand__mark i:nth-child(1) {
+    left: 18px;
+    height: 18px;
+    bottom: 19px;
+  }
+
+  .brand__mark i:nth-child(2) {
+    left: calc(50% - 4px);
+    height: 26px;
+    bottom: 16px;
+  }
+
+  .brand__mark i:nth-child(3) {
+    right: 18px;
+    height: 34px;
+    bottom: 12px;
+  }
+
+  .brand p {
+    display: none;
+  }
+
+  .brand strong {
+    font-size: 1rem;
+    letter-spacing: 0.04em;
+  }
+
+  .nav-chip {
+    min-height: 54px;
+    padding: 10px;
   }
 
   .device-card {
@@ -2552,14 +2767,73 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 720px) {
+  .app-shell {
+    --sidebar-width: 144px;
+  }
+
   .topbar {
-    border-radius: 8px;
-    padding: 16px;
+    padding: 12px 8px 10px;
+  }
+
+  .brand {
+    gap: 10px;
+  }
+
+  .brand__mark {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+  }
+
+  .brand__mark::after {
+    inset: 6px;
+    border-radius: 10px;
+  }
+
+  .brand__mark i {
+    width: 7px;
+  }
+
+  .brand__mark i:nth-child(1) {
+    left: 14px;
+    height: 14px;
+    bottom: 16px;
+  }
+
+  .brand__mark i:nth-child(2) {
+    left: calc(50% - 3.5px);
+    height: 20px;
+    bottom: 13px;
+  }
+
+  .brand__mark i:nth-child(3) {
+    right: 14px;
+    height: 26px;
+    bottom: 10px;
+  }
+
+  .brand strong {
+    font-size: 0.82rem;
+    line-height: 1.25;
+  }
+
+  .brand__eyebrow,
+  .brand p {
+    display: none;
+  }
+
+  .nav-chip {
+    min-height: 48px;
+    padding: 10px 6px;
+  }
+
+  .nav-chip__label {
+    font-size: 13px;
+    line-height: 1.2;
   }
 
   .map-command-screen {
     min-height: 760px;
-    border-radius: 8px;
   }
 
   .map-command-screen__shade {

@@ -128,7 +128,7 @@
             {{ isRunning ? "测试中..." : isImporting ? "同步场景中..." : "开始测试" }}
           </button>
           <p class="run-hint" v-if="!hasMatchingCheckpoint">
-            当前场景和算法没有匹配的训练权重，请先在算法模拟中训练该组合。
+            当前场景和算法没有匹配的训练权重，请先在场景&环境导入中训练该组合。
           </p>
           <p class="run-hint" v-if="!isSceneReady">
             场景图会自动同步，完成后即可开始测试。
@@ -577,7 +577,7 @@ const consumeSimulationStream = async (response) => {
 const runSimulation = async () => {
   syncCheckpointPath();
   if (!checkpointPath.value) {
-    errorMessage.value = "当前场景和算法没有匹配的训练权重，请先在算法模拟中训练该组合。";
+    errorMessage.value = "当前场景和算法没有匹配的训练权重，请先在场景&环境导入中训练该组合。";
     appendTerminalLine(errorMessage.value);
     return;
   }

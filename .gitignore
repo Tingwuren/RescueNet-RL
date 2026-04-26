@@ -48,3 +48,7 @@ ns-3.46.1/map.net.xml
 # OS files
 .DS_Store
 Thumbs.db
+
+# Runtime logs
+logs/
+ns-3.46.1/ns3_backend.log

@@ -12,48 +12,53 @@
       </div>
     </div>
 
-    <div v-if="hasNodes && hasGeoMap" ref="mapRef" class="scene-graph__map" aria-label="真实地图场景预览"></div>
+    <div v-if="hasNodes" class="scene-graph__stage">
+      <div v-if="hasGeoMap" ref="mapRef" class="scene-graph__map" aria-label="真实地图场景预览"></div>
 
-    <div v-else-if="hasNodes" class="scene-graph__viewport">
-      <svg :viewBox="`0 0 ${viewportWidth} ${viewportHeight}`" preserveAspectRatio="xMidYMid meet" role="img">
-        <defs>
-          <pattern id="scene-grid" width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(148, 163, 184, 0.14)" stroke-width="1" />
-          </pattern>
-        </defs>
-        <rect
-          :x="padding"
-          :y="padding"
-          :width="innerWidth"
-          :height="innerHeight"
-          rx="18"
-          fill="rgba(15, 23, 42, 0.9)"
-          stroke="rgba(148, 163, 184, 0.18)"
-        />
-        <rect :x="padding" :y="padding" :width="innerWidth" :height="innerHeight" rx="18" fill="url(#scene-grid)" />
-
-        <g v-for="node in scaledNodes" :key="node.id">
-          <circle
-            :cx="node.x"
-            :cy="node.y"
-            :r="node.radius"
-            :fill="node.color"
-            :stroke="node.stroke"
-            :stroke-width="node.strokeWidth"
+      <div v-else class="scene-graph__viewport">
+        <svg :viewBox="`0 0 ${viewportWidth} ${viewportHeight}`" preserveAspectRatio="xMidYMid meet" role="img">
+          <defs>
+            <pattern id="scene-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(148, 163, 184, 0.12)" stroke-width="1" />
+            </pattern>
+          </defs>
+          <rect
+            :x="padding"
+            :y="padding"
+            :width="innerWidth"
+            :height="innerHeight"
+            rx="18"
+            fill="#0f172a"
+            stroke="rgba(148, 163, 184, 0.18)"
           />
-        </g>
-      </svg>
+          <rect :x="padding" :y="padding" :width="innerWidth" :height="innerHeight" rx="18" fill="url(#scene-grid)" />
+
+          <g v-for="node in scaledNodes" :key="node.id">
+            <circle :cx="node.x" :cy="node.y" :r="node.radius + 3.4" :fill="node.fillColor" opacity="0.18" />
+            <circle
+              :cx="node.x"
+              :cy="node.y"
+              :r="node.radius"
+              :fill="node.fillColor"
+              :stroke="node.stroke"
+              :stroke-width="node.strokeWidth"
+            />
+          </g>
+        </svg>
+      </div>
+
+      <div class="scene-graph__hud">
+        <div class="scene-graph__legend">
+          <span v-for="entry in legendEntries" :key="entry.type">
+            <i :style="{ '--legend-color': entry.color }"></i>
+            {{ entry.label }}
+          </span>
+        </div>
+      </div>
     </div>
 
     <div v-else class="scene-graph__empty">
       当前场景没有可绘制节点。
-    </div>
-
-    <div class="scene-graph__legend">
-      <span v-for="entry in legendEntries" :key="entry.type">
-        <i :style="{ background: entry.color }"></i>
-        {{ entry.label }}
-      </span>
     </div>
   </div>
 </template>
@@ -94,23 +99,44 @@ const innerHeight = viewportHeight - padding * 2;
 
 const styleMap = {
   USER: {
-    label: "用户",
+    label: "受灾用户节点",
     color: "#ef4444",
     stroke: "rgba(254, 226, 226, 0.95)",
-    radius: 5,
+    radius: 4.4,
     strokeWidth: 1.5,
   },
   MACRO_ENB: {
     label: "宏基站",
-    color: "#38bdf8",
-    stroke: "rgba(224, 242, 254, 0.75)",
+    color: "#a78bfa",
+    stroke: "rgba(243, 232, 255, 0.84)",
     radius: 8,
     strokeWidth: 1.8,
   },
   MANPACK_ENB: {
-    label: "便携基站",
-    color: "#fb923c",
-    stroke: "rgba(255, 237, 213, 0.78)",
+    label: "背负式基站",
+    color: "#f59e0b",
+    stroke: "rgba(255, 237, 213, 0.84)",
+    radius: 7,
+    strokeWidth: 1.8,
+  },
+  SMALL_CELL: {
+    label: "微型基站",
+    color: "#a78bfa",
+    stroke: "rgba(243, 232, 255, 0.84)",
+    radius: 7,
+    strokeWidth: 1.8,
+  },
+  RELAY: {
+    label: "自组网中继节点",
+    color: "#14b8a6",
+    stroke: "rgba(204, 251, 241, 0.82)",
+    radius: 7,
+    strokeWidth: 1.8,
+  },
+  RELAY_ENB: {
+    label: "自组网中继节点",
+    color: "#14b8a6",
+    stroke: "rgba(204, 251, 241, 0.82)",
     radius: 7,
     strokeWidth: 1.8,
   },
@@ -161,6 +187,14 @@ const scaledNodes = computed(() =>
     return {
       ...node,
       ...style,
+      fillColor:
+        node.type === "USER"
+          ? node.connected
+            ? "#38bdf8"
+            : node.broadcast_served
+              ? "#facc15"
+              : style.color
+          : style.color,
       x: padding + (Number(node.x || 0) / mapWidth.value) * innerWidth,
       y: padding + (Number(node.y || 0) / mapHeight.value) * innerHeight,
     };
@@ -175,18 +209,12 @@ const nodeCounts = computed(() =>
   }, {})
 );
 
+const stationCount = computed(() => rawNodes.value.filter((node) => node.type !== "USER").length);
+
 const summaryItems = computed(() => [
   { label: "节点", value: rawNodes.value.length },
   { label: "用户", value: nodeCounts.value.USER || 0 },
-  { label: "基站", value: (nodeCounts.value.MACRO_ENB || 0) + (nodeCounts.value.MANPACK_ENB || 0) },
-]);
-
-const legendEntries = computed(() => [
-  { type: "USER", label: "未恢复用户", color: styleMap.USER.color },
-  { type: "CONNECTED_USER", label: "已连接用户", color: "#22c55e" },
-  { type: "BROADCAST_USER", label: "广播覆盖", color: "#facc15" },
-  { type: "MACRO_ENB", label: styleMap.MACRO_ENB.label, color: styleMap.MACRO_ENB.color },
-  { type: "MANPACK_ENB", label: styleMap.MANPACK_ENB.label, color: styleMap.MANPACK_ENB.color },
+  { label: "基站", value: stationCount.value },
 ]);
 
 const mapBounds = computed(() => {
@@ -373,6 +401,32 @@ const restorationLinks = computed(() => {
 });
 
 const restoredUserIds = computed(() => new Set(restorationLinks.value.map((link) => link.user.id)));
+const hasConnectedUsers = computed(
+  () =>
+    rawNodes.value.some((node) => node.type === "USER" && node.connected) || restoredUserIds.value.size > 0
+);
+const hasBroadcastUsers = computed(() => rawNodes.value.some((node) => node.type === "USER" && node.broadcast_served));
+
+const legendEntries = computed(() => {
+  const entries = [];
+
+  if (nodeCounts.value.USER) {
+    if (hasConnectedUsers.value) {
+      entries.push({ type: "CONNECTED_USER", label: "正常用户节点", color: "#38bdf8" });
+    }
+    entries.push({ type: "USER", label: "受灾用户节点", color: styleMap.USER.color });
+    if (hasBroadcastUsers.value) {
+      entries.push({ type: "BROADCAST_USER", label: "广播覆盖用户", color: "#facc15" });
+    }
+  }
+
+  ["MANPACK_ENB", "MACRO_ENB", "SMALL_CELL", "RELAY_ENB", "RELAY"].forEach((type) => {
+    if (!nodeCounts.value[type] || !styleMap[type]) return;
+    entries.push({ type, label: styleMap[type].label, color: styleMap[type].color });
+  });
+
+  return entries;
+});
 
 const destroyMap = () => {
   if (nodeLayer) {
@@ -398,12 +452,27 @@ const renderLeafletMap = async () => {
       zoomControl: false,
       attributionControl: false,
       scrollWheelZoom: false,
+      touchZoom: false,
+      doubleClickZoom: false,
+      boxZoom: false,
+      keyboard: false,
+      dragging: false,
+      tap: false,
       preferCanvas: true,
+      zoomSnap: 0.25,
     });
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
       maxZoom: 19,
+      subdomains: ["a", "b", "c"],
       crossOrigin: true,
     }).addTo(mapInstance);
+    L.tileLayer(
+      "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+      {
+        maxZoom: 18,
+        opacity: 0.18,
+      }
+    ).addTo(mapInstance);
     canvasRenderer = L.canvas({ padding: 0.5 });
   }
 
@@ -422,9 +491,9 @@ const renderLeafletMap = async () => {
         [Number(link.user.lat), Number(link.user.lon)],
       ],
       {
-        color: "rgba(255, 255, 255, 0.78)",
-        weight: 3.2,
-        opacity: 0.72,
+        color: "rgba(15, 23, 42, 0.26)",
+        weight: 4.6,
+        opacity: 0.86,
         interactive: false,
       }
     ).addTo(nodeLayer);
@@ -435,7 +504,20 @@ const renderLeafletMap = async () => {
         [Number(link.user.lat), Number(link.user.lon)],
       ],
       {
-        color: "rgba(22, 163, 74, 0.92)",
+        color: "rgba(255, 255, 255, 0.34)",
+        weight: 3.2,
+        opacity: 0.68,
+        interactive: false,
+      }
+    ).addTo(nodeLayer);
+
+    L.polyline(
+      [
+        [Number(link.station.lat), Number(link.station.lon)],
+        [Number(link.user.lat), Number(link.user.lon)],
+      ],
+      {
+        color: "rgba(56, 189, 248, 0.86)",
         weight: 2.2,
         opacity: 0.9,
         dashArray: "6 5",
@@ -457,20 +539,33 @@ const renderLeafletMap = async () => {
       color: "#64748b",
       stroke: "rgba(15, 23, 42, 0.42)",
       radius: 5,
-      strokeWidth: 1.3,
+        strokeWidth: 1.3,
     };
+    const fillColor =
+      node.type === "USER"
+        ? restoredUserIds.value.has(node.id) || node.connected
+          ? "#38bdf8"
+          : node.broadcast_served
+            ? "#facc15"
+            : style.color
+        : style.color;
+    const radius = node.type === "USER" ? 3.6 : style.radius + 1.2;
+
     L.circleMarker([lat, lon], {
       renderer: canvasRenderer,
-      radius: node.type === "USER" ? 3.6 : style.radius + 1.2,
-      fillColor:
-        node.type === "USER"
-          ? restoredUserIds.value.has(node.id) || node.connected
-            ? "#22c55e"
-            : node.broadcast_served
-              ? "#facc15"
-              : style.color
-          : style.color,
-      fillOpacity: node.type === "USER" ? 0.86 : 0.96,
+      radius: node.type === "USER" ? radius + 3.1 : radius + 4.4,
+      fillColor,
+      fillOpacity: node.type === "USER" ? 0.16 : 0.18,
+      color: fillColor,
+      weight: 0,
+      opacity: 0,
+    }).addTo(nodeLayer);
+
+    L.circleMarker([lat, lon], {
+      renderer: canvasRenderer,
+      radius,
+      fillColor,
+      fillOpacity: node.type === "USER" ? 0.88 : 0.96,
       color: style.stroke,
       weight: node.type === "USER" ? 1.1 : style.strokeWidth + 1,
       opacity: 0.95,
@@ -478,7 +573,7 @@ const renderLeafletMap = async () => {
   }
 };
 
-watch(() => [props.scene, props.scenarioName], renderLeafletMap, { deep: false });
+watch(() => [props.scene, props.scenarioName, props.sceneKind], renderLeafletMap, { deep: false });
 onMounted(renderLeafletMap);
 onBeforeUnmount(destroyMap);
 </script>
@@ -487,7 +582,7 @@ onBeforeUnmount(destroyMap);
 .scene-graph {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .scene-graph__header {
@@ -514,8 +609,7 @@ onBeforeUnmount(destroyMap);
   gap: 8px;
 }
 
-.scene-graph__stats span,
-.scene-graph__legend span {
+.scene-graph__stats span {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -527,53 +621,107 @@ onBeforeUnmount(destroyMap);
   font-size: 12px;
 }
 
-.scene-graph__viewport {
-  border-radius: 20px;
+.scene-graph__stage {
+  position: relative;
+  border-radius: 8px;
   overflow: hidden;
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(2, 6, 23, 0.95));
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: #0f172a;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
+.scene-graph__viewport,
 .scene-graph__map {
+  position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
   height: auto;
   min-height: 380px;
   max-height: 560px;
-  border-radius: 8px;
   overflow: hidden;
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  background: #eef2f6;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  background: #0f172a;
 }
 
-.scene-graph__map :deep(.leaflet-tile-pane) {
-  filter: saturate(0.92) contrast(0.96) brightness(1.04);
+.scene-graph__map::after,
+.scene-graph__viewport::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.26), transparent 24%),
+    radial-gradient(circle at 54% 34%, rgba(56, 189, 248, 0.12), transparent 34%),
+    linear-gradient(0deg, rgba(15, 23, 42, 0.32), transparent 24%);
+  z-index: 450;
 }
 
 .scene-graph__map :deep(.leaflet-container) {
+  width: 100%;
+  height: 100%;
+  background: #0f172a;
   font-family: inherit;
 }
 
+.scene-graph__map :deep(.leaflet-tile-pane) {
+  filter: saturate(1.02) contrast(0.98) brightness(1.18);
+}
+
+.scene-graph__map :deep(.leaflet-control-container) {
+  display: none;
+}
+
 .scene-graph__viewport svg {
+  position: relative;
+  z-index: 2;
   width: 100%;
   height: auto;
   display: block;
 }
 
+.scene-graph__hud {
+  position: absolute;
+  z-index: 640;
+  top: 12px;
+  left: 14px;
+  max-width: min(560px, calc(100% - 28px));
+  display: inline-flex;
+  width: fit-content;
+  padding: 8px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.68);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
 .scene-graph__empty {
   padding: 28px;
-  border-radius: 18px;
-  border: 1px dashed rgba(148, 163, 184, 0.25);
-  color: #94a3b8;
+  border-radius: 8px;
+  border: 1px dashed rgba(148, 163, 184, 0.22);
+  color: #cbd5e1;
   text-align: center;
-  background: rgba(15, 23, 42, 0.3);
+  background: rgba(15, 23, 42, 0.84);
 }
 
 .scene-graph__legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  justify-content: flex-start;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.scene-graph__legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.56);
+  backdrop-filter: blur(8px);
+  color: #cbd5e1;
+  font-size: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
 }
 
 .scene-graph__legend i {
@@ -581,6 +729,10 @@ onBeforeUnmount(destroyMap);
   height: 10px;
   border-radius: 999px;
   display: inline-block;
+  background: var(--legend-color);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--legend-color) 18%, transparent),
+    0 0 12px color-mix(in srgb, var(--legend-color) 44%, transparent);
 }
 
 @media (max-width: 720px) {
@@ -592,8 +744,15 @@ onBeforeUnmount(destroyMap);
     justify-content: flex-start;
   }
 
+  .scene-graph__viewport,
   .scene-graph__map {
     min-height: 300px;
+  }
+
+  .scene-graph__hud {
+    left: 10px;
+    right: 10px;
+    max-width: calc(100% - 20px);
   }
 }
 </style>
