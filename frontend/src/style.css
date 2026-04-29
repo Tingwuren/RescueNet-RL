@@ -1,17 +1,14 @@
 :root {
   color-scheme: light;
-  font-family: "Avenir Next", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #0f172a;
-  background: #ffffff;
+  color: #102443;
+  background: #eef5ff;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  --border-soft: rgba(148, 163, 184, 0.22);
-  --surface-soft: rgba(255, 255, 255, 0.72);
-  --text-soft: #475569;
 }
 
 * {
@@ -20,24 +17,27 @@
 
 html {
   scroll-behavior: smooth;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  color: #0f172a;
-  background: #ffffff;
-}
-
-body::before {
-  display: none;
+  width: 100%;
+  height: 100%;
+  color: #102443;
+  background: #eef5ff;
+  overflow: hidden;
 }
 
 #app {
+  width: 100%;
   min-height: 100vh;
-  padding: 0;
-  background: #ffffff;
+  height: 100%;
+  overflow: hidden;
 }
 
 a {
@@ -62,10 +62,17 @@ textarea {
   outline: none;
 }
 
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+}
+
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
 a:focus-visible {
-  box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.2);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.22);
 }

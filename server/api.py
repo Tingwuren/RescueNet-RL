@@ -195,6 +195,78 @@ def list_training_artifacts() -> Dict[str, List[Dict[str, object]]]:
     return {"artifacts": artifacts}
 
 
+@app.get("/api/train/artifacts/detail")
+def training_artifact_detail(run_dir: str) -> Dict[str, object]:
+    artifact_dir = Path(default_config["logging"]["artifact_dir"]).resolve()
+    runs_dir = (artifact_dir / "runs").resolve()
+    requested_dir = Path(run_dir).resolve()
+
+    try:
+        requested_dir.relative_to(runs_dir)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail="Invalid training run directory.") from error
+
+    meta_path = requested_dir / "policy_meta.json"
+    metrics_path = requested_dir / "training_metrics.json"
+    if not meta_path.exists():
+        raise HTTPException(status_code=404, detail="Training artifact metadata not found.")
+
+    try:
+        with meta_path.open("r", encoding="utf-8") as handle:
+            meta = json.load(handle)
+    except (OSError, json.JSONDecodeError) as error:
+        raise HTTPException(status_code=500, detail="Failed to read policy metadata.") from error
+
+    metrics = {}
+    if metrics_path.exists():
+        try:
+            with metrics_path.open("r", encoding="utf-8") as handle:
+                metrics = json.load(handle)
+        except (OSError, json.JSONDecodeError):
+            metrics = {}
+
+    episode_rewards = metrics.get("episode_rewards") if isinstance(metrics, dict) else []
+    episode_coverages = metrics.get("episode_coverages") if isinstance(metrics, dict) else []
+    episode_broadcasts = metrics.get("episode_broadcasts") if isinstance(metrics, dict) else []
+    episode_timesteps = metrics.get("episode_timesteps") if isinstance(metrics, dict) else []
+    eval_history = metrics.get("eval_history") if isinstance(metrics, dict) else []
+    config = metrics.get("config", {}) if isinstance(metrics, dict) else {}
+    experiment_cfg = config.get("experiment", {}) if isinstance(config, dict) else {}
+    multimodal_cfg = config.get("multimodal_env", {}) if isinstance(config, dict) else {}
+    algorithm_key = meta.get("algorithm") or experiment_cfg.get("algorithm") or "ppo"
+    algorithm_cfg = config.get(str(algorithm_key).lower(), {}) if isinstance(config, dict) else {}
+    train_cfg = config.get("train", {}) if isinstance(config, dict) else {}
+    updated_at = max(
+        meta_path.stat().st_mtime if meta_path.exists() else 0.0,
+        metrics_path.stat().st_mtime if metrics_path.exists() else 0.0,
+    )
+
+    return {
+        "algorithm": algorithm_key,
+        "env_type": meta.get("env_type") or experiment_cfg.get("env_type") or "multimodal",
+        "checkpoint_path": meta.get("policy_path"),
+        "scenario_name": multimodal_cfg.get("scenario_name"),
+        "reward_mode": multimodal_cfg.get("reward_mode"),
+        "updated_at": updated_at,
+        "run_dir": str(requested_dir),
+        "episode_count": len(episode_rewards) if isinstance(episode_rewards, list) else 0,
+        "total_timesteps": episode_timesteps[-1] if isinstance(episode_timesteps, list) and episode_timesteps else train_cfg.get("total_timesteps"),
+        "last_reward": episode_rewards[-1] if isinstance(episode_rewards, list) and episode_rewards else None,
+        "best_reward": max(episode_rewards) if isinstance(episode_rewards, list) and episode_rewards else None,
+        "last_coverage": episode_coverages[-1] if isinstance(episode_coverages, list) and episode_coverages else None,
+        "best_coverage": max(episode_coverages) if isinstance(episode_coverages, list) and episode_coverages else None,
+        "last_broadcast": episode_broadcasts[-1] if isinstance(episode_broadcasts, list) and episode_broadcasts else None,
+        "best_broadcast": max(episode_broadcasts) if isinstance(episode_broadcasts, list) and episode_broadcasts else None,
+        "eval_history": eval_history if isinstance(eval_history, list) else [],
+        "config": {
+            "experiment": experiment_cfg if isinstance(experiment_cfg, dict) else {},
+            "train": train_cfg if isinstance(train_cfg, dict) else {},
+            "multimodal_env": multimodal_cfg if isinstance(multimodal_cfg, dict) else {},
+            "algorithm": algorithm_cfg if isinstance(algorithm_cfg, dict) else {},
+        },
+    }
+
+
 @app.get("/api/scenarios")
 def list_scenarios() -> Dict[str, List[Dict[str, object]]]:
     scenarios = []
@@ -256,6 +328,13 @@ def start_training(request: TrainRequest) -> TrainResponse:
         total_timesteps=request.total_timesteps,
         stochastic_eval=request.stochastic_eval,
         reward_mode=request.reward_mode,
+        learning_rate=request.learning_rate,
+        discount_factor=request.discount_factor,
+        batch_size=request.batch_size,
+        rollout_steps=request.rollout_steps,
+        entropy_coef=request.entropy_coef,
+        clip_range=request.clip_range,
+        eval_interval=request.eval_interval,
     )
     return TrainResponse(run_id=run.run_id)
 

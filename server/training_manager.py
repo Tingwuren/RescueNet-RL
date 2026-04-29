@@ -49,6 +49,13 @@ class TrainingManager:
         total_timesteps: Optional[int],
         stochastic_eval: bool,
         reward_mode: Optional[str],
+        learning_rate: Optional[float],
+        discount_factor: Optional[float],
+        batch_size: Optional[int],
+        rollout_steps: Optional[int],
+        entropy_coef: Optional[float],
+        clip_range: Optional[float],
+        eval_interval: Optional[int],
     ) -> TrainingRun:
         run_id = uuid.uuid4().hex
         run = TrainingRun(
@@ -63,7 +70,22 @@ class TrainingManager:
 
         thread = threading.Thread(
             target=self._execute_training,
-            args=(run, scenario_name, env_type, algorithm, total_timesteps, stochastic_eval, reward_mode),
+            args=(
+                run,
+                scenario_name,
+                env_type,
+                algorithm,
+                total_timesteps,
+                stochastic_eval,
+                reward_mode,
+                learning_rate,
+                discount_factor,
+                batch_size,
+                rollout_steps,
+                entropy_coef,
+                clip_range,
+                eval_interval,
+            ),
             daemon=True,
         )
         run.thread = thread
@@ -100,6 +122,13 @@ class TrainingManager:
         total_timesteps: Optional[int],
         stochastic_eval: bool,
         reward_mode: Optional[str],
+        learning_rate: Optional[float],
+        discount_factor: Optional[float],
+        batch_size: Optional[int],
+        rollout_steps: Optional[int],
+        entropy_coef: Optional[float],
+        clip_range: Optional[float],
+        eval_interval: Optional[int],
     ) -> None:
         run.status = "initializing"
         self._push_event(run, {"type": "status", "payload": {"state": "initializing"}})
@@ -113,7 +142,26 @@ class TrainingManager:
                     config["multimodal_env"]["reward_mode"] = reward_mode
             if total_timesteps:
                 config["train"]["total_timesteps"] = total_timesteps
+            if rollout_steps:
+                config["train"]["rollout_steps"] = rollout_steps
+            if eval_interval:
+                config["train"]["eval_interval"] = eval_interval
             config["train"]["eval_deterministic"] = not stochastic_eval
+
+            algo_cfg = config.get(algorithm, {})
+            if learning_rate is not None:
+                algo_cfg["learning_rate"] = learning_rate
+            if discount_factor is not None:
+                algo_cfg["gamma"] = discount_factor
+            if batch_size is not None:
+                if algorithm == "dqn":
+                    algo_cfg["batch_size"] = batch_size
+                else:
+                    algo_cfg["mini_batch_size"] = batch_size
+            if entropy_coef is not None and algorithm in {"ppo", "a3c", "mppo"}:
+                algo_cfg["entropy_coef"] = entropy_coef
+            if clip_range is not None and algorithm in {"ppo", "a3c", "mppo"}:
+                algo_cfg["clip_coef"] = clip_range
 
             latest_artifact_dir = Path(config["logging"]["artifact_dir"])
             latest_artifact_dir.mkdir(parents=True, exist_ok=True)

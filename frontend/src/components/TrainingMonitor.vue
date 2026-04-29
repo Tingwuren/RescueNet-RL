@@ -23,8 +23,8 @@
         <svg :viewBox="`0 0 ${chartWidth} ${chartHeight}`" preserveAspectRatio="none">
           <defs>
             <linearGradient id="areaGradient" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.4" />
-              <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.05" />
+              <stop offset="0%" stop-color="#1890ff" stop-opacity="0.4" />
+              <stop offset="100%" stop-color="#1890ff" stop-opacity="0.05" />
             </linearGradient>
           </defs>
           <path
@@ -38,7 +38,7 @@
             v-if="coverageLinePath"
             :d="coverageLinePath"
             fill="none"
-            stroke="#38bdf8"
+            stroke="#1890ff"
             stroke-width="2"
           />
         </svg>
@@ -63,8 +63,8 @@
         <svg :viewBox="`0 0 ${chartWidth} ${chartHeight}`" preserveAspectRatio="none">
           <defs>
             <linearGradient id="broadcastGradient" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stop-color="#a855f7" stop-opacity="0.4" />
-              <stop offset="100%" stop-color="#a855f7" stop-opacity="0.05" />
+              <stop offset="0%" stop-color="#409eff" stop-opacity="0.4" />
+              <stop offset="100%" stop-color="#409eff" stop-opacity="0.05" />
             </linearGradient>
           </defs>
           <path
@@ -78,7 +78,7 @@
             v-if="broadcastLinePath"
             :d="broadcastLinePath"
             fill="none"
-            stroke="#a855f7"
+            stroke="#409eff"
             stroke-width="2"
           />
         </svg>
@@ -277,8 +277,8 @@ const consoleLines = computed(() => props.events.map(formatConsoleLine).slice(-8
 .monitor__status > div {
   padding: 14px;
   border-radius: 14px;
-  border: 1px solid rgba(14, 165, 233, 0.16);
-  background: rgba(224, 242, 254, 0.74);
+  border: 1px solid rgba(57, 97, 246, 0.16);
+  background: rgba(231, 238, 255, 0.5);
 }
 
 .monitor__events {
@@ -350,11 +350,11 @@ const consoleLines = computed(() => props.events.map(formatConsoleLine).slice(-8
 }
 
 .chart-point--coverage {
-  background: #22d3ee;
+  background: #1890ff;
 }
 
 .chart-point--broadcast {
-  background: #d946ef;
+  background: #409eff;
 }
 
 .monitor__event-list {
@@ -385,7 +385,7 @@ const consoleLines = computed(() => props.events.map(formatConsoleLine).slice(-8
 .console__line::before {
   content: ">";
   margin-right: 8px;
-  color: #38bdf8;
+  color: #1890ff;
 }
 
 .console__placeholder {

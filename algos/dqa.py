@@ -310,9 +310,11 @@ class DQNTrainer:
             if self.global_step % log_interval == 0:
                 mean_reward = np.mean(self.episode_rewards[-log_interval:]) if self.episode_rewards else 0.0
                 mean_coverage = np.mean(self.episode_coverages[-log_interval:]) if self.episode_coverages else 0.0
+                mean_broadcast = np.mean(self.episode_broadcasts[-log_interval:]) if self.episode_broadcasts else 0.0
                 print(
                     f"[DQN] step={self.global_step} | epsilon={epsilon:.3f} | "
-                    f"mean_reward={mean_reward:.2f} | mean_coverage={mean_coverage:.2%} | q_loss={q_loss_val:.4f}"
+                    f"mean_reward={mean_reward:.2f} | mean_coverage={mean_coverage:.2%} | "
+                    f"mean_broadcast={mean_broadcast:.2%} | q_loss={q_loss_val:.4f}"
                 )
                 self._emit_progress(
                     "update",
@@ -321,6 +323,7 @@ class DQNTrainer:
                         "epsilon": float(epsilon),
                         "mean_reward": float(mean_reward),
                         "mean_coverage": float(mean_coverage),
+                        "mean_broadcast": float(mean_broadcast),
                         "q_loss": float(q_loss_val),
                     },
                 )

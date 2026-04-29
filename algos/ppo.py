@@ -85,9 +85,11 @@ class PPOTrainer:
             if update_idx % log_interval == 0:
                 mean_reward = np.mean(self.episode_rewards[-log_interval:]) if self.episode_rewards else 0.0
                 mean_coverage = np.mean(self.episode_coverages[-log_interval:]) if self.episode_coverages else 0.0
+                mean_broadcast = np.mean(self.episode_broadcasts[-log_interval:]) if self.episode_broadcasts else 0.0
                 print(
                     f"[Update {update_idx}] step={self.global_step} | "
                     f"mean_reward={mean_reward:.2f} | mean_coverage={mean_coverage:.2%} | "
+                    f"mean_broadcast={mean_broadcast:.2%} | "
                     f"loss_pi={loss_info['policy_loss']:.3f} | loss_v={loss_info['value_loss']:.3f}"
                 )
                 self._emit_progress(
@@ -97,6 +99,7 @@ class PPOTrainer:
                         "step": self.global_step,
                         "mean_reward": float(mean_reward),
                         "mean_coverage": float(mean_coverage),
+                        "mean_broadcast": float(mean_broadcast),
                         "loss_pi": float(loss_info["policy_loss"]),
                         "loss_v": float(loss_info["value_loss"]),
                     },

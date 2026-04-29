@@ -16,6 +16,13 @@ class TrainRequest(BaseModel):
     reward_mode: Optional[str] = Field(
         None, description="Reward profile key to override scenario defaults when env-type=multimodal."
     )
+    learning_rate: Optional[float] = Field(None, gt=0, description="Optimizer learning rate override.")
+    discount_factor: Optional[float] = Field(None, gt=0, le=1, description="Discount factor gamma override.")
+    batch_size: Optional[int] = Field(None, ge=1, description="Mini-batch or replay batch size override.")
+    rollout_steps: Optional[int] = Field(None, ge=1, description="On-policy rollout step override.")
+    entropy_coef: Optional[float] = Field(None, ge=0, description="Entropy coefficient override.")
+    clip_range: Optional[float] = Field(None, gt=0, description="Policy clip coefficient override.")
+    eval_interval: Optional[int] = Field(None, ge=1, description="Evaluation interval override.")
 
 
 class TrainResponse(BaseModel):
