@@ -17,6 +17,17 @@ frontend/dist/
 frontend/.vite/
 frontend/.env.local
 frontend/.env.*
+frontend/public/ns-3.46.1
+
+logs/
+.uvicorn.log
+
+ns-3.46.1/__pycache__/
+ns-3.46.1/build/
+ns-3.46.1/cmake-cache/
+ns-3.46.1/ns3_backend.log
+ns-3.46.1/simulation_history.db
+ns-3.46.1/trace.json
 
 .vscode/
 .idea/

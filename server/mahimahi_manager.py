@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import bisect
+import shutil
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -101,6 +102,10 @@ class MahimahiManager:
         self._traces_cache: List[Dict[str, Any]] = []
         self._analyzers: Dict[str, TraceAnalyzer] = {}
         self._load_all()
+
+    @property
+    def mahimahi_available(self) -> bool:
+        return shutil.which("mm-link") is not None
 
     def _load_all(self) -> None:
         """启动时一次性解析所有 trace 文件并缓存。"""
