@@ -38,6 +38,28 @@
 
         /* 地图与底层 */
         #map-container { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 1; background: var(--bg-base); }
+        #map-container::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 120;
+            pointer-events: none;
+            opacity: 0.28;
+            transition: opacity 0.35s ease, background 0.35s ease;
+            background: radial-gradient(circle at 50% 46%, rgba(0, 240, 255, 0.08) 0%, rgba(0, 240, 255, 0.03) 42%, transparent 74%);
+        }
+        #map-container.map-phase--normal::after {
+            opacity: 0.18;
+            background: radial-gradient(circle at 50% 46%, rgba(0, 240, 255, 0.08) 0%, rgba(0, 240, 255, 0.03) 42%, transparent 74%);
+        }
+        #map-container.map-phase--disaster::after {
+            opacity: 0.52;
+            background: radial-gradient(circle at 50% 46%, rgba(255, 0, 85, 0.22) 0%, rgba(255, 0, 85, 0.12) 38%, transparent 72%);
+        }
+        #map-container.map-phase--recovery::after {
+            opacity: 0.34;
+            background: radial-gradient(circle at 50% 46%, rgba(0, 255, 157, 0.14) 0%, rgba(0, 240, 255, 0.1) 38%, transparent 72%);
+        }
         #map { width: 100%; height: 100%; background: var(--bg-base); }
         .leaflet-image-layer { filter: invert(95%) hue-rotate(180deg) brightness(0.6) contrast(1.2) grayscale(0.2); mix-blend-mode: screen; opacity: 0.8 !important; }
         .leaflet-control-attribution { display: none; }
@@ -88,9 +110,11 @@
         .status-card { padding: 14px; border-radius: 8px; display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-panel); }
         .status-card.normal { background: rgba(0, 255, 157, 0.05); border-color: rgba(0, 255, 157, 0.2); }
         .status-card.disaster { background: rgba(255, 0, 85, 0.1); border-color: rgba(255, 0, 85, 0.4); }
+        .status-card.recovery { background: rgba(0, 240, 255, 0.1); border-color: rgba(0, 240, 255, 0.3); }
         .status-dot { width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 8px currentColor; }
         .status-dot.green { background: var(--success); color: var(--success); }
         .status-dot.red { background: var(--danger); color: var(--danger); animation: blink 1s infinite; }
+        .status-dot.cyan { background: var(--primary); color: var(--primary); animation: pulse 1.4s ease-in-out infinite; }
         .status-text { font-size: 13px; font-weight: 600; letter-spacing: 0.5px; }
 
         /* 右侧装备面板 */
@@ -128,7 +152,15 @@
         /* 灾害警报 */
         .disaster-alert { position: fixed; top: 140px; left: 50%; transform: translateX(-50%); background: rgba(255, 0, 85, 0.15); backdrop-filter: blur(10px); border: 1px solid var(--danger); color: var(--danger); padding: 12px 30px; border-radius: 30px; font-weight: 700; font-size: 14px; letter-spacing: 1px; z-index: 1100; display: none; align-items: center; gap: 10px; box-shadow: 0 0 30px rgba(255,0,85,0.4); animation: alert-flash 1s infinite; }
         .disaster-alert.show { display: flex; }
+        .disaster-alert.recovery {
+            background: rgba(0, 240, 255, 0.12);
+            border-color: rgba(0, 240, 255, 0.38);
+            color: #bff8ff;
+            box-shadow: 0 0 26px rgba(0, 240, 255, 0.22);
+            animation: none;
+        }
         @keyframes alert-flash { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.58; } }
 
         .mini-chart { height: 70px; margin-top: 10px; width: 100%; }
 
@@ -315,7 +347,7 @@
         ];
 
         let nodes = [], links =[], currentExp = null;
-        let isPlaying = false, currentTime = 0, isDisaster = false;
+        let isPlaying = false, currentTime = 0, isDisaster = false, currentPhase = 'normal';
         let animationId = null, lastUpdateTime = 0;
         let chartData = { times:[], throughput: [], latency:[] };
         let map = null; let overlayCanvas, overlayCtx;
@@ -458,6 +490,7 @@
             generateNodes();
             generateSimulationData();
             initChart();
+            syncScenarioState();
             updateUI();
 
             const resizeObserver = new ResizeObserver(() => resizeCanvas());
@@ -578,29 +611,180 @@
         function generateSimulationData() {
             chartData = { times:[], throughput:[], latency:[] };
             for (let t = 0; t <= CONFIG.simDuration; t++) {
-                let tp = t < CONFIG.disasterTime ? (85 + Math.random()*10) : (t < CONFIG.disasterTime+10 ? 15+Math.random()*5 : 45+Math.random()*8);
-                let lat = t < CONFIG.disasterTime ? (12 + Math.random()*3) : (t < CONFIG.disasterTime+10 ? 80+Math.random()*20 : 35+Math.random()*10);
+                let tp;
+                let lat;
+                if (t < CONFIG.disasterTime) {
+                    tp = 85 + Math.random() * 10;
+                    lat = 12 + Math.random() * 3;
+                } else if (t < CONFIG.disasterTime + 10) {
+                    tp = 15 + Math.random() * 5;
+                    lat = 80 + Math.random() * 20;
+                } else {
+                    const recoveryWindow = Math.max(1, CONFIG.simDuration - CONFIG.disasterTime - 10);
+                    const recoveryRatio = Math.min(1, Math.max(0, (t - CONFIG.disasterTime - 10) / recoveryWindow));
+                    tp = 42 + recoveryRatio * 38 + Math.random() * 6;
+                    lat = 38 - recoveryRatio * 18 + Math.random() * 8;
+                }
                 chartData.times.push(t); chartData.throughput.push(tp); chartData.latency.push(lat);
             }
             generateLinks();
+        }
+
+        function getRecoveryTimeline() {
+            const remaining = Math.max(1, CONFIG.simDuration - CONFIG.disasterTime);
+            const recoveryStart = Math.min(CONFIG.simDuration, CONFIG.disasterTime + Math.max(12, remaining * 0.22));
+            const recoveryComplete = Math.min(CONFIG.simDuration, CONFIG.disasterTime + Math.max(32, remaining * 0.78));
+            return { recoveryStart, recoveryComplete };
+        }
+
+        function getRecoveryProgress(time = currentTime) {
+            const { recoveryStart, recoveryComplete } = getRecoveryTimeline();
+            if (time <= recoveryStart) return 0;
+            if (time >= recoveryComplete) return 1;
+            return (time - recoveryStart) / Math.max(1, recoveryComplete - recoveryStart);
+        }
+
+        function getPhaseForTime(time = currentTime) {
+            if (time < CONFIG.disasterTime) return 'normal';
+            const recoveryProgress = getRecoveryProgress(time);
+            if (recoveryProgress >= 0.995) return 'restored';
+            if (recoveryProgress > 0.12) return 'recovery';
+            return 'disaster';
+        }
+
+        function setSystemVisualState(phase) {
+            const alertEl = document.getElementById('disasterAlert');
+            const statusCard = document.getElementById('statusCard');
+            const statusText = document.getElementById('statusText');
+            const statusDot = document.getElementById('statusDot');
+            const mapContainer = document.getElementById('map-container');
+
+            mapContainer.classList.remove('map-phase--normal', 'map-phase--disaster', 'map-phase--recovery');
+            alertEl.classList.remove('show', 'recovery');
+
+            if (phase === 'normal') {
+                mapContainer.classList.add('map-phase--normal');
+                statusCard.className = 'status-card normal';
+                statusText.textContent = '通信枢纽运行正常';
+                statusDot.className = 'status-dot green';
+                return;
+            }
+
+            if (phase === 'disaster') {
+                mapContainer.classList.add('map-phase--disaster');
+                alertEl.textContent = '⚠ 监测到极端灾害 | 宏基站受损 | 应急自组网协议已激活';
+                alertEl.classList.add('show');
+                statusCard.className = 'status-card disaster';
+                statusText.textContent = '极端灾害爆发 | 宏网熔断';
+                statusDot.className = 'status-dot red';
+                return;
+            }
+
+            mapContainer.classList.add('map-phase--recovery');
+            alertEl.classList.add('show', 'recovery');
+            statusCard.className = 'status-card recovery';
+            statusDot.className = 'status-dot cyan';
+
+            if (phase === 'restored') {
+                alertEl.textContent = '✓ 主干链路已恢复 | 宏站回传重建 | 通信网络趋于稳定';
+                statusText.textContent = '通信网络已恢复 | 覆盖稳定';
+                return;
+            }
+
+            alertEl.textContent = '↻ 应急链路接管中 | 回传骨干重建 | 覆盖持续回升';
+            statusText.textContent = '应急链路重构中 | 网络恢复推进';
+        }
+
+        function applyNodeStateForTime(time = currentTime) {
+            const phase = getPhaseForTime(time);
+            const recoveryProgress = getRecoveryProgress(time);
+            const macroNodes = nodes.filter(n => n.type === 'MACRO');
+            const manpackNodes = nodes.filter(n => n.type === 'MANPACK');
+            const smallCellNodes = nodes.filter(n => n.type === 'SMALL_CELL');
+            const relayNodes = nodes.filter(n => n.type === 'RELAY');
+
+            if (phase === 'normal') {
+                nodes.forEach(n => {
+                    if (n.type === 'MACRO' || n.type === 'SMALL_CELL' || n.type === 'USER') n.online = true;
+                    if (n.type === 'MANPACK' || n.type === 'RELAY') n.online = false;
+                });
+                return;
+            }
+
+            macroNodes.forEach((node, index) => {
+                const normalized = macroNodes.length <= 1 ? 1 : index / (macroNodes.length - 1);
+                node.online = recoveryProgress >= normalized * 0.9;
+            });
+
+            manpackNodes.forEach((node, index) => {
+                if (phase === 'restored') {
+                    node.online = index / Math.max(1, manpackNodes.length) < 0.35;
+                    return;
+                }
+                node.online = recoveryProgress >= 0.02 || index < Math.ceil(manpackNodes.length * 0.85);
+            });
+
+            smallCellNodes.forEach((node, index) => {
+                if (phase === 'restored') {
+                    node.online = index / Math.max(1, smallCellNodes.length) < 0.92;
+                    return;
+                }
+                node.online = recoveryProgress >= 0.08 || index < Math.ceil(smallCellNodes.length * 0.72);
+            });
+
+            relayNodes.forEach((node, index) => {
+                if (phase === 'restored') {
+                    node.online = index / Math.max(1, relayNodes.length) < 0.18;
+                    return;
+                }
+                node.online = recoveryProgress >= 0.01 || index < Math.ceil(relayNodes.length * 0.95);
+            });
+        }
+
+        function syncScenarioState() {
+            const nextPhase = getPhaseForTime(currentTime);
+            const previousPhase = currentPhase;
+            const phaseChanged = previousPhase !== nextPhase;
+
+            isDisaster = nextPhase !== 'normal';
+            applyNodeStateForTime(currentTime);
+            setSystemVisualState(nextPhase);
+            currentPhase = nextPhase;
+
+            if (!phaseChanged) return;
+
+            if (nextPhase === 'disaster') {
+                logEvent('ERROR', 'SYS_ALERT', '探测到物理层毁灭性打击！灾区内宏基站心跳彻底丢失。');
+                nodes.filter(n => n.type === 'MACRO' && !n.online).forEach(n => {
+                    logEvent('ERROR', 'NODE_OFFLINE', `MACRO_${n.id} 连接丢失，硬件损毁`, false);
+                });
+                logEvent('SYSTEM', 'CMD_EXEC', '应急干预启动：唤醒自组网集群接入...');
+            } else if (nextPhase === 'recovery') {
+                logEvent('SYSTEM', 'RECOVERY', '应急链路已接管核心业务，骨干回传正在重建。');
+            } else if (nextPhase === 'restored') {
+                logEvent('SYSTEM', 'RECOVERY_DONE', '主干链路恢复完成，通信网络进入稳定运行阶段。');
+            }
         }
 
         function generateLinks() {
             links =[];
             const users = nodes.filter(n => n.type === 'USER' && n.online);
             const baseStations = nodes.filter(n =>['MACRO', 'MANPACK', 'SMALL_CELL', 'RELAY'].includes(n.type) && n.online);
-            const maxLinks = isDisaster ? 400 : 250;
+            const recoveryProgress = getRecoveryProgress(currentTime);
+            const maxLinks = isDisaster ? Math.round(400 - recoveryProgress * 110) : 250;
+            const baseReach = isDisaster ? 800 + recoveryProgress * 420 : 1200;
+            const d2dChance = Math.max(0.16, 0.62 - recoveryProgress * 0.44);
 
             users.forEach((user, idx) => {
                 if (idx > maxLinks) return;
                 let nearest = null, minDist = Infinity;
                 for (const bs of baseStations) {
                     const dist = Math.hypot(bs.x - user.x, bs.y - user.y);
-                    if (dist < minDist && dist < (isDisaster ? 800 : 1200)) { minDist = dist; nearest = bs; }
+                    if (dist < minDist && dist < baseReach) { minDist = dist; nearest = bs; }
                 }
                 if (nearest) links.push({ src: user, dst: nearest, type: 'LTE' });
 
-                if (isDisaster && Math.random() > 0.6) {
+                if (isDisaster && Math.random() > d2dChance) {
                     const randomUser = users[Math.floor(Math.random() * users.length)];
                     if(Math.hypot(randomUser.x - user.x, randomUser.y - user.y) < 300) {
                         links.push({ src: user, dst: randomUser, type: 'WIFI' });
@@ -659,18 +843,9 @@
         }
 
         function triggerDisaster() {
-            if (isDisaster) return;
-            isDisaster = true;
-            logEvent('ERROR', 'SYS_ALERT', '探测到物理层毁灭性打击！灾区内宏基站心跳彻底丢失。');
-            nodes.forEach(n => {
-                if (n.type === 'MACRO') { n.online = false; logEvent('ERROR', 'NODE_OFFLINE', `MACRO_${n.id} 连接丢失，硬件损毁`, false); }
-                if (n.type === 'MANPACK' || n.type === 'RELAY') n.online = true;
-            });
-            document.getElementById('disasterAlert').classList.add('show');
-            document.getElementById('statusCard').className = 'status-card disaster';
-            document.getElementById('statusText').textContent = '极端灾害爆发 | 宏网熔断';
-            document.getElementById('statusDot').className = 'status-dot red';
-            logEvent('SYSTEM', 'CMD_EXEC', '应急干预启动：唤醒自组网集群接入...');
+            if (currentPhase !== 'normal') return;
+            currentTime = Math.max(currentTime, CONFIG.disasterTime);
+            syncScenarioState();
             generateLinks();
         }
 
@@ -729,7 +904,17 @@
             document.getElementById('currentFrame').textContent = Math.round(1/delta);
             currentTime += delta * 2;
             if (currentTime >= CONFIG.disasterTime && !isDisaster) triggerDisaster();
-            if (currentTime >= CONFIG.simDuration) { currentTime = CONFIG.simDuration; togglePlay(); logEvent('SYSTEM', 'SYS_FINISH', '进程自然结束，请导出最终日志'); return; }
+            syncScenarioState();
+            if (currentTime >= CONFIG.simDuration) {
+                currentTime = CONFIG.simDuration;
+                syncScenarioState();
+                generateLinks();
+                updateUI();
+                drawOverlay();
+                togglePlay();
+                logEvent('SYSTEM', 'SYS_FINISH', '进程自然结束，网络已收敛至恢复态。');
+                return;
+            }
             for (const node of nodes) {
                 if (node.type !== 'USER') continue;
                 if (Math.random() < 0.05) { node.vx = (Math.random() - 0.5) * 20; node.vy = (Math.random() - 0.5) * 20; }
@@ -743,14 +928,13 @@
         }
 
         function seekTime(time) {
+            const previousPhase = getPhaseForTime(currentTime);
             currentTime = parseFloat(time);
-            if (currentTime >= CONFIG.disasterTime && !isDisaster) triggerDisaster();
-            else if (currentTime < CONFIG.disasterTime && isDisaster) {
-                isDisaster = false;
-                document.getElementById('disasterAlert').classList.remove('show'); document.getElementById('statusCard').className = 'status-card normal'; document.getElementById('statusText').textContent = '通信枢纽运行正常'; document.getElementById('statusDot').className = 'status-dot green';
-                nodes.forEach(n => { if (n.type === 'MACRO') n.online = true; if (n.type === 'MANPACK' || n.type === 'RELAY') n.online = false; });
+            const nextPhase = getPhaseForTime(currentTime);
+            if (nextPhase !== previousPhase && nextPhase === 'normal' && previousPhase !== 'normal') {
                 logEvent('WARN', 'SYS_ROLLBACK', '推演时间轴倒流回溯。');
             }
+            syncScenarioState();
             generateLinks(); updateUI(); drawOverlay();
         }
 
@@ -759,15 +943,14 @@
 
         function resetSimulation() {
             if(isPlaying) togglePlay();
-            currentTime = 0; isDisaster = false;
-            document.getElementById('disasterAlert').classList.remove('show'); document.getElementById('statusCard').className = 'status-card normal'; document.getElementById('statusText').textContent = '通信枢纽运行正常'; document.getElementById('statusDot').className = 'status-dot green';
+            currentTime = 0; isDisaster = false; currentPhase = 'normal';
 
             clearDB();
             document.getElementById('eventLog').innerHTML = ''; // 清空面板
             document.getElementById('logQuery').value = ''; // 清空搜索框
             isQueryMode = false;
 
-            generateNodes(); generateLinks(); updateUI(); drawOverlay();
+            generateNodes(); syncScenarioState(); generateLinks(); updateUI(); drawOverlay();
             logEvent('SYSTEM', 'SYS_RESET', '全局缓存已释放，DB清空完毕。');
         }
 
