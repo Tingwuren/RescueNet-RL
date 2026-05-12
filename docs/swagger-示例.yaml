@@ -1,0 +1,247 @@
+openapi: 3.0.1
+info:
+  title: 安全管理
+  description: 安全管理
+  version: 1.0.0
+servers:
+  - url: https://127.0.0.1:8000/
+tags:
+  - name: 安全证书管理
+    description: 安全证书管理(新增、编辑、删除、查看、列表查询)
+paths:
+  ###安全证书管理###
+  /sm/securityCertificate:
+    post:
+      tags:
+        - 安全证书管理
+      summary: 新增安全证书
+      operationId: addSecurityCertificate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecurityCertificateVo'
+        required: true
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReturnResult'
+
+  /sm/securityCertificate/{id}:
+    get:
+      tags:
+        - 安全证书管理
+      summary: 获取安全证书详情
+      operationId: findSecurityCertificateById
+      parameters:
+        - name: id
+          in: path
+          description: 主键ID
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SecurityCertificateVo'
+                allOf:
+                  - $ref: '#/components/schemas/ReturnResult'
+    put:
+      tags:
+        - 安全证书管理
+      summary: 修改安全证书
+      operationId: updateSecurityCertificate
+      parameters:
+        - name: id
+          in: path
+          description: 主键ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecurityCertificateVo'
+        required: true
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReturnResult'
+
+    delete:
+      tags:
+        - 安全证书管理
+      summary: 删除安全证书
+      operationId: deleteSecurityCertificate
+      parameters:
+        - name: id
+          in: path
+          description: 主键ID
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReturnResult'
+  /sm/securityCertificate/search:
+    post:
+      tags:
+        - 安全证书管理
+      summary: 获取安全证书列表-分页
+      operationId: findSecurityCertificates
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                certSn:
+                  type: string
+                  description: 证书编号
+                ebrTypeCode:
+                  type: string
+                  description: 资源类型编码
+                ebrid:
+                  type: string
+                  description: 资源编码
+                ebrName:
+                  type: string
+                  description: 资源名称
+                regionCode:
+                  type: string
+                  description: 行政区划编码
+                certStatus:
+                  type: string
+                  description: 证书状态（0：不可用，1:可用）
+              allOf:
+                - $ref: '#/components/schemas/SearchBody'
+        required: true
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecurityCertificatePageVoList'
+
+##### components ####
+components:
+  schemas:
+    SecurityCertificatePageVoList:
+      properties:
+        data:
+          type: object
+          properties:
+            totalElements:
+              type: string
+              description: 记录总数
+            totalPages:
+              type: string
+              description: 总页数
+            first:
+              type: boolean
+              description: 是否第一页
+            last:
+              type: boolean
+              description: 是否最后一页
+            number:
+              type: string
+              description: 当前页数，页码从0开始
+            size:
+              type: string
+              description: 每页记录数
+            sort:
+              type: string
+            numberOfElements:
+              type: string
+              description: 返回记录条数
+            content:
+              type: array
+              items:
+                $ref: '#/components/schemas/SecurityCertificateVo'
+      allOf:
+        - $ref: '#/components/schemas/ReturnResult'
+    SecurityCertificateVo:
+      type: object
+      properties:
+        id:
+          type: string
+          description: ID
+        certSn:
+          type: string
+          description: 证书编号
+        ebrTypeCode:
+          type: string
+          description: 资源类型编码
+        ebrTypeName:
+          type: string
+          description: 资源类型名称
+        ebrid:
+          type: string
+          description: 资源编码
+        ebrName:
+          type: string
+          description: 资源名称
+        regionCode:
+          type: string
+          description: 行政区划编码
+        regionName:
+          type: string
+          description: 行政区划名称
+        certStatus:
+          type: string
+          description: 证书状态（0：不可用，1:可用）
+        publicKey:
+          type: string
+          description: 证书公钥
+    ##### common model ####
+    SearchBody:
+      type: object
+      properties:
+        page:
+          type: string
+        size:
+          type: string
+    ReturnResult:
+      type: object
+      properties:
+        code:
+          type: string
+          description: |
+            
+            ##### 状态说明
+            ```
+            2000 操作成功
+            4000 操作失败
+            4001 验证码出错
+            4002 用户名或密码错误
+            5000 后台逻辑错误
+            5001 令牌失效或过期
+            5009 未知错误
+            ```
+        msg:
+          type: string
+  ############################ parameters#####################
+  parameters:
+    id-p:
+      name: id
+      in: path
+      description: 主键ID
+      required: true
+      schema:
+        type: string

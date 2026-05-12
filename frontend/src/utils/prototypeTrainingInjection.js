@@ -336,7 +336,7 @@ function trainingInjector(apiBase) {
   function scenarioDisplayName(scenario) {
     if (!scenario) return "未选择场景";
     var typeMap = {
-      flood: "洪涝孤岛通信恢复",
+      flood: "洪水孤岛通信恢复",
       earthquake: "地震灾后断链恢复",
       landslide: "泥石流滑坡通信阻断恢复",
       typhoon: "台风灾后残余网络",
@@ -794,7 +794,7 @@ function trainingInjector(apiBase) {
       panelVisibleId: scenePanel.panelVisibleId,
       panelHiddenId: scenePanel.panelHiddenId,
       items: [
-        { value: "flood", label: "洪涝" },
+        { value: "flood", label: "洪水" },
         { value: "earthquake", label: "地震" },
         { value: "landslide", label: "滑坡" },
         { value: "typhoon", label: "台风" },
@@ -821,7 +821,7 @@ function trainingInjector(apiBase) {
       items: [
         { value: "川西震后山区网格", label: "川西震后山区网格" },
         { value: "沿海台风残余网络区", label: "沿海台风残余网络区" },
-        { value: "洪涝孤岛网格区", label: "洪涝孤岛网格区" },
+        { value: "洪水孤岛网格区", label: "洪水孤岛网格区" },
         { value: "滑坡阻断山区网格", label: "滑坡阻断山区网格" },
       ],
     });
@@ -947,7 +947,7 @@ function trainingInjector(apiBase) {
     modal.style.cssText = "position:fixed;inset:0;background:rgba(2,6,23,0.48);z-index:99999;display:flex;align-items:center;justify-content:center;";
     var rows = scenes.map(function (scene, index) {
       var typeLabel = {
-        flood: "洪涝",
+        flood: "洪水",
         earthquake: "地震",
         landslide: "滑坡",
         typhoon: "台风",

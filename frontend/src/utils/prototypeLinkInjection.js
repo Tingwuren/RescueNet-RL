@@ -67,7 +67,7 @@ function algorithmLabel(key) {
 
 function disasterLabel(type) {
   const mapping = {
-    flood: "洪涝孤岛通信恢复",
+    flood: "洪水孤岛通信恢复",
     earthquake: "地震灾后断链恢复",
     landslide: "泥石流滑坡通信阻断恢复",
     typhoon: "台风灾后残余网络",

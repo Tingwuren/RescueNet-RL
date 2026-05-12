@@ -1,0 +1,1042 @@
+openapi: 3.1.0
+info:
+  title: RescueNet-RL API
+  version: 0.1.0
+  description: Auto-exported from FastAPI app in server/api.py
+paths:
+  /api/health:
+    get:
+      summary: 服务健康检查
+      operationId: health_check_api_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
+                title: Response Health Check Api Health Get
+      tags:
+      - 系统状态
+  /api/train/latest-artifact:
+    get:
+      summary: 获取最新训练产物
+      operationId: latest_training_artifact_api_train_latest_artifact_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Latest Training Artifact Api Train Latest Artifact
+                  Get
+      tags:
+      - 训练管理
+  /api/train/artifacts:
+    get:
+      summary: 获取训练产物列表
+      operationId: list_training_artifacts_api_train_artifacts_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  items:
+                    additionalProperties: true
+                    type: object
+                  type: array
+                type: object
+                title: Response List Training Artifacts Api Train Artifacts Get
+      tags:
+      - 训练管理
+  /api/train/artifacts/detail:
+    get:
+      summary: 获取训练产物详情
+      operationId: training_artifact_detail_api_train_artifacts_detail_get
+      parameters:
+      - name: run_dir
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Run Dir
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Training Artifact Detail Api Train Artifacts Detail
+                  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - 训练管理
+  /api/scenarios:
+    get:
+      summary: 获取场景列表
+      operationId: list_scenarios_api_scenarios_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  items:
+                    additionalProperties: true
+                    type: object
+                  type: array
+                type: object
+                title: Response List Scenarios Api Scenarios Get
+      tags:
+      - 场景管理
+  /api/train:
+    post:
+      summary: 发起训练任务
+      operationId: start_training_api_train_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrainRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - 训练管理
+  /api/train/{run_id}:
+    get:
+      summary: 查询训练状态
+      operationId: get_training_status_api_train__run_id__get
+      parameters:
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingStatus'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - 训练管理
+  /api/train/{run_id}/stream:
+    get:
+      summary: 订阅训练事件流
+      operationId: stream_training_events_api_train__run_id__stream_get
+      parameters:
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            text/event-stream:
+              schema:
+                type: string
+              example: 'data: {"type":"status","payload":{"state":"running"}}\n\n'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - 训练管理
+  /api/simulate:
+    post:
+      summary: 执行策略仿真
+      operationId: simulate_strategy_api_simulate_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SimulationRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimulationResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - 策略仿真
+  /api/simulate/scene:
+    post:
+      summary: 导入仿真场景预览
+      operationId: import_simulation_scene_api_simulate_scene_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SceneImportRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SceneImportResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - 策略仿真
+  /api/simulate/stream:
+    post:
+      summary: 订阅仿真事件流
+      operationId: stream_simulation_api_simulate_stream_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SimulationRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            text/event-stream:
+              schema:
+                type: string
+              example: 'data: {"type":"log","payload":{"message":"开始加载场景"}}\n\n'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - 策略仿真
+  /api/mahimahi/status:
+    get:
+      summary: 获取 Mahimahi 环境状态
+      operationId: mahimahi_status_api_mahimahi_status_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Mahimahi Status Api Mahimahi Status Get
+      tags:
+      - Mahimahi仿真
+  /api/mahimahi/traces:
+    get:
+      summary: 获取 Trace 列表
+      operationId: list_mahimahi_traces_api_mahimahi_traces_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  items:
+                    additionalProperties: true
+                    type: object
+                  type: array
+                type: object
+                title: Response List Mahimahi Traces Api Mahimahi Traces Get
+      tags:
+      - Mahimahi仿真
+  /api/mahimahi/traces/{trace_name}:
+    get:
+      summary: 获取 Trace 分析结果
+      operationId: get_trace_analysis_api_mahimahi_traces__trace_name__get
+      parameters:
+      - name: trace_name
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Trace Name
+      - name: duration_s
+        in: query
+        required: false
+        schema:
+          type: number
+          default: 60
+          title: Duration S
+      - name: window_ms
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 500
+          title: Window Ms
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Get Trace Analysis Api Mahimahi Traces  Trace Name  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - Mahimahi仿真
+  /api/mahimahi/simulate:
+    post:
+      summary: 执行 Mahimahi 仿真
+      operationId: mahimahi_simulate_api_mahimahi_simulate_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MahimahiSimulateRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MahimahiSimulateResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - Mahimahi仿真
+  /api/mahimahi/simulate/stream:
+    post:
+      summary: 订阅 Mahimahi 仿真事件流
+      description: SSE stream that pushes simulation progress and final results.
+      operationId: mahimahi_simulate_stream_api_mahimahi_simulate_stream_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MahimahiSimulateRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            text/event-stream:
+              schema:
+                type: string
+              example: 'data: {"type":"data_chunk","payload":{"capacity":[]}}\n\n'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - Mahimahi仿真
+  /api/ns3/status:
+    get:
+      summary: 获取 ns-3 回放状态
+      operationId: ns3_status_api_ns3_status_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Ns3 Status Api Ns3 Status Get
+      tags:
+      - ns-3回放
+  /api/ns3/run:
+    post:
+      summary: 启动 ns-3 仿真
+      operationId: ns3_run_api_ns3_run_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Ns3 Run Api Ns3 Run Post
+      tags:
+      - ns-3回放
+  /api/import:
+    post:
+      summary: 手动导入 ns-3 Trace
+      operationId: ns3_manual_import_api_import_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Ns3 Manual Import Api Import Post
+      tags:
+      - ns-3回放
+  /api/experiments:
+    get:
+      summary: 获取实验列表
+      operationId: list_ns3_experiments_api_experiments_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  additionalProperties: true
+                  type: object
+                type: array
+                title: Response List Ns3 Experiments Api Experiments Get
+      tags:
+      - ns-3回放
+  /api/exp/{exp_id}/charts:
+    get:
+      summary: 获取实验图表数据
+      operationId: get_ns3_charts_api_exp__exp_id__charts_get
+      parameters:
+      - name: exp_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Exp Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: array
+                  items:
+                    type: number
+                title: Response Get Ns3 Charts Api Exp  Exp Id  Charts Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - ns-3回放
+  /api/exp/{exp_id}/frame/{frame_idx}:
+    get:
+      summary: 获取实验帧数据
+      operationId: get_ns3_frame_api_exp__exp_id__frame__frame_idx__get
+      parameters:
+      - name: exp_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Exp Id
+      - name: frame_idx
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Frame Idx
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Get Ns3 Frame Api Exp  Exp Id  Frame  Frame Idx  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - ns-3回放
+components:
+  schemas:
+    CustomBaseStation:
+      properties:
+        x:
+          type: integer
+          title: X
+          description: Region grid row index for the residual base station
+        y:
+          type: integer
+          title: Y
+          description: Region grid column index for the residual base station
+        base_station:
+          type: string
+          title: Base Station
+          description: Base-station profile key defined in the scenario dataset.
+        mode:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Mode
+          description: Communication mode to activate; defaults to the first supported
+            mode of the base-station type.
+      type: object
+      required:
+      - x
+      - y
+      - base_station
+      title: CustomBaseStation
+    CustomDevice:
+      properties:
+        x:
+          type: integer
+          title: X
+          description: Region grid row index (formerly X)
+        y:
+          type: integer
+          title: Y
+          description: Region grid column index (formerly Y)
+        demand:
+          type: number
+          title: Demand
+          description: Demand in Mbps
+          default: 10.0
+        connected:
+          type: boolean
+          title: Connected
+          description: Initial connectivity flag
+          default: false
+        broadcast_served:
+          type: boolean
+          title: Broadcast Served
+          description: Initial broadcast coverage flag
+          default: false
+      type: object
+      required:
+      - x
+      - y
+      title: CustomDevice
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    MahimahiSimulateRequest:
+      properties:
+        trace_name:
+          type: string
+          title: Trace Name
+          description: Name of the trace file (without .trace extension)
+        duration_s:
+          type: number
+          maximum: 300.0
+          minimum: 1.0
+          title: Duration S
+          description: Simulation duration in seconds
+          default: 60.0
+        rtt_ms:
+          type: number
+          maximum: 2000.0
+          minimum: 1.0
+          title: Rtt Ms
+          description: Round-trip time in milliseconds
+          default: 80.0
+        buffer_packets:
+          type: integer
+          maximum: 10000.0
+          minimum: 1.0
+          title: Buffer Packets
+          description: Buffer size in packets
+          default: 100
+        window_ms:
+          type: integer
+          maximum: 5000.0
+          minimum: 100.0
+          title: Window Ms
+          description: Aggregation window in milliseconds
+          default: 500
+      type: object
+      required:
+      - trace_name
+      title: MahimahiSimulateRequest
+    MahimahiSimulateResponse:
+      properties:
+        trace_name:
+          type: string
+          title: Trace Name
+        duration_s:
+          type: number
+          title: Duration S
+        rtt_ms:
+          type: number
+          title: Rtt Ms
+        buffer_packets:
+          type: integer
+          title: Buffer Packets
+        window_ms:
+          type: integer
+          title: Window Ms
+        mahimahi_native:
+          type: boolean
+          title: Mahimahi Native
+        capacity:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Capacity
+        throughput:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Throughput
+        sending_rate:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Sending Rate
+        stats:
+          $ref: '#/components/schemas/MahimahiStats'
+      type: object
+      required:
+      - trace_name
+      - duration_s
+      - rtt_ms
+      - buffer_packets
+      - window_ms
+      - mahimahi_native
+      - capacity
+      - throughput
+      - sending_rate
+      - stats
+      title: MahimahiSimulateResponse
+    MahimahiStats:
+      properties:
+        avg_capacity_mbps:
+          type: number
+          title: Avg Capacity Mbps
+        avg_throughput_mbps:
+          type: number
+          title: Avg Throughput Mbps
+        avg_sending_rate_mbps:
+          type: number
+          title: Avg Sending Rate Mbps
+        utilization:
+          type: number
+          title: Utilization
+        loss_rate:
+          type: number
+          title: Loss Rate
+        total_delivered_mb:
+          type: number
+          title: Total Delivered Mb
+      type: object
+      required:
+      - avg_capacity_mbps
+      - avg_throughput_mbps
+      - avg_sending_rate_mbps
+      - utilization
+      - loss_rate
+      - total_delivered_mb
+      title: MahimahiStats
+    SceneExport:
+      properties:
+        disaster_scene_path:
+          type: string
+          title: Disaster Scene Path
+        deployment_scene_path:
+          type: string
+          title: Deployment Scene Path
+        disaster_scene:
+          additionalProperties: true
+          type: object
+          title: Disaster Scene
+        deployment_scene:
+          additionalProperties: true
+          type: object
+          title: Deployment Scene
+      type: object
+      required:
+      - disaster_scene_path
+      - deployment_scene_path
+      - disaster_scene
+      - deployment_scene
+      title: SceneExport
+    SceneImportRequest:
+      properties:
+        scenario_name:
+          type: string
+          title: Scenario Name
+          description: Scenario to import as a disaster scene.
+          default: typhoon_residual
+        env_type:
+          type: string
+          enum:
+          - baseline
+          - multimodal
+          title: Env Type
+          description: Environment variant.
+          default: multimodal
+        custom_base_stations:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/CustomBaseStation'
+            type: array
+          - type: 'null'
+          title: Custom Base Stations
+          description: Residual base stations to materialize in the imported scene;
+            empty list means fully damaged.
+      type: object
+      title: SceneImportRequest
+    SceneImportResponse:
+      properties:
+        scenario:
+          additionalProperties: true
+          type: object
+          title: Scenario
+        initial_state:
+          additionalProperties: true
+          type: object
+          title: Initial State
+        scene:
+          additionalProperties: true
+          type: object
+          title: Scene
+      type: object
+      required:
+      - scenario
+      - initial_state
+      - scene
+      title: SceneImportResponse
+    SimulationRequest:
+      properties:
+        scenario_name:
+          type: string
+          title: Scenario Name
+          description: Scenario to use as baseline.
+          default: typhoon_residual
+        checkpoint_path:
+          type: string
+          title: Checkpoint Path
+          description: Policy checkpoint to load.
+          default: artifacts/ppo_policy.pt
+        env_type:
+          type: string
+          enum:
+          - baseline
+          - multimodal
+          title: Env Type
+          description: Environment variant.
+          default: multimodal
+        algorithm:
+          type: string
+          enum:
+          - ppo
+          - dqn
+          - a3c
+          - mppo
+          title: Algorithm
+          description: Policy algorithm.
+          default: ppo
+        reward_mode:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reward Mode
+          description: Reward profile key to align evaluation with the training configuration.
+        episodes:
+          type: integer
+          minimum: 1.0
+          title: Episodes
+          description: Evaluation episodes to run.
+          default: 1
+        stochastic_eval:
+          type: boolean
+          title: Stochastic Eval
+          description: Sample actions during evaluation.
+          default: true
+        eval_seed:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Eval Seed
+          description: Optional random seed for reproducible stochastic evaluation.
+        custom_devices:
+          items:
+            $ref: '#/components/schemas/CustomDevice'
+          type: array
+          title: Custom Devices
+          description: Custom device definitions.
+        custom_base_stations:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/CustomBaseStation'
+            type: array
+          - type: 'null'
+          title: Custom Base Stations
+          description: Residual base-station deployments; empty list means fully damaged
+            with no residual network.
+      type: object
+      title: SimulationRequest
+    SimulationResponse:
+      properties:
+        avg_reward:
+          type: number
+          title: Avg Reward
+        avg_final_coverage:
+          type: number
+          title: Avg Final Coverage
+        reports:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Reports
+        scene_export:
+          anyOf:
+          - $ref: '#/components/schemas/SceneExport'
+          - type: 'null'
+      type: object
+      required:
+      - avg_reward
+      - avg_final_coverage
+      - reports
+      title: SimulationResponse
+    TrainRequest:
+      properties:
+        scenario_name:
+          type: string
+          title: Scenario Name
+          description: Scenario key defined in data/scenarios.json
+        env_type:
+          type: string
+          enum:
+          - baseline
+          - multimodal
+          title: Env Type
+          description: Environment variant to train
+          default: multimodal
+        algorithm:
+          type: string
+          enum:
+          - ppo
+          - dqn
+          - a3c
+          - mppo
+          title: Algorithm
+          description: Training algorithm.
+          default: ppo
+        total_timesteps:
+          anyOf:
+          - type: integer
+            minimum: 1000.0
+          - type: 'null'
+          title: Total Timesteps
+          description: Override PPO total timesteps
+        stochastic_eval:
+          type: boolean
+          title: Stochastic Eval
+          description: Use stochastic actions during eval
+          default: true
+        reward_mode:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reward Mode
+          description: Reward profile key to override scenario defaults when env-type=multimodal.
+        learning_rate:
+          anyOf:
+          - type: number
+            exclusiveMinimum: 0.0
+          - type: 'null'
+          title: Learning Rate
+          description: Optimizer learning rate override.
+        discount_factor:
+          anyOf:
+          - type: number
+            maximum: 1.0
+            exclusiveMinimum: 0.0
+          - type: 'null'
+          title: Discount Factor
+          description: Discount factor gamma override.
+        batch_size:
+          anyOf:
+          - type: integer
+            minimum: 1.0
+          - type: 'null'
+          title: Batch Size
+          description: Mini-batch or replay batch size override.
+        rollout_steps:
+          anyOf:
+          - type: integer
+            minimum: 1.0
+          - type: 'null'
+          title: Rollout Steps
+          description: On-policy rollout step override.
+        entropy_coef:
+          anyOf:
+          - type: number
+            minimum: 0.0
+          - type: 'null'
+          title: Entropy Coef
+          description: Entropy coefficient override.
+        clip_range:
+          anyOf:
+          - type: number
+            exclusiveMinimum: 0.0
+          - type: 'null'
+          title: Clip Range
+          description: Policy clip coefficient override.
+        eval_interval:
+          anyOf:
+          - type: integer
+            minimum: 1.0
+          - type: 'null'
+          title: Eval Interval
+          description: Evaluation interval override.
+      type: object
+      required:
+      - scenario_name
+      title: TrainRequest
+    TrainResponse:
+      properties:
+        run_id:
+          type: string
+          title: Run Id
+      type: object
+      required:
+      - run_id
+      title: TrainResponse
+    TrainingStatus:
+      properties:
+        run_id:
+          type: string
+          title: Run Id
+        status:
+          type: string
+          title: Status
+        scenario_name:
+          type: string
+          title: Scenario Name
+        env_type:
+          type: string
+          title: Env Type
+        algorithm:
+          type: string
+          title: Algorithm
+        reward_mode:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reward Mode
+        started_at:
+          type: number
+          title: Started At
+        updated_at:
+          type: number
+          title: Updated At
+        error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error
+      type: object
+      required:
+      - run_id
+      - status
+      - scenario_name
+      - env_type
+      - algorithm
+      - started_at
+      - updated_at
+      title: TrainingStatus
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+servers:
+- url: http://127.0.0.1:8000/

@@ -28,7 +28,7 @@
             <label class="field">
               <span class="field__label"><span class="field__required">*</span> 灾害类型</span>
               <select v-model="disasterType" class="field__input">
-                <option value="flood">洪涝</option>
+                <option value="flood">洪水</option>
                 <option value="earthquake">地震</option>
                 <option value="landslide">滑坡</option>
                 <option value="typhoon">台风</option>
@@ -147,7 +147,7 @@
               </select>
               <select v-model="historyFilterScenario" class="field__input" style="width:260px">
                 <option value="">请选择场景类型</option>
-                <option value="flood">洪涝</option>
+                <option value="flood">洪水</option>
                 <option value="earthquake">地震</option>
                 <option value="landslide">滑坡</option>
                 <option value="typhoon">台风</option>
@@ -478,7 +478,7 @@ const paginatedHistory = computed(() => {
 });
 
 const formatDisasterType = (type) => {
-  const map = { flood: "洪涝", earthquake: "地震", landslide: "滑坡", typhoon: "台风" };
+  const map = { flood: "洪水", earthquake: "地震", landslide: "滑坡", typhoon: "台风" };
   return map[type] || type || "--";
 };
 

@@ -78,7 +78,7 @@
               <label class="config-field">
                 <span>灾害类型</span>
                 <select v-model="disasterType">
-                  <option value="flood">洪涝</option>
+                  <option value="flood">洪水</option>
                   <option value="earthquake">地震</option>
                   <option value="landslide">滑坡</option>
                   <option value="typhoon">台风</option>
