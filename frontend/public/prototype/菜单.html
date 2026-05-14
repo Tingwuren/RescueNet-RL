@@ -51,7 +51,7 @@
               <div id="u58" class="ax_default _默认样式">
                 <div id="u58_div" class=""></div>
                 <div id="u58_text" class="text ">
-                  <p><span style="font-family:'微软雅黑';font-weight:400;">用户 </span><span style="font-family:'Font Awesome 5 Pro Light', 'Font Awesome 5 Pro';font-weight:300;"></span></p>
+                  <p><span>用户</span></p>
                 </div>
               </div>
             </div>
@@ -120,7 +120,7 @@
             <div id="u68" class="ax_default box_1">
               <div id="u68_div" class=""></div>
               <div id="u68_text" class="text ">
-                <p><span></span></p>
+                <p><span></span></p>
               </div>
             </div>
           </div>
@@ -782,5 +782,59 @@
         <iframe id="u126_input" data-label="内容区" scrolling="no" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
       </div>
     </div>
+    <script type="text/javascript">
+      (function () {
+        function goLogin(event) {
+          if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+          }
+          try {
+            if (window.parent && window.parent !== window) {
+              window.parent.location.hash = "/login";
+              return false;
+            }
+          } catch (error) {}
+          window.location.href = "登录.html";
+          return false;
+        }
+
+        function bindUserNav() {
+          ["u57", "u58", "u58_text", "u68", "u68_text"].forEach(function (id) {
+            var node = document.getElementById(id);
+            if (!node || node.getAttribute("data-prototype-user-bound") === "true") return;
+            node.setAttribute("data-prototype-user-bound", "true");
+            node.removeAttribute("title");
+            node.removeAttribute("alt");
+            node.style.cursor = "pointer";
+            node.addEventListener("click", goLogin, true);
+            ["mouseover", "mouseenter", "mouseout", "mouseleave"].forEach(function (eventName) {
+              node.addEventListener(eventName, function (event) {
+                event.stopPropagation();
+                if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+                hideMoreMenu();
+              }, true);
+            });
+          });
+          hideMoreMenu();
+        }
+
+        function hideMoreMenu() {
+          var moreMenu = document.getElementById("u106");
+          if (!moreMenu) return;
+          moreMenu.style.display = "none";
+          moreMenu.style.visibility = "hidden";
+          moreMenu.classList.add("ax_default_hidden");
+        }
+
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", bindUserNav);
+        } else {
+          bindUserNav();
+        }
+        window.setTimeout(bindUserNav, 300);
+      })();
+    </script>
   </body>
 </html>

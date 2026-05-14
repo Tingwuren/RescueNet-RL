@@ -560,6 +560,9 @@ def _build_scene_payload(report: Dict[str, Any], env, include_deployments: bool)
             "type": _base_station_node_type(station.get("base_station")),
             "x": x,
             "y": y,
+            "base_station": station.get("base_station"),
+            "label": station.get("label") or station.get("base_station"),
+            "mode": station.get("mode"),
         }
         node.update(_node_geo_center(region_grid, int(row), int(col)))
         nodes.append(
@@ -575,6 +578,9 @@ def _build_scene_payload(report: Dict[str, Any], env, include_deployments: bool)
                 "type": station["type"],
                 "x": x,
                 "y": y,
+                "base_station": station.get("base_station"),
+                "label": station.get("label") or station.get("base_station"),
+                "mode": station.get("mode"),
             }
             node.update(_node_geo_center(region_grid, station["row"], station["col"]))
             nodes.append(
@@ -624,10 +630,12 @@ def _collect_deployed_station_nodes(report: Dict[str, Any], env) -> List[Dict[st
         row, col = int(location[0]), int(location[1])
         comm_mode = action_desc.get("comm_mode")
         base_key = comm_mode
+        base_label = comm_mode
         if scenario and comm_mode and hasattr(scenario, "get_base_station_for_mode"):
             base_profile = scenario.get_base_station_for_mode(comm_mode)
             if base_profile is not None:
                 base_key = getattr(base_profile, "name", comm_mode)
+                base_label = getattr(base_profile, "label", base_key)
 
         dedupe_key = (row, col, str(base_key))
         if dedupe_key in seen:
@@ -638,6 +646,9 @@ def _collect_deployed_station_nodes(report: Dict[str, Any], env) -> List[Dict[st
                 "row": row,
                 "col": col,
                 "type": _base_station_node_type(base_key),
+                "base_station": base_key,
+                "label": base_label,
+                "mode": comm_mode,
             }
         )
 

@@ -9,8 +9,8 @@
         "rows": 24,
         "cols": 24,
         "geo_bounds": {
-          "lat_min": 21.8,
-          "lat_max": 22.4,
+          "lat_min": 22.25,
+          "lat_max": 22.85,
           "lon_min": 113.3,
           "lon_max": 114.1
         },

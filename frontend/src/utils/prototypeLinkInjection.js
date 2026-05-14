@@ -584,16 +584,9 @@ function bindStartButton(doc, state) {
   });
 }
 
-function bindContextButton(doc, state) {
+function removeContextButton(doc) {
   const button = byId(doc, "u3891");
-  if (!button || button.dataset.liveContextBound) return;
-  button.dataset.liveContextBound = "true";
-  button.style.pointerEvents = "auto";
-  button.style.cursor = "pointer";
-  setText(doc, "u3891_text", "同步最新策略");
-  button.addEventListener("click", () => {
-    void loadLatestArtifact(doc, state, true);
-  });
+  button?.remove();
 }
 
 async function loadLatestArtifact(doc, state, verbose) {
@@ -603,11 +596,11 @@ async function loadLatestArtifact(doc, state, verbose) {
     state.latestArtifact = await response.json();
     setHeaderTitle(doc, state);
     if (verbose) {
-      appendTerminalLine(doc, `已同步最新策略：${state.latestArtifact.scenario_name || "未命名场景"} / ${algorithmLabel(state.latestArtifact.algorithm)}`, "success");
+      appendTerminalLine(doc, `已更新策略信息：${state.latestArtifact.scenario_name || "未命名场景"} / ${algorithmLabel(state.latestArtifact.algorithm)}`, "success");
       appendTerminalLine(doc, `最近更新时间：${formatDateTime(state.latestArtifact.updated_at)}`, "info");
     }
   } catch (error) {
-    if (verbose) appendTerminalLine(doc, `同步最新策略失败：${error?.message || error}`, "warning");
+    if (verbose) appendTerminalLine(doc, `更新策略信息失败：${error?.message || error}`, "warning");
   }
 }
 
@@ -642,7 +635,7 @@ export function injectPrototypeLink(doc) {
   ensureTraceControl(doc, state);
   ensureDurationControl(doc, state);
   bindStartButton(doc, state);
-  bindContextButton(doc, state);
+  removeContextButton(doc);
   setHeaderTitle(doc, state);
   renderChart(doc, state);
   updateProgress(doc, state);

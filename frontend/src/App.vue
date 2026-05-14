@@ -27,31 +27,33 @@
                 >
                   <span class="proto-menu-hotspot__label">{{ item.label }}</span>
                 </a>
-                <a
-                  href="#/login"
-                  class="proto-menu-hotspot"
-                  :style="hotspotStyle(userOverlayItem)"
-                  aria-label="用户"
-                >
-                  <span class="proto-menu-hotspot__label">用户</span>
-                </a>
               </div>
             </div>
 
             <div class="proto-content-viewport" :style="{ top: `${currentView.contentTop}px` }">
-              <iframe
-                v-if="!currentView.useLiveContent"
-                ref="contentFrameRef"
-                :class="[
-                  'proto-content-frame',
-                  { 'proto-content-frame--live': currentView.enableApiInjection }
-                ]"
-                :src="prototypeUrl(currentView.prototypePage)"
-                :title="currentView.title"
-                tabindex="-1"
-                scrolling="no"
-                @load="handleContentFrameLoad"
-              ></iframe>
+              <template v-if="!currentView.useLiveContent">
+                <iframe
+                  ref="contentFrameRef"
+                  :class="[
+                    'proto-content-frame',
+                    {
+                      'proto-content-frame--live': currentView.enableApiInjection,
+                      'proto-content-frame--pending': currentView.enableApiInjection && !contentFrameReady,
+                    }
+                  ]"
+                  :src="prototypeUrl(currentView.prototypePage)"
+                  :title="currentView.title"
+                  tabindex="-1"
+                  :scrolling="currentView.allowContentScroll ? 'auto' : 'no'"
+                  @load="handleContentFrameLoad"
+                ></iframe>
+                <div
+                  v-if="currentView.enableApiInjection && !contentFrameReady"
+                  class="proto-content-loading"
+                >
+                  <span>{{ currentRoute === "train" ? "正在加载真实训练界面" : "正在加载真实联调界面" }}</span>
+                </div>
+              </template>
               <div v-else class="proto-live-content">
                 <PrototypeTrainingPage v-if="currentRoute === 'train'" />
                 <Ns3ReplayPanel v-else-if="currentRoute === 'replay'" />
@@ -99,7 +101,6 @@
             <CustomEnvironmentTester v-else-if="drawerType === 'tester'" />
             <ReplayWorkbench v-else-if="drawerType === 'replay'" />
             <LinkSimulationPage v-else-if="drawerType === 'link'" />
-            <DeviceCatalogPage v-else-if="drawerType === 'device'" />
             <HomeOverview v-else-if="drawerType === 'home'" />
           </div>
         </aside>
@@ -112,13 +113,13 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 
 import CustomEnvironmentTester from "./components/CustomEnvironmentTester.vue";
-import DeviceCatalogPage from "./components/DeviceCatalogPage.vue";
 import HomeOverview from "./components/HomeOverview.vue";
 import LinkSimulationPage from "./components/LinkSimulationPage.vue";
 import Ns3ReplayPanel from "./components/Ns3ReplayPanel.vue";
 import PrototypeTrainingPage from "./components/PrototypeTrainingPage.vue";
 import ReplayWorkbench from "./components/ReplayWorkbench.vue";
 import ScenarioTrainingPanel from "./components/ScenarioTrainingPanel.vue";
+import { injectPrototypeDevice } from "./utils/prototypeDeviceInjection";
 import { injectPrototypeLink } from "./utils/prototypeLinkInjection";
 import { injectPrototypeTester } from "./utils/prototypeTesterInjection";
 import { injectPrototypeTraining } from "./utils/prototypeTrainingInjection";
@@ -194,12 +195,13 @@ const views = {
     prototypePage: "设备管理.html",
     withMenu: true,
     useLiveContent: false,
+    enableApiInjection: true,
     stageWidth: 1920,
     stageHeight: 1080,
     contentTop: 70,
-    drawerType: "device",
-    drawerTitle: "设备管理真实联调面板",
-    drawerDescription: "此面板接入真实场景设备库与参数展示接口。",
+    drawerType: null,
+    drawerTitle: "",
+    drawerDescription: "",
   },
   login: {
     title: "登录",
@@ -223,8 +225,6 @@ const menuHotspots = [
   { key: "link", label: "链路仿真", href: "#/link", x: 1464, y: 18, width: 150, height: 40 },
   { key: "device", label: "设备管理", href: "#/device", x: 1636, y: 18, width: 150, height: 40 },
 ];
-
-const userOverlayItem = { x: 1830, y: 20, width: 89, height: 36 };
 
 const menuVisualItems = [
   { key: "home", nodeId: "u63", imageId: "u63_img", defaultFile: "u63.png", activeFile: "u63_mouseOver.png" },
@@ -251,15 +251,14 @@ const pageHotspots = {
     { key: "replay-open", action: "drawer", x: 293, y: 128, width: 150, height: 40 },
   ],
   link: [],
-  device: [
-    { key: "device-open", action: "drawer", x: 293, y: 128, width: 99, height: 33 },
-  ],
+  device: [],
 };
 
 const currentRoute = ref("home");
 const drawerOpen = ref(false);
 const drawerType = ref(null);
 const hoveredMenuKey = ref(null);
+const contentFrameReady = ref(false);
 const viewportWidth = ref(typeof window === "undefined" ? 1440 : window.innerWidth);
 const viewportHeight = ref(typeof window === "undefined" ? 900 : window.innerHeight);
 
@@ -308,7 +307,9 @@ const hotspotStyle = (spot) => ({
 });
 
 const syncRoute = () => {
-  currentRoute.value = normalizeRoute(window.location.hash);
+  const nextRoute = normalizeRoute(window.location.hash);
+  currentRoute.value = nextRoute;
+  contentFrameReady.value = !views[nextRoute]?.enableApiInjection;
   drawerOpen.value = false;
   drawerType.value = null;
   syncMenuHighlight();
@@ -427,23 +428,54 @@ const handleContentFrameLoad = (event) => {
   const frame = event?.target;
   const doc = frame?.contentDocument;
   if (!doc) return;
+  const routeAtLoad = currentRoute.value;
+  const allowContentScroll = Boolean(views[routeAtLoad]?.allowContentScroll);
+  const revealInjectedFrame = () => {
+    if (frame === contentFrameRef.value && currentRoute.value === routeAtLoad) {
+      contentFrameReady.value = true;
+    }
+  };
+  const injectNow = (handler) => {
+    handler(doc);
+    requestAnimationFrame(() => requestAnimationFrame(revealInjectedFrame));
+    setTimeout(() => handler(doc), 120);
+  };
 
   const html = doc.documentElement;
   const body = doc.body;
   if (html) {
     html.style.width = "100%";
-    html.style.height = "100%";
+    html.style.height = allowContentScroll ? "auto" : "100%";
     html.style.margin = "0";
     html.style.padding = "0";
+    html.style.overflowX = "hidden";
+    html.style.overflowY = allowContentScroll ? "auto" : "hidden";
   }
   if (body) {
     body.style.width = "100%";
-    body.style.height = "100%";
+    body.style.height = allowContentScroll ? "auto" : "100%";
     body.style.margin = "0";
     body.style.padding = "0";
+    body.style.overflowX = "hidden";
+    body.style.overflowY = allowContentScroll ? "auto" : "hidden";
   }
 
-  if (!doc.getElementById("proto-scroll-lock-style")) {
+  if (allowContentScroll) {
+    doc.getElementById("proto-scroll-lock-style")?.remove();
+    if (!doc.getElementById("proto-scroll-unlock-style")) {
+      const style = doc.createElement("style");
+      style.id = "proto-scroll-unlock-style";
+      style.textContent = `
+        html, body {
+          overflow-x: hidden !important;
+          overflow-y: auto !important;
+          scrollbar-width: auto !important;
+          -ms-overflow-style: auto !important;
+        }
+      `;
+      doc.head?.appendChild(style);
+    }
+  } else if (!doc.getElementById("proto-scroll-lock-style")) {
     const style = doc.createElement("style");
     style.id = "proto-scroll-lock-style";
     style.textContent = `
@@ -463,21 +495,26 @@ const handleContentFrameLoad = (event) => {
   }
 
   if (currentRoute.value === "train") {
-    setTimeout(() => injectPrototypeTraining(doc), 800);
-    setTimeout(() => injectPrototypeTraining(doc), 2200);
+    injectNow(injectPrototypeTraining);
     return;
   }
 
   if (currentRoute.value === "tester") {
-    setTimeout(() => injectPrototypeTester(doc), 800);
-    setTimeout(() => injectPrototypeTester(doc), 2200);
+    injectNow(injectPrototypeTester);
     return;
   }
 
   if (currentRoute.value === "link") {
-    setTimeout(() => injectPrototypeLink(doc), 800);
-    setTimeout(() => injectPrototypeLink(doc), 2200);
+    injectNow(injectPrototypeLink);
+    return;
   }
+
+  if (currentRoute.value === "device") {
+    injectNow(injectPrototypeDevice);
+    return;
+  }
+
+  contentFrameReady.value = true;
 };
 
 onMounted(() => {
@@ -493,7 +530,7 @@ onBeforeUnmount(() => {
 });
 </script>
 
-<style scoped>
+<style>
 .proto-app {
   width: 100vw;
   height: 100vh;
@@ -549,9 +586,34 @@ onBeforeUnmount(() => {
   display: block;
 }
 
+.proto-content-frame--pending {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.proto-content-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  background: #eef5ff;
+  color: #17315d;
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  font-size: 18px;
+}
+
+.proto-content-loading span {
+  padding: 10px 18px;
+  border: 1px solid rgba(57, 97, 246, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
 .proto-menu-hotspots {
   position: absolute;
   inset: 0;
+  pointer-events: none;
 }
 
 .proto-menu-hotspot,
@@ -562,6 +624,7 @@ onBeforeUnmount(() => {
   border: 0;
   padding: 0;
   cursor: pointer;
+  pointer-events: auto;
 }
 
 .proto-menu-hotspot__label {

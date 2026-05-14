@@ -1,13 +1,72 @@
-const buildInjectionScript = (apiBase) => `
+const COMMUNICATION_TYPE_OPTIONS = [
+  { value: "cellular", label: "蜂窝通信" },
+  { value: "wifi", label: "WiFi 通信" },
+  { value: "satellite", label: "卫星通信" },
+  { value: "shortwave", label: "短波通信" },
+];
+
+const DEFAULT_DEVICE_TEMPLATES = [
+  {
+    id: "tester-cellular-macro",
+    name: "测试蜂窝宏站",
+    deviceType: "宏基站",
+    communicationType: "cellular",
+    quantity: 1,
+    maxThroughput: 240,
+    maxUsers: 180,
+    enabled: true,
+    status: "已导入"
+  },
+  {
+    id: "tester-wifi-hotspot",
+    name: "测试 WiFi6 热点",
+    deviceType: "背负式基站",
+    communicationType: "wifi",
+    quantity: 1,
+    maxThroughput: 160,
+    maxUsers: 96,
+    enabled: true,
+    status: "已导入"
+  },
+  {
+    id: "tester-satellite-relay",
+    name: "测试卫星中继",
+    deviceType: "中继设备",
+    communicationType: "satellite",
+    quantity: 1,
+    maxThroughput: 150,
+    maxUsers: 120,
+    enabled: true,
+    status: "已导入"
+  },
+  {
+    id: "tester-shortwave-station",
+    name: "测试短波台",
+    deviceType: "临时设备/车载设备",
+    communicationType: "shortwave",
+    quantity: 1,
+    maxThroughput: 24,
+    maxUsers: 220,
+    enabled: true,
+    status: "已导入"
+  }
+];
+
+const buildInjectionScript = (apiBase, communicationTypes, defaultTemplates) => `
 (function () {
   var API = ${JSON.stringify(apiBase)};
   var TEST_HISTORY_KEY = "prototype-tester-history";
+  var DEVICE_LIBRARY_KEY = "prototype-tester-device-library-v1";
+  var DEVICE_BINDINGS_KEY = "prototype-tester-device-bindings-v1";
+  var COMM_TYPES = ${JSON.stringify(communicationTypes)};
+  var DEFAULT_DEVICE_TEMPLATES = ${JSON.stringify(defaultTemplates)};
   var ALGORITHMS = [
     { key: "ppo", label: "PPO（基线）" },
     { key: "dqn", label: "DQN（大动作空间）" },
     { key: "a3c", label: "A3C（多目标）" },
     { key: "mppo", label: "MPPO（多头策略）" }
   ];
+  var STATION_COLORS = ["#f59e0b", "#a78bfa", "#14b8a6", "#f97316", "#22c55e", "#38bdf8", "#eab308"];
   var state = {
     scenarios: [],
     artifacts: [],
@@ -18,7 +77,8 @@ const buildInjectionScript = (apiBase) => `
     simulationResult: null,
     activeSceneTab: "imported",
     loadingScene: false,
-    running: false
+    running: false,
+    scenarioDeviceRows: []
   };
 
   function byId(id) {
@@ -47,6 +107,18 @@ const buildInjectionScript = (apiBase) => `
       panel.classList.remove("ax_default_hidden");
     } else {
       panel.classList.add("ax_default_hidden");
+    }
+  }
+
+  function setElementVisible(id, visible) {
+    var node = byId(id);
+    if (!node) return;
+    node.style.display = visible ? "" : "none";
+    node.style.visibility = visible ? "visible" : "hidden";
+    if (visible) {
+      node.classList.remove("ax_default_hidden");
+    } else {
+      node.classList.add("ax_default_hidden");
     }
   }
 
@@ -115,6 +187,39 @@ const buildInjectionScript = (apiBase) => `
     return value.toFixed(digits == null ? 2 : digits);
   }
 
+  function sceneExportHasFile(sceneExport, key) {
+    if (!sceneExport) return false;
+    var pathKey = key === "disaster_scene" ? "disaster_scene_path" : "deployment_scene_path";
+    return Boolean(sceneExport[pathKey] && sceneExport[key]);
+  }
+
+  function updateSceneExportButtons(result) {
+    var sceneExport = result && result.scene_export ? result.scene_export : null;
+    var hasDisasterFile = sceneExportHasFile(sceneExport, "disaster_scene");
+    var hasDeploymentFile = sceneExportHasFile(sceneExport, "deployment_scene");
+    ["u2999", "u3337"].forEach(function (id) {
+      setElementVisible(id, hasDisasterFile);
+    });
+    ["u3002", "u3340"].forEach(function (id) {
+      setElementVisible(id, hasDeploymentFile);
+    });
+  }
+
+  function removePrototypeMoreButton() {
+    var moreButton = byId("u3025");
+    if (moreButton) moreButton.remove();
+  }
+
+  function numberValue(value, fallback) {
+    var next = Number(value);
+    return Number.isFinite(next) ? next : fallback;
+  }
+
+  function integerValue(value, fallback) {
+    var next = Number(value);
+    return Number.isFinite(next) ? Math.max(0, Math.round(next)) : fallback;
+  }
+
   function formatDateTime(value) {
     if (!value) return "--";
     try {
@@ -122,6 +227,184 @@ const buildInjectionScript = (apiBase) => `
     } catch (error) {
       return "--";
     }
+  }
+
+  function readStorage(key, fallback) {
+    try {
+      var raw = window.localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch (error) {
+      return fallback;
+    }
+  }
+
+  function writeStorage(key, value) {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  }
+
+  function communicationLabel(type) {
+    var found = COMM_TYPES.find(function (item) {
+      return item.value === type;
+    });
+    return found ? found.label : type || "--";
+  }
+
+  function ensureDeviceLibrarySeeded() {
+    var current = readStorage(DEVICE_LIBRARY_KEY, []);
+    if (Array.isArray(current) && current.length) return current;
+    writeStorage(DEVICE_LIBRARY_KEY, DEFAULT_DEVICE_TEMPLATES);
+    return DEFAULT_DEVICE_TEMPLATES.slice();
+  }
+
+  function loadDeviceLibrary() {
+    var items = readStorage(DEVICE_LIBRARY_KEY, []);
+    return Array.isArray(items) ? items : [];
+  }
+
+  function stationCommunicationCategory(station) {
+    var text = ((station && station.name) || "") + " " + ((station && station.label) || "") + " " + ((station && station.supported_modes || []).join(" "));
+    if (/wifi/i.test(text)) return "wifi";
+    if (/satellite|卫星/i.test(text)) return "satellite";
+    if (/shortwave|hf|短波/i.test(text)) return "shortwave";
+    if (/mesh|uav|无人机/i.test(text)) return "mesh";
+    if (/5g|macro|mmwave|蜂窝|宏站|微站/i.test(text)) return "cellular";
+    return "custom";
+  }
+
+  function communicationCategoryLabel(type) {
+    if (type === "mesh") return "Mesh/UAV";
+    if (type === "custom") return "专用通信";
+    return communicationLabel(type);
+  }
+
+  function scenarioBaseStations() {
+    var scenario = currentScenario();
+    return scenario && Array.isArray(scenario.base_stations) ? scenario.base_stations : [];
+  }
+
+  function scenarioBaseStationByName(name) {
+    return scenarioBaseStations().find(function (station) {
+      return station.name === name;
+    }) || null;
+  }
+
+  function defaultStationMode(station) {
+    return station && Array.isArray(station.supported_modes) && station.supported_modes.length ? station.supported_modes[0] : null;
+  }
+
+  function buildScenarioStationRow(station, binding) {
+    var category = stationCommunicationCategory(station);
+    return {
+      deviceId: "station:" + state.scenarioName + ":" + station.name,
+      baseStationName: station.name,
+      mode: binding && binding.mode ? binding.mode : defaultStationMode(station),
+      name: station.label || station.name,
+      deviceType: station.label || station.name,
+      communicationType: category,
+      quantity: binding && binding.quantity != null ? Math.max(1, integerValue(binding.quantity, 1)) : 1,
+      maxThroughput: numberValue(station.max_throughput, 0),
+      maxUsers: integerValue(station.max_users, 0),
+      enabled: binding && binding.enabled != null ? binding.enabled !== false : true,
+      applied: Boolean(binding && binding.applied),
+      x: integerValue(binding && binding.x, 0),
+      y: integerValue(binding && binding.y, 0),
+      status: "已导入"
+    };
+  }
+
+  function loadScenarioDeviceRows() {
+    var baseStations = scenarioBaseStations();
+    var bindings = readStorage(DEVICE_BINDINGS_KEY, {});
+    var current = Array.isArray(bindings[state.scenarioName]) ? bindings[state.scenarioName] : [];
+    var bindingMap = {};
+    current.forEach(function (item) {
+      bindingMap[item.deviceId] = item;
+    });
+    if (baseStations.length) {
+      var baseRows = baseStations.map(function (station) {
+        var id = "station:" + state.scenarioName + ":" + station.name;
+        return buildScenarioStationRow(station, bindingMap[id]);
+      });
+      var baseIds = {};
+      baseRows.forEach(function (row) {
+        baseIds[row.deviceId] = true;
+      });
+      var cloneRows = current.filter(function (item) {
+        return item && item.deviceId && !baseIds[item.deviceId] && scenarioBaseStationByName(item.baseStationName);
+      }).map(function (item) {
+        var station = scenarioBaseStationByName(item.baseStationName);
+        var row = buildScenarioStationRow(station, item);
+        row.deviceId = item.deviceId;
+        row.name = item.name || row.name;
+        row.applied = Boolean(item.applied);
+        return row;
+      });
+      state.scenarioDeviceRows = baseRows.concat(cloneRows);
+      return;
+    }
+
+    var library = loadDeviceLibrary();
+    state.scenarioDeviceRows = library.map(function (device) {
+      var binding = bindingMap[device.id] || {};
+      return {
+        deviceId: device.id,
+        name: device.name,
+        deviceType: device.deviceType,
+        communicationType: device.communicationType,
+        quantity: binding.quantity != null ? Math.max(1, integerValue(binding.quantity, device.quantity || 1)) : Math.max(1, integerValue(device.quantity, 1)),
+        maxThroughput: numberValue(device.maxThroughput, 0),
+        maxUsers: integerValue(device.maxUsers, 0),
+        enabled: binding.enabled != null ? binding.enabled !== false : device.enabled !== false,
+        applied: Boolean(binding.applied),
+        x: integerValue(binding.x, 0),
+        y: integerValue(binding.y, 0),
+        status: device.status || "已导入"
+      };
+    });
+  }
+
+  function saveScenarioDeviceRows() {
+    var bindings = readStorage(DEVICE_BINDINGS_KEY, {});
+    bindings[state.scenarioName] = state.scenarioDeviceRows.map(function (row) {
+      return {
+        deviceId: row.deviceId,
+        baseStationName: row.baseStationName || null,
+        mode: row.mode || null,
+        name: row.name,
+        quantity: Math.max(1, integerValue(row.quantity, 1)),
+        enabled: row.enabled !== false,
+        applied: Boolean(row.applied),
+        x: integerValue(row.x, 0),
+        y: integerValue(row.y, 0)
+      };
+    });
+    writeStorage(DEVICE_BINDINGS_KEY, bindings);
+  }
+
+  function deviceSummaryLabel() {
+    var active = state.scenarioDeviceRows.filter(function (row) {
+      return row.applied && row.enabled && Number(row.quantity) > 0;
+    });
+    if (!active.length) return "未应用设备";
+    return active.map(function (row) {
+      return (row.name || communicationCategoryLabel(row.communicationType)) + " " + row.quantity + " 台";
+    }).join(" / ");
+  }
+
+  function updateDeviceSummaryBadge() {
+    ["tester-device-summary", "tester-device-inline-summary"].forEach(function (id) {
+      var summary = byId(id);
+      if (summary) {
+        summary.textContent = "设备接入：" + deviceSummaryLabel();
+      }
+    });
+  }
+
+  function syncDeviceRowsFromStorage() {
+    ensureDeviceLibrarySeeded();
+    loadScenarioDeviceRows();
+    updateDeviceSummaryBadge();
+    renderTesterDeviceAccessModule();
   }
 
   function readTestHistory() {
@@ -190,10 +473,13 @@ const buildInjectionScript = (apiBase) => `
   }
 
   function setTabVisual(activeKey) {
+    activeKey = activeKey === "deployment" && hasDeploymentScene() ? "deployment" : "imported";
+    state.activeSceneTab = activeKey;
     var imported = byId("u2844");
     var importedImg = byId("u2844_img");
     var deployment = byId("u2843");
     var deploymentImg = byId("u2843_img");
+    setDeploymentTabVisible(hasDeploymentScene());
 
     if (imported) imported.classList.toggle("selected", activeKey === "imported");
     if (deployment) deployment.classList.toggle("selected", activeKey === "deployment");
@@ -205,6 +491,421 @@ const buildInjectionScript = (apiBase) => `
       deploymentImg.classList.toggle("selected", activeKey === "deployment");
       deploymentImg.src = activeKey === "deployment" ? "images/策略测试/u2843_selected.png" : "images/策略测试/u2843.png";
     }
+    setPrototypeMapPanelState(activeKey);
+    renderSceneGraphOverlay(activeKey);
+  }
+
+  function hasDeploymentScene() {
+    return Boolean(state.simulationResult &&
+      state.simulationResult.scene_export &&
+      state.simulationResult.scene_export.deployment_scene);
+  }
+
+  function setDeploymentTabVisible(visible) {
+    var tab = byId("u2843");
+    if (!tab) return;
+    tab.style.display = visible ? "block" : "none";
+    tab.style.visibility = visible ? "visible" : "hidden";
+    tab.style.pointerEvents = visible ? "auto" : "none";
+  }
+
+  function setPrototypeMapPanelState(activeKey) {
+    var isDeployment = activeKey === "deployment";
+    [
+      { imported: "u2695_state0", deployment: "u2695_state1" },
+      { imported: "u3042_state1", deployment: "u3042_state0" }
+    ].forEach(function (group) {
+      var imported = byId(group.imported);
+      var deployment = byId(group.deployment);
+      if (imported) {
+        imported.style.display = isDeployment ? "none" : "block";
+        imported.style.visibility = isDeployment ? "hidden" : "visible";
+      }
+      if (deployment) {
+        deployment.style.display = isDeployment ? "block" : "none";
+        deployment.style.visibility = isDeployment ? "visible" : "hidden";
+      }
+    });
+  }
+
+  function activeScenePayload(activeKey) {
+    if (activeKey === "deployment") {
+      return state.simulationResult &&
+        state.simulationResult.scene_export &&
+        state.simulationResult.scene_export.deployment_scene
+        ? state.simulationResult.scene_export.deployment_scene
+        : null;
+    }
+    return state.importedScene && state.importedScene.scene
+      ? state.importedScene.scene
+      : state.simulationResult && state.simulationResult.scene_export
+        ? state.simulationResult.scene_export.disaster_scene
+        : null;
+  }
+
+  function sceneNodes(scene) {
+    return scene && Array.isArray(scene.nodes) ? scene.nodes : [];
+  }
+
+  function stationNodeCount(scene) {
+    return sceneNodes(scene).filter(function (node) {
+      return node && node.type !== "USER";
+    }).length;
+  }
+
+  function sceneSummary(scene, activeKey) {
+    var stats = sceneStats(scene);
+    return (activeKey === "deployment" ? "部署后场景" : "导入的场景") +
+      "：用户 " + stats.userCount +
+      "，站点 " + stats.stationCount +
+      "，覆盖 " + stats.coverage +
+      "，广播 " + stats.broadcast;
+  }
+
+  function sceneStats(scene) {
+    var nodes = sceneNodes(scene);
+    var userCount = 0;
+    var stationCount = 0;
+    var connectedCount = 0;
+    var broadcastCount = 0;
+    var stationTypes = {};
+    nodes.forEach(function (node) {
+      if (!node) return;
+      if (node.type === "USER") {
+        userCount += 1;
+        if (node.connected) connectedCount += 1;
+        if (node.broadcast_served) broadcastCount += 1;
+      } else {
+        stationCount += 1;
+        var key = node.base_station || node.label || node.type || "UNKNOWN";
+        if (!stationTypes[key]) {
+          stationTypes[key] = {
+            key: key,
+            label: node.label || stationLabelByName(key),
+            count: 0,
+            color: stationColorForName(key)
+          };
+        }
+        stationTypes[key].count += 1;
+      }
+    });
+    return {
+      userCount: userCount,
+      stationCount: stationCount,
+      connectedCount: connectedCount,
+      broadcastCount: broadcastCount,
+      stationTypes: Object.keys(stationTypes).map(function (key) { return stationTypes[key]; }),
+      coverage: userCount ? formatPercent(connectedCount / userCount) : "--",
+      broadcast: userCount ? formatPercent(broadcastCount / userCount) : "--"
+    };
+  }
+
+  function stationLabelByName(name) {
+    var station = scenarioBaseStationByName(name);
+    return station ? (station.label || station.name) : (name || "未知基站");
+  }
+
+  function visibleSceneNodes(nodes) {
+    var users = nodes.filter(function (node) { return node && node.type === "USER"; });
+    var stations = nodes.filter(function (node) { return node && node.type !== "USER"; });
+    var maxUsers = 260;
+    if (users.length <= maxUsers) return users.concat(stations);
+    var step = Math.max(1, Math.ceil(users.length / maxUsers));
+    return users.filter(function (_, index) {
+      return index % step === 0;
+    }).slice(0, maxUsers).concat(stations);
+  }
+
+  function sceneNodeStyle(node, isDeployedStation) {
+    if (!node || node.type === "USER") {
+      if (node && node.connected) {
+        return { fill: "#38bdf8", stroke: "rgba(219,234,254,0.92)", radius: 4.2, opacity: 0.95 };
+      }
+      if (node && node.broadcast_served) {
+        return { fill: "#facc15", stroke: "rgba(254,249,195,0.9)", radius: 4.2, opacity: 0.95 };
+      }
+      return { fill: "#ef4444", stroke: "rgba(254,226,226,0.84)", radius: 3.8, opacity: 0.9 };
+    }
+    var stationColor = stationColorForNode(node);
+    if (isDeployedStation) {
+      return { fill: stationColor, stroke: "rgba(220,252,231,0.94)", radius: 9.2, opacity: 1 };
+    }
+    return { fill: stationColor, stroke: "rgba(255,255,255,0.88)", radius: 8, opacity: 1 };
+  }
+
+  function stationColorForName(baseStationName) {
+    var stations = scenarioBaseStations();
+    var index = stations.findIndex(function (station) {
+      return station.name === baseStationName;
+    });
+    if (index >= 0) return STATION_COLORS[index % STATION_COLORS.length];
+    var text = String(baseStationName || "");
+    var hash = 0;
+    for (var i = 0; i < text.length; i += 1) {
+      hash = (hash * 31 + text.charCodeAt(i)) % 9973;
+    }
+    return STATION_COLORS[hash % STATION_COLORS.length];
+  }
+
+  function stationColorForNode(node) {
+    var key = node && (node.base_station || node.label || node.type);
+    return stationColorForName(key);
+  }
+
+  function scaleSceneNode(node, scene, width, height) {
+    var geoPoint = scaleSceneGeoNode(node, scene, width, height);
+    if (geoPoint) return geoPoint;
+
+    var x = Number(node && node.x);
+    var y = Number(node && node.y);
+    if (!isFinite(x) || !isFinite(y)) return null;
+    var extent = sceneExtent(scene);
+    var spanX = Math.max(1, extent.maxX - extent.minX);
+    var spanY = Math.max(1, extent.maxY - extent.minY);
+    var padding = Math.max(64, Math.round(Math.min(width, height) * 0.14));
+    var availableWidth = Math.max(1, width - padding * 2);
+    var availableHeight = Math.max(1, height - padding * 2);
+    var scale = Math.min(availableWidth / spanX, availableHeight / spanY);
+    var scaledWidth = spanX * scale;
+    var scaledHeight = spanY * scale;
+    var originX = (width - scaledWidth) / 2;
+    var originY = (height - scaledHeight) / 2;
+    return {
+      x: originX + (x - extent.minX) * scale,
+      y: originY + (y - extent.minY) * scale
+    };
+  }
+
+  function scaleSceneGeoNode(node, scene, width, height) {
+    var lat = Number(node && node.lat);
+    var lon = Number(node && node.lon);
+    if (!isFinite(lat) || !isFinite(lon)) return null;
+    var viewport = mapViewport(width, height, scene);
+    if (!viewport) return null;
+    var point = mercatorProject(lat, lon, viewport.zoom);
+    return {
+      x: point.x - viewport.left,
+      y: point.y - viewport.top
+    };
+  }
+
+  function sceneExtent(scene) {
+    var xs = [];
+    var ys = [];
+    sceneNodes(scene).forEach(function (node) {
+      var x = Number(node && node.x);
+      var y = Number(node && node.y);
+      if (isFinite(x) && isFinite(y)) {
+        xs.push(x);
+        ys.push(y);
+      }
+    });
+    if (!xs.length || !ys.length) {
+      return { minX: 0, maxX: 1, minY: 0, maxY: 1 };
+    }
+    var minX = Math.min.apply(Math, xs);
+    var maxX = Math.max.apply(Math, xs);
+    var minY = Math.min.apply(Math, ys);
+    var maxY = Math.max.apply(Math, ys);
+    if (maxX === minX) {
+      minX -= 1;
+      maxX += 1;
+    }
+    if (maxY === minY) {
+      minY -= 1;
+      maxY += 1;
+    }
+    return { minX: minX, maxX: maxX, minY: minY, maxY: maxY };
+  }
+
+  function buildRestorationLinks(nodes, scene, width, height) {
+    var users = nodes.filter(function (node) {
+      return node.type === "USER" && (node.connected || node.broadcast_served);
+    });
+    var stations = nodes.filter(function (node) { return node.type !== "USER"; });
+    if (!users.length || !stations.length) return "";
+
+    var scaledUsers = users.map(function (node) {
+      var point = scaleSceneNode(node, scene, width, height);
+      return point ? { node: node, x: point.x, y: point.y } : null;
+    }).filter(Boolean);
+    var scaledStations = stations.map(function (node) {
+      var point = scaleSceneNode(node, scene, width, height);
+      return point ? { node: node, x: point.x, y: point.y } : null;
+    }).filter(Boolean);
+    if (!scaledUsers.length || !scaledStations.length) return "";
+
+    var links = [];
+    scaledUsers.slice(0, 150).forEach(function (user) {
+      var best = null;
+      var bestDistance = Infinity;
+      scaledStations.forEach(function (station) {
+        var dx = user.x - station.x;
+        var dy = user.y - station.y;
+        var distance = dx * dx + dy * dy;
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          best = station;
+        }
+      });
+      if (best) {
+        links.push("<line x1='" + best.x.toFixed(1) + "' y1='" + best.y.toFixed(1) +
+          "' x2='" + user.x.toFixed(1) + "' y2='" + user.y.toFixed(1) +
+          "' stroke='rgba(56,189,248,0.28)' stroke-width='1.2' />");
+      }
+    });
+    return links.join("");
+  }
+
+  function renderSceneGraphOverlay(activeKey) {
+    var key = activeKey || state.activeSceneTab || "imported";
+    applyScenarioMapSkin(key);
+    hidePrototypeMapArtifacts();
+    renderSceneGraphInto("u2692_state0_content", key);
+    renderSceneGraphInto("u3039_state0_content", key);
+    renderSceneLegend(activeScenePayload(key), key);
+  }
+
+  function renderSceneGraphInto(hostId, activeKey) {
+    var host = byId(hostId);
+    if (!host) return;
+    host.style.pointerEvents = "none";
+    var overlayId = "tester-scene-graph-overlay-" + hostId;
+    var overlay = byId(overlayId);
+    if (!overlay) {
+      overlay = document.createElement("div");
+      overlay.id = overlayId;
+      host.appendChild(overlay);
+    }
+    var width = 1618;
+    var height = 1090;
+    overlay.style.cssText = [
+      "position:absolute",
+      "left:1px",
+      "top:53px",
+      "width:" + width + "px",
+      "height:" + height + "px",
+      "z-index:90",
+      "pointer-events:none",
+      "overflow:hidden",
+      "font-family:'Microsoft YaHei','PingFang SC',sans-serif"
+    ].join(";");
+
+    var scene = activeScenePayload(activeKey);
+    if (!scene) {
+      overlay.innerHTML = "";
+      return;
+    }
+
+    var rawNodes = sceneNodes(scene);
+    var nodes = visibleSceneNodes(rawNodes);
+    var importedStationCount = stationNodeCount(state.importedScene && state.importedScene.scene);
+    var stationIndex = 0;
+    var nodeMarkup = nodes.map(function (node) {
+      var point = scaleSceneNode(node, scene, width, height);
+      if (!point) return "";
+      var isStation = node.type !== "USER";
+      var isDeployedStation = false;
+      if (isStation) {
+        isDeployedStation = activeKey === "deployment" && stationIndex >= importedStationCount;
+        stationIndex += 1;
+      }
+      var style = sceneNodeStyle(node, isDeployedStation);
+      var pulse = isDeployedStation
+        ? "<circle cx='" + point.x.toFixed(1) + "' cy='" + point.y.toFixed(1) + "' r='" + (style.radius + 6) + "' fill='none' stroke='rgba(34,197,94,0.36)' stroke-width='2' />"
+        : "";
+      return pulse +
+        "<circle cx='" + point.x.toFixed(1) + "' cy='" + point.y.toFixed(1) + "' r='" + (style.radius + 3) + "' fill='" + style.fill + "' opacity='0.16' />" +
+        "<circle cx='" + point.x.toFixed(1) + "' cy='" + point.y.toFixed(1) + "' r='" + style.radius + "' fill='" + style.fill + "' stroke='" + style.stroke + "' stroke-width='1.5' opacity='" + style.opacity + "' />";
+    }).join("");
+
+    var linkMarkup = activeKey === "deployment"
+      ? buildRestorationLinks(nodes, scene, width, height)
+      : "";
+    overlay.innerHTML =
+      "<svg width='" + width + "' height='" + height + "' viewBox='0 0 " + width + " " + height + "' preserveAspectRatio='none' style='position:absolute;left:0;top:0;'>" +
+      linkMarkup +
+      nodeMarkup +
+      "</svg>";
+  }
+
+  function hidePrototypeMapArtifacts() {
+    ["u2694", "u2695", "u3041", "u3042"].forEach(function (id) {
+      var node = byId(id);
+      if (node) {
+        node.style.display = "none";
+        node.style.visibility = "hidden";
+      }
+    });
+  }
+
+  function renderSceneLegend(scene, activeKey) {
+    for (var id = 2816; id <= 2833; id += 1) {
+      var item = byId("u" + id);
+      if (item) {
+        item.style.display = "none";
+        item.style.visibility = "hidden";
+      }
+    }
+
+    var host = byId("u2815");
+    if (!host) return;
+    host.style.position = "absolute";
+    host.style.zIndex = "130";
+    host.style.pointerEvents = "none";
+    var panel = byId("tester-scene-legend-panel");
+    if (!panel) {
+      panel = document.createElement("div");
+      panel.id = "tester-scene-legend-panel";
+      host.appendChild(panel);
+    }
+    panel.style.cssText = [
+      "position:absolute",
+      "left:14px",
+      "top:14px",
+      "width:182px",
+      "height:268px",
+      "box-sizing:border-box",
+      "font-family:'Microsoft YaHei','PingFang SC',sans-serif",
+      "color:#fff",
+      "font-size:13px",
+      "line-height:1.5",
+      "pointer-events:none"
+    ].join(";");
+
+    if (!scene) {
+      panel.innerHTML =
+        "<div style='font-size:16px;font-weight:700;margin-bottom:10px;'>场景图例</div>" +
+        "<div style='color:rgba(255,255,255,0.78);'>正在等待真实场景数据</div>";
+      return;
+    }
+
+    var stats = sceneStats(scene);
+    var title = activeKey === "deployment" ? "部署后场景" : "导入场景";
+    var stationLegend = stats.stationTypes.length
+      ? stats.stationTypes.map(function (item) {
+        return legendRow(item.color, item.label + " " + item.count);
+      }).join("")
+      : "<div style='margin-top:8px;color:rgba(255,255,255,0.72);'>暂无基站节点</div>";
+    panel.innerHTML =
+      "<div style='font-size:16px;font-weight:700;margin-bottom:8px;'>" + title + "</div>" +
+      "<div style='display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;margin-bottom:12px;color:rgba(255,255,255,0.86);'>" +
+      "<span>用户 " + escapeHtml(stats.userCount) + "</span>" +
+      "<span>站点 " + escapeHtml(stats.stationCount) + "</span>" +
+      "<span>覆盖 " + escapeHtml(stats.coverage) + "</span>" +
+      "<span>广播 " + escapeHtml(stats.broadcast) + "</span>" +
+      "</div>" +
+      legendRow("#ef4444", "断联用户节点") +
+      legendRow("#38bdf8", "恢复/正常用户") +
+      stationLegend +
+      "<div style='display:flex;align-items:center;gap:10px;margin-top:8px;'><i style='display:inline-block;width:28px;height:2px;background:rgba(56,189,248,0.72);'></i><span>通信链路</span></div>";
+  }
+
+  function legendRow(color, label) {
+    return "<div style='display:flex;align-items:center;gap:10px;margin-top:8px;'>" +
+      "<i style='display:inline-block;width:12px;height:12px;border-radius:50%;background:" + color + ";box-shadow:0 0 0 4px rgba(255,255,255,0.10);'></i>" +
+      "<span>" + label + "</span>" +
+      "</div>";
   }
 
   function setStatus(stateText, tone) {
@@ -239,15 +940,477 @@ const buildInjectionScript = (apiBase) => `
     }
   }
 
-  function ensureOverlay() {
-    var panel = byId("u2852");
-    var content = byId("u2852_state0_content");
-    if (panel && content) {
-      setPanelVisible("u2852", true);
-      setPanelVisible("u2857", true);
-      content.style.position = "relative";
-      content.style.pointerEvents = "auto";
+  function currentScenarioGridBounds() {
+    var scenario = currentScenario();
+    var rows = scenario && scenario.region_grid && scenario.region_grid.rows
+      ? Number(scenario.region_grid.rows)
+      : Number(scenario && scenario.grid_size);
+    var cols = scenario && scenario.region_grid && scenario.region_grid.cols
+      ? Number(scenario.region_grid.cols)
+      : Number(scenario && scenario.grid_size);
+    return {
+      maxX: Math.max(0, Math.round(rows || 1) - 1),
+      maxY: Math.max(0, Math.round(cols || rows || 1) - 1)
+    };
+  }
+
+  function clampGridIndex(value, max, fallback) {
+    var next = integerValue(value, fallback == null ? 0 : fallback);
+    return Math.max(0, Math.min(Math.max(0, max), next));
+  }
+
+  function isScenarioDeviceSupported(row) {
+    var scenario = currentScenario();
+    if (!scenario) return true;
+    if (row && row.baseStationName) {
+      return Boolean(scenarioBaseStationByName(row.baseStationName));
     }
+    var baseStations = Array.isArray(scenario.base_stations) ? scenario.base_stations : [];
+    return Boolean(matchBaseStationForCommunicationType(baseStations, row && row.communicationType));
+  }
+
+  function activeScenarioDeviceRows() {
+    return state.scenarioDeviceRows
+      .map(function (row, index) {
+        return { row: row, index: index };
+      })
+      .filter(function (entry) {
+        return entry.row && entry.row.applied && entry.row.enabled !== false;
+      });
+  }
+
+  function supportedScenarioDeviceRows() {
+    return state.scenarioDeviceRows.filter(function (row) {
+      return row && isScenarioDeviceSupported(row);
+    });
+  }
+
+  function testerDeviceOptions(currentDeviceId) {
+    var supported = supportedScenarioDeviceRows();
+    var source = supported.length ? supported : state.scenarioDeviceRows;
+    if (currentDeviceId && !source.some(function (row) { return row.deviceId === currentDeviceId; })) {
+      var current = state.scenarioDeviceRows.find(function (row) {
+        return row.deviceId === currentDeviceId;
+      });
+      if (current) source = [current].concat(source);
+    }
+    return source;
+  }
+
+  function supportedCommunicationText() {
+    var baseStations = scenarioBaseStations();
+    if (baseStations.length) {
+      return baseStations.map(function (station) {
+        return station.label || station.name;
+      }).join(" / ");
+    }
+    var supported = COMM_TYPES.filter(function (type) {
+      return state.scenarioDeviceRows.some(function (row) {
+        return row.communicationType === type.value && isScenarioDeviceSupported(row);
+      });
+    });
+    if (!supported.length) return "等待场景加载";
+    return supported.map(function (item) { return item.label.replace(" 通信", ""); }).join(" / ");
+  }
+
+  function persistDeviceLibraryRow(row) {
+    if (!row || !row.deviceId) return;
+    var library = loadDeviceLibrary();
+    if (!library.some(function (item) { return item.id === row.deviceId; })) {
+      library.push({
+        id: row.deviceId,
+        name: row.name,
+        deviceType: row.deviceType,
+        communicationType: row.communicationType,
+        quantity: Math.max(1, integerValue(row.quantity, 1)),
+        maxThroughput: numberValue(row.maxThroughput, 0),
+        maxUsers: integerValue(row.maxUsers, 0),
+        enabled: row.enabled !== false,
+        status: row.status || "已导入"
+      });
+      writeStorage(DEVICE_LIBRARY_KEY, library);
+    }
+  }
+
+  function ensureToolbarDeviceEntry() {
+    var anchor = byId("u2834");
+    var host = anchor && anchor.parentElement ? anchor.parentElement : document.body;
+    if (!host) return;
+
+    var button = byId("tester-device-entry");
+    if (button && button.parentElement !== host) {
+      button.remove();
+      button = null;
+    }
+    if (!button) {
+      button = document.createElement("button");
+      button.id = "tester-device-entry";
+      button.type = "button";
+      button.textContent = "导入设备";
+      host.appendChild(button);
+    }
+    button.style.cssText = [
+      "position:absolute",
+      "left:248px",
+      "top:2px",
+      "width:95px",
+      "height:40px",
+      "display:flex",
+      "align-items:center",
+      "justify-content:center",
+      "white-space:nowrap",
+      "padding:0 12px",
+      "border:1px solid #b7e0fe",
+      "border-radius:10px",
+      "background:#3961f6",
+      "color:#ffffff",
+      "font-size:16px",
+      "line-height:1",
+      "font-family:'思源黑体 CN Regular','思源黑体 CN',sans-serif",
+      "cursor:pointer",
+      "z-index:30",
+      "pointer-events:auto"
+    ].join(";");
+
+    var summary = byId("tester-device-summary");
+    if (summary && summary.parentElement !== host) {
+      summary.remove();
+      summary = null;
+    }
+    if (!summary) {
+      summary = document.createElement("div");
+      summary.id = "tester-device-summary";
+      host.appendChild(summary);
+    }
+    summary.style.cssText = [
+      "position:absolute",
+      "left:358px",
+      "top:10px",
+      "width:235px",
+      "font-size:12px",
+      "line-height:1.6",
+      "color:#64748b",
+      "z-index:30",
+      "white-space:nowrap",
+      "overflow:hidden",
+      "text-overflow:ellipsis",
+      "pointer-events:none"
+    ].join(";");
+    updateDeviceSummaryBadge();
+  }
+
+  function ensureTesterDeviceAccessModule() {
+    var host = byId("u2852_state0_content");
+    if (!host) return null;
+    host.style.position = "relative";
+    host.style.pointerEvents = "auto";
+    var module = byId("tester-device-access-module");
+    if (!module) {
+      module = document.createElement("div");
+      module.id = "tester-device-access-module";
+      host.appendChild(module);
+    }
+    module.style.cssText = [
+      "position:absolute",
+      "left:8px",
+      "top:122px",
+      "width:1588px",
+      "min-height:116px",
+      "box-sizing:border-box",
+      "z-index:28",
+      "font-size:13px",
+      "font-family:'Microsoft YaHei','PingFang SC',sans-serif",
+      "color:#334155",
+      "pointer-events:auto"
+    ].join(";");
+    return module;
+  }
+
+  function storeBaseTop(node) {
+    if (!node) return 0;
+    if (node.dataset.testerBaseTop == null) {
+      var computed = window.getComputedStyle ? window.getComputedStyle(node) : null;
+      var top = parseFloat(node.style.top || (computed && computed.top) || "0");
+      node.dataset.testerBaseTop = String(Number.isFinite(top) ? top : 0);
+    }
+    return Number(node.dataset.testerBaseTop) || 0;
+  }
+
+  function shouldShiftResultNode(node) {
+    if (!node || !node.id) return false;
+    if (node.id === "tester-device-access-module" || node.id === "u2856") return false;
+    if (node.closest && (node.closest("#tester-device-access-module") || node.closest("#u2856"))) return false;
+    if (node.id !== "u2857" && node.closest && node.closest("#u2857")) return false;
+    return true;
+  }
+
+  function relayoutTesterResultPanel() {
+    var content = byId("u2852_state0_content");
+    var module = byId("tester-device-access-module");
+    if (!content || !module) return;
+    var moduleHeight = Math.max(116, module.scrollHeight || module.offsetHeight || 116);
+    module.style.height = moduleHeight + "px";
+
+    var terminal = byId("u2856");
+    var terminalBaseTop = terminal ? storeBaseTop(terminal) : 122;
+    var delta = moduleHeight + 16;
+    if (terminal) {
+      terminal.style.top = (terminalBaseTop + delta) + "px";
+    }
+
+    Array.prototype.forEach.call(content.querySelectorAll("[id]"), function (node) {
+      if (!shouldShiftResultNode(node)) return;
+      var baseTop = storeBaseTop(node);
+      if (baseTop >= 512) {
+        node.style.top = (baseTop + delta) + "px";
+      }
+    });
+
+    var statePanel = byId("u2852_state0");
+    var resultPanel = byId("u2852");
+    var height = 1388 + delta;
+    if (statePanel) statePanel.style.height = height + "px";
+    if (resultPanel) resultPanel.style.height = height + "px";
+    if (document.body && resultPanel) {
+      document.body.style.minHeight = Math.max(document.body.scrollHeight || 0, resultPanel.offsetTop + height + 48) + "px";
+    }
+  }
+
+  function renderTesterDeviceAccessModule() {
+    var module = ensureTesterDeviceAccessModule();
+    if (!module) return;
+    if (!Array.isArray(state.scenarioDeviceRows) || !state.scenarioDeviceRows.length) {
+      ensureDeviceLibrarySeeded();
+      loadScenarioDeviceRows();
+    }
+    var bounds = currentScenarioGridBounds();
+    var rows = activeScenarioDeviceRows();
+    var gridColumns = "44px minmax(260px,1.2fr) 140px minmax(210px,1fr) 92px 92px 92px 112px 76px";
+    var body = rows.length ? rows.map(function (entry, order) {
+      var row = entry.row;
+      var index = entry.index;
+      var supported = isScenarioDeviceSupported(row);
+      var options = testerDeviceOptions(row.deviceId).map(function (option) {
+        return "<option value='" + escapeHtml(option.deviceId) + "'" + (option.deviceId === row.deviceId ? " selected" : "") + ">" +
+          escapeHtml(option.name) +
+        "</option>";
+      }).join("");
+      var station = row.baseStationName ? scenarioBaseStationByName(row.baseStationName) : null;
+      var modeText = row.mode || defaultStationMode(station) || "--";
+      var keyParams = row.deviceType + " / " + formatMetric(row.maxThroughput, 0) + "Mbps / " + row.maxUsers + "用户";
+      return "<div data-tester-device-row='" + index + "' style='display:grid;grid-template-columns:" + gridColumns + ";align-items:center;gap:10px;min-height:48px;border-top:1px solid #edf2f7;'>" +
+        "<div style='text-align:center;color:#64748b;'>" + (order + 1) + "</div>" +
+        "<select data-tester-device-field='deviceId' style='width:100%;height:34px;border:1px solid #d7e3f4;border-radius:6px;padding:0 10px;background:#fff;color:#17315d;box-sizing:border-box;'>" + options + "</select>" +
+        "<div title='" + escapeHtml(modeText) + "' style='height:34px;line-height:34px;padding:0 10px;border:1px solid #edf2f7;border-radius:6px;background:#f8fafc;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" + escapeHtml(communicationCategoryLabel(row.communicationType) + " / " + modeText) + "</div>" +
+        "<div style='height:34px;line-height:34px;padding:0 10px;border:1px solid #edf2f7;border-radius:6px;background:#f8fafc;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" + escapeHtml(keyParams) + "</div>" +
+        "<input data-tester-device-field='quantity' type='number' min='1' step='1' value='" + escapeHtml(row.quantity) + "' style='width:100%;height:34px;border:1px solid #d7e3f4;border-radius:6px;padding:0 10px;box-sizing:border-box;'>" +
+        "<input data-tester-device-field='x' type='number' min='0' max='" + escapeHtml(bounds.maxX) + "' step='1' value='" + escapeHtml(clampGridIndex(row.x, bounds.maxX, 0)) + "' title='x 为区域网格行索引，范围 0-" + escapeHtml(bounds.maxX) + "' style='width:100%;height:34px;border:1px solid #d7e3f4;border-radius:6px;padding:0 10px;box-sizing:border-box;'>" +
+        "<input data-tester-device-field='y' type='number' min='0' max='" + escapeHtml(bounds.maxY) + "' step='1' value='" + escapeHtml(clampGridIndex(row.y, bounds.maxY, 0)) + "' title='y 为区域网格列索引，范围 0-" + escapeHtml(bounds.maxY) + "' style='width:100%;height:34px;border:1px solid #d7e3f4;border-radius:6px;padding:0 10px;box-sizing:border-box;'>" +
+        "<div style='height:28px;line-height:28px;text-align:center;border-radius:999px;background:" + (supported ? "rgba(34,197,94,0.12)" : "rgba(245,158,11,0.16)") + ";color:" + (supported ? "#15803d" : "#b45309") + ";white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>" + (supported ? "已接入" : "场景不支持") + "</div>" +
+        "<button type='button' data-tester-device-action='remove' style='height:32px;border:1px solid #f1c7c7;border-radius:6px;background:#fff;color:#b42318;cursor:pointer;'>移除</button>" +
+      "</div>";
+    }).join("") : "<div style='height:38px;line-height:38px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-top:1px solid #edf2f7;'>暂无设备接入，点击“导入设备”或“+ 添加设备”按当前场景默认接入 1 台设备，并配置 x/y 网格位置</div>";
+
+    module.innerHTML =
+      "<div style='display:flex;align-items:center;justify-content:space-between;height:38px;'>" +
+      "<div style='display:flex;align-items:center;gap:10px;min-width:0;'>" +
+      "<div style='width:8px;height:22px;background:#3961f6;flex:0 0 auto;'></div>" +
+      "<div style='font-size:16px;color:#111827;font-weight:600;white-space:nowrap;'>设备接入模块</div>" +
+      "<div id='tester-device-inline-summary' style='font-size:12px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>设备接入：" + escapeHtml(deviceSummaryLabel()) + "</div>" +
+      "<div style='font-size:12px;color:#64748b;white-space:nowrap;'>支持：" + escapeHtml(supportedCommunicationText()) + "；x 0-" + escapeHtml(bounds.maxX) + "，y 0-" + escapeHtml(bounds.maxY) + "</div>" +
+      "</div>" +
+      "<div style='display:flex;align-items:center;gap:8px;'>" +
+      "<button type='button' data-tester-device-action='add' style='height:34px;padding:0 16px;border:1px solid #b7e0fe;border-radius:6px;background:#3961f6;color:#fff;cursor:pointer;'>+ 添加设备</button>" +
+      "<button type='button' data-tester-device-action='json' style='height:34px;padding:0 14px;border:1px solid #d7e3f4;border-radius:6px;background:#fff;color:#17315d;cursor:pointer;'>导入JSON</button>" +
+      "<button type='button' data-tester-device-action='apply' style='height:34px;padding:0 14px;border:1px solid #b7e0fe;border-radius:6px;background:#ebf5ff;color:#2563eb;cursor:pointer;'>应用到当前测试</button>" +
+      "</div></div>" +
+      "<input id='tester-device-json-importer' type='file' accept='.json,application/json' style='display:none;'>" +
+      "<div style='display:grid;grid-template-columns:" + gridColumns + ";align-items:center;gap:10px;height:34px;margin-top:8px;color:#64748b;background:#f8fafc;border:1px solid #edf2f7;border-left:0;border-right:0;'>" +
+      "<div style='text-align:center;'>序号</div><div>接入设备</div><div>通信方式</div><div>关键参数</div><div>数量</div><div>x（行）</div><div>y（列）</div><div>状态</div><div>操作</div>" +
+      "</div>" +
+      body;
+
+    Array.prototype.forEach.call(module.querySelectorAll("input,select,button"), function (node) {
+      node.style.pointerEvents = "auto";
+    });
+    bindTesterDeviceAccessEvents(module);
+    updateDeviceSummaryBadge();
+    relayoutTesterResultPanel();
+  }
+
+  function addTesterDeviceSlot() {
+    if (!state.scenarioName) {
+      appendTerminalLine("场景配置尚未加载完成，暂不能接入设备。", "warning");
+      return;
+    }
+    if (!Array.isArray(state.scenarioDeviceRows) || !state.scenarioDeviceRows.length) {
+      ensureDeviceLibrarySeeded();
+      loadScenarioDeviceRows();
+    }
+    var bounds = currentScenarioGridBounds();
+    var supported = supportedScenarioDeviceRows();
+    var source = supported.length ? supported : state.scenarioDeviceRows;
+    var template = source.find(function (row) { return !row.applied; }) || source[0];
+    if (!template) {
+      appendTerminalLine("当前没有可接入设备，请先导入设备 JSON。", "warning");
+      return;
+    }
+    var addedName = template.name;
+    if (template.applied) {
+      var clone = {
+        deviceId: template.deviceId + "-copy-" + Date.now() + "-" + Math.random().toString(16).slice(2, 6),
+        baseStationName: template.baseStationName || null,
+        mode: template.mode || null,
+        name: template.name + " " + (state.scenarioDeviceRows.filter(function (row) { return row.name.indexOf(template.name) === 0; }).length + 1),
+        deviceType: template.deviceType,
+        communicationType: template.communicationType,
+        quantity: 1,
+        maxThroughput: template.maxThroughput,
+        maxUsers: template.maxUsers,
+        enabled: true,
+        applied: true,
+        x: 0,
+        y: 0,
+        status: "已导入"
+      };
+      state.scenarioDeviceRows.push(clone);
+      addedName = clone.name;
+    } else {
+      template.applied = true;
+      template.enabled = true;
+      template.quantity = 1;
+      template.x = clampGridIndex(template.x, bounds.maxX, 0);
+      template.y = clampGridIndex(template.y, bounds.maxY, 0);
+      template.status = "已导入";
+    }
+    saveScenarioDeviceRows();
+    renderTesterDeviceAccessModule();
+    appendTerminalLine("已接入设备：" + addedName + "，默认数量 1。", "success");
+    var module = byId("tester-device-access-module");
+    if (module && module.scrollIntoView) {
+      module.scrollIntoView({ block: "nearest" });
+    }
+  }
+
+  function removeTesterDeviceSlot(index) {
+    var row = state.scenarioDeviceRows[index];
+    if (!row) return;
+    row.applied = false;
+    saveScenarioDeviceRows();
+    renderTesterDeviceAccessModule();
+    appendTerminalLine("已移除设备接入：" + row.name + "。", "info");
+  }
+
+  function updateTesterDeviceField(index, field) {
+    var row = state.scenarioDeviceRows[index];
+    if (!row || !field) return;
+    var key = field.getAttribute("data-tester-device-field");
+    if (key === "deviceId") {
+      var targetIndex = state.scenarioDeviceRows.findIndex(function (item) {
+        return item.deviceId === field.value;
+      });
+      if (targetIndex >= 0 && targetIndex !== index) {
+        var target = state.scenarioDeviceRows[targetIndex];
+        target.applied = true;
+        target.enabled = true;
+        target.quantity = Math.max(1, integerValue(row.quantity, 1));
+        target.x = row.x;
+        target.y = row.y;
+        row.applied = false;
+        saveScenarioDeviceRows();
+        renderTesterDeviceAccessModule();
+      }
+      return;
+    }
+    if (key === "quantity") {
+      row.quantity = Math.max(1, integerValue(field.value, 1));
+      field.value = String(row.quantity);
+    } else if (key === "x" || key === "y") {
+      var bounds = currentScenarioGridBounds();
+      var max = key === "x" ? bounds.maxX : bounds.maxY;
+      row[key] = clampGridIndex(field.value, max, 0);
+      field.value = String(row[key]);
+    }
+    saveScenarioDeviceRows();
+    updateDeviceSummaryBadge();
+  }
+
+  function bindTesterDeviceAccessEvents(module) {
+    Array.prototype.forEach.call(module.querySelectorAll("[data-tester-device-action]"), function (button) {
+      button.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        var action = button.getAttribute("data-tester-device-action");
+        if (action === "add") {
+          addTesterDeviceSlot();
+          return;
+        }
+        if (action === "json") {
+          var input = byId("tester-device-json-importer");
+          if (input) input.click();
+          return;
+        }
+        if (action === "apply") {
+          saveScenarioDeviceRows();
+          updateDeviceSummaryBadge();
+          appendTerminalLine("已应用当前测试场景设备接入配置：" + deviceSummaryLabel() + "。", "success");
+          importScene();
+          return;
+        }
+        if (action === "remove") {
+          var row = button.closest("[data-tester-device-row]");
+          if (row) removeTesterDeviceSlot(Number(row.getAttribute("data-tester-device-row")));
+        }
+      }, true);
+    });
+
+    var importer = byId("tester-device-json-importer");
+    if (importer) {
+      importer.addEventListener("change", function (event) {
+        var file = event.target.files && event.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          try {
+            var parsed = JSON.parse(String(reader.result || "[]"));
+            var devices = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.devices) ? parsed.devices : []);
+            persistDeviceLibraryMerge(devices);
+            syncDeviceRowsFromStorage();
+            appendTerminalLine("已导入设备库 JSON，共 " + devices.length + " 条。", "success");
+          } catch (error) {
+            window.alert("设备导入失败：" + (error && error.message ? error.message : error));
+          }
+        };
+        reader.readAsText(file, "utf-8");
+      });
+    }
+
+    Array.prototype.forEach.call(module.querySelectorAll("[data-tester-device-row]"), function (rowNode) {
+      var index = Number(rowNode.getAttribute("data-tester-device-row"));
+      Array.prototype.forEach.call(rowNode.querySelectorAll("[data-tester-device-field]"), function (field) {
+        field.addEventListener("input", function () {
+          updateTesterDeviceField(index, field);
+        });
+        field.addEventListener("change", function () {
+          updateTesterDeviceField(index, field);
+        });
+      });
+    });
+  }
+
+  function ensureOverlay() {
+	    var panel = byId("u2852");
+	    var content = byId("u2852_state0_content");
+	    if (panel && content) {
+	      setPanelVisible("u2852", true);
+	      setPanelVisible("u2857", true);
+	      content.style.position = "relative";
+	      content.style.pointerEvents = "auto";
+	      removePrototypeMoreButton();
+	      ensureToolbarDeviceEntry();
+	      renderTesterDeviceAccessModule();
+	      updateSceneExportButtons(state.simulationResult);
+	    }
     var terminalHost = byId("u2856");
     if (terminalHost) {
       terminalHost.style.position = "relative";
@@ -295,6 +1458,10 @@ const buildInjectionScript = (apiBase) => `
           return;
         }
         var exportKey = id === "u2999" ? "disaster_scene" : "deployment_scene";
+        if (!sceneExportHasFile(state.simulationResult.scene_export, exportKey)) {
+          appendTerminalLine("当前没有可下载的" + (exportKey === "disaster_scene" ? "受灾场景" : "部署后场景") + "文件。", "warning");
+          return;
+        }
         var fileName = (state.scenarioName || "scenario") + (exportKey === "disaster_scene" ? "_disaster_scene.json" : "_deployment_scene.json");
         var payload = state.simulationResult.scene_export[exportKey];
         var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
@@ -369,6 +1536,7 @@ const buildInjectionScript = (apiBase) => `
       setText("u2997_text", "受灾场景文件：--");
       setText("u2998_text", "部署后场景文件：--");
     }
+    updateSceneExportButtons(result);
 
     var rowIds = {
       id: ["u2883","u2884","u2885","u2886","u2887","u2888","u2889","u2890","u2891","u2892"],
@@ -396,6 +1564,142 @@ const buildInjectionScript = (apiBase) => `
     setText("u3022_text", String((finalState.residual_base_stations || state.importedScene && state.importedScene.initial_state && state.importedScene.initial_state.residual_base_stations || []).length || 0));
   }
 
+  function normalizeGeoBounds(bounds) {
+    if (!bounds) return null;
+    var latMin = Number(bounds.lat_min);
+    var latMax = Number(bounds.lat_max);
+    var lonMin = Number(bounds.lon_min);
+    var lonMax = Number(bounds.lon_max);
+    if (![latMin, latMax, lonMin, lonMax].every(isFinite)) return null;
+    return {
+      latMin: Math.min(latMin, latMax),
+      latMax: Math.max(latMin, latMax),
+      lonMin: Math.min(lonMin, lonMax),
+      lonMax: Math.max(lonMin, lonMax)
+    };
+  }
+
+  function scenarioGeoBounds(scene) {
+    var sceneBounds = normalizeGeoBounds(scene && scene.geo_bounds);
+    if (sceneBounds) return sceneBounds;
+
+    var activeScene = activeScenePayload(state.activeSceneTab || "imported");
+    var activeSceneBounds = normalizeGeoBounds(activeScene && activeScene.geo_bounds);
+    if (activeSceneBounds) return activeSceneBounds;
+
+    var scenario = currentScenario();
+    return normalizeGeoBounds(scenario && scenario.region_grid && scenario.region_grid.geo_bounds);
+  }
+
+  function mercatorProject(lat, lon, zoom) {
+    var size = 256 * Math.pow(2, zoom);
+    var safeLat = Math.max(-85.05112878, Math.min(85.05112878, Number(lat)));
+    var sin = Math.sin(safeLat * Math.PI / 180);
+    return {
+      x: (Number(lon) + 180) / 360 * size,
+      y: (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * size
+    };
+  }
+
+  function mapViewport(width, height, scene) {
+    var bounds = scenarioGeoBounds(scene);
+    if (!bounds) return null;
+    var bestZoom = 5;
+    for (var zoom = 5; zoom <= 14; zoom += 1) {
+      var northWest = mercatorProject(bounds.latMax, bounds.lonMin, zoom);
+      var southEast = mercatorProject(bounds.latMin, bounds.lonMax, zoom);
+      var spanX = Math.abs(southEast.x - northWest.x);
+      var spanY = Math.abs(southEast.y - northWest.y);
+      if (spanX <= width * 0.82 && spanY <= height * 0.82) {
+        bestZoom = zoom;
+      }
+    }
+    var centerLat = (bounds.latMin + bounds.latMax) / 2;
+    var centerLon = (bounds.lonMin + bounds.lonMax) / 2;
+    var center = mercatorProject(centerLat, centerLon, bestZoom);
+    return {
+      zoom: bestZoom,
+      left: center.x - width / 2,
+      top: center.y - height / 2
+    };
+  }
+
+  function cartoTileUrl(zoom, x, y) {
+    var subdomains = ["a", "b", "c", "d"];
+    var subdomain = subdomains[Math.abs(x + y) % subdomains.length];
+    return "https://" + subdomain + ".basemaps.cartocdn.com/rastertiles/voyager/" + zoom + "/" + x + "/" + y + ".png";
+  }
+
+  function renderRealMapLayer(hostId, activeKey) {
+    var host = byId(hostId);
+    if (!host) return;
+    host.style.position = "relative";
+    var width = 1618;
+    var height = 1090;
+    var scene = activeScenePayload(activeKey || state.activeSceneTab || "imported");
+    var viewport = mapViewport(width, height, scene);
+    var layerId = "tester-real-map-layer-" + hostId;
+    var layer = byId(layerId);
+    if (!layer) {
+      layer = document.createElement("div");
+      layer.id = layerId;
+      host.appendChild(layer);
+    }
+    layer.style.cssText = [
+      "position:absolute",
+      "left:1px",
+      "top:53px",
+      "width:" + width + "px",
+      "height:" + height + "px",
+      "z-index:20",
+      "overflow:hidden",
+      "background:#e5e7eb",
+      "pointer-events:none"
+    ].join(";");
+
+    if (!viewport) {
+      layer.innerHTML = "";
+      return;
+    }
+
+    var tileSize = 256;
+    var maxTile = Math.pow(2, viewport.zoom);
+    var minTileX = Math.floor(viewport.left / tileSize) - 1;
+    var maxTileX = Math.floor((viewport.left + width) / tileSize) + 1;
+    var minTileY = Math.floor(viewport.top / tileSize) - 1;
+    var maxTileY = Math.floor((viewport.top + height) / tileSize) + 1;
+    var tiles = "";
+
+    for (var tileX = minTileX; tileX <= maxTileX; tileX += 1) {
+      var wrappedX = ((tileX % maxTile) + maxTile) % maxTile;
+      for (var tileY = minTileY; tileY <= maxTileY; tileY += 1) {
+        if (tileY < 0 || tileY >= maxTile) continue;
+        var left = Math.round(tileX * tileSize - viewport.left);
+        var top = Math.round(tileY * tileSize - viewport.top);
+        tiles += "<img src='" + cartoTileUrl(viewport.zoom, wrappedX, tileY) + "' style='position:absolute;left:" + left + "px;top:" + top + "px;width:" + tileSize + "px;height:" + tileSize + "px;' draggable='false' />";
+      }
+    }
+
+    var scenario = currentScenario() || {};
+    var regionName = scenario.region_grid && scenario.region_grid.name ? scenario.region_grid.name : scenarioLabel(state.scenarioName);
+    layer.innerHTML = tiles +
+      "<div style='position:absolute;left:18px;top:18px;padding:8px 12px;border-radius:8px;background:rgba(15,23,42,0.62);color:#fff;font-size:14px;font-family:Microsoft YaHei, PingFang SC, sans-serif;'>" +
+      escapeHtml(regionName) +
+      "</div>" +
+      "<div style='position:absolute;right:14px;bottom:10px;padding:4px 8px;border-radius:6px;background:rgba(255,255,255,0.78);color:#334155;font-size:11px;font-family:Arial,sans-serif;'>© OpenStreetMap © CARTO</div>";
+  }
+
+  function applyScenarioMapSkin(activeKey) {
+    renderRealMapLayer("u2692_state0_content", activeKey);
+    renderRealMapLayer("u3039_state0_content", activeKey);
+    ["u2693", "u2693_img", "u3040", "u3040_img"].forEach(function (id) {
+      var node = byId(id);
+      if (!node) return;
+      node.style.display = "none";
+      node.style.visibility = "hidden";
+    });
+  }
+
   function updateScenarioDecorations() {
     var scenario = currentScenario();
     if (!scenario) return;
@@ -406,11 +1710,90 @@ const buildInjectionScript = (apiBase) => `
       "（离散网格 " + (scenario.region_grid && scenario.region_grid.rows || scenario.grid_size || "--") + " × " +
       (scenario.region_grid && scenario.region_grid.cols || scenario.grid_size || "--") + "）");
     setText("u3038_text", comboLabel(state.scenarioName, state.algorithm) + " 策略测试");
+    applyScenarioMapSkin();
   }
 
   function closeModal(id) {
     var node = byId(id);
     if (node) node.remove();
+  }
+
+  function persistDeviceLibraryMerge(items) {
+    var library = loadDeviceLibrary();
+    var map = {};
+    library.concat(items || []).forEach(function (item, index) {
+      var id = item.id || ("device-" + Date.now() + "-" + index);
+      map[id] = {
+        id: id,
+        name: item.name || "未命名设备",
+        deviceType: item.deviceType || "专用设备",
+        communicationType: item.communicationType || "cellular",
+        quantity: Math.max(1, integerValue(item.quantity, 1)),
+        maxThroughput: numberValue(item.maxThroughput, 0),
+        maxUsers: integerValue(item.maxUsers, 0),
+        enabled: item.enabled !== false,
+        status: item.status || "已导入"
+      };
+    });
+    writeStorage(DEVICE_LIBRARY_KEY, Object.keys(map).map(function (key) { return map[key]; }));
+  }
+
+  function openDeviceModal() {
+    closeModal("tester-device-modal");
+    renderTesterDeviceAccessModule();
+    addTesterDeviceSlot();
+  }
+
+  function matchBaseStationForCommunicationType(baseStations, communicationType) {
+    var items = Array.isArray(baseStations) ? baseStations : [];
+    var matchers = {
+      cellular: function (station) {
+        return /5g|macro|mmwave|蜂窝|宏站|微站/i.test(station.name || "") ||
+          /5g|macro|mmwave|蜂窝|宏站|微站/i.test(station.label || "") ||
+          (station.supported_modes || []).some(function (mode) { return /5g/i.test(mode); });
+      },
+      wifi: function (station) {
+        return /wifi/i.test(station.name || "") ||
+          /wifi/i.test(station.label || "") ||
+          (station.supported_modes || []).some(function (mode) { return /wifi/i.test(mode); });
+      },
+      satellite: function (station) {
+        return /satellite|卫星/i.test(station.name || "") ||
+          /satellite|卫星/i.test(station.label || "") ||
+          (station.supported_modes || []).some(function (mode) { return /satellite/i.test(mode); });
+      },
+      shortwave: function (station) {
+        return /shortwave|hf|短波/i.test(station.name || "") ||
+          /shortwave|hf|短波/i.test(station.label || "") ||
+          (station.supported_modes || []).some(function (mode) { return /shortwave|hf/i.test(mode); });
+      }
+    };
+    var predicate = matchers[communicationType];
+    return predicate ? (items.find(predicate) || null) : null;
+  }
+
+  function buildScenarioDeviceBaseStations() {
+    var scenario = currentScenario();
+    var baseStations = scenario && Array.isArray(scenario.base_stations) ? scenario.base_stations : [];
+    var rows = scenario && scenario.region_grid && scenario.region_grid.rows ? scenario.region_grid.rows : (scenario && scenario.grid_size ? scenario.grid_size : 1);
+    var cols = scenario && scenario.region_grid && scenario.region_grid.cols ? scenario.region_grid.cols : (scenario && scenario.grid_size ? scenario.grid_size : 1);
+    return state.scenarioDeviceRows.flatMap(function (row) {
+      if (!row.applied || !row.enabled || Number(row.quantity) <= 0) return [];
+      var matched = row.baseStationName
+        ? scenarioBaseStationByName(row.baseStationName)
+        : matchBaseStationForCommunicationType(baseStations, row.communicationType);
+      if (!matched) return [];
+      var supportedModes = Array.isArray(matched.supported_modes) ? matched.supported_modes : [];
+      var mode = row.mode && supportedModes.indexOf(row.mode) !== -1 ? row.mode : (supportedModes.length ? supportedModes[0] : null);
+      return Array.from({ length: Math.max(1, integerValue(row.quantity, 1)) }, function (_, index) {
+        return {
+          base_station: matched.name,
+          mode: mode,
+          x: (integerValue(row.x, 0) + index) % Math.max(1, rows),
+          y: (integerValue(row.y, 0) + index) % Math.max(1, cols)
+        };
+      });
+    });
   }
 
   function comboRows() {
@@ -473,6 +1856,7 @@ const buildInjectionScript = (apiBase) => `
         updateMetrics(null);
         setTabVisual("imported");
         state.activeSceneTab = "imported";
+        syncDeviceRowsFromStorage();
         syncCheckpoint();
         appendTerminalLine("已切换到 " + comboLabel(state.scenarioName, state.algorithm) + "。", "info");
         modal.remove();
@@ -631,7 +2015,11 @@ const buildInjectionScript = (apiBase) => `
   async function importScene() {
     if (!state.scenarioName || state.loadingScene) return;
     state.loadingScene = true;
+    if (!state.running) {
+      state.simulationResult = null;
+    }
     setStatus("同步场景中", "warning");
+    syncDeviceRowsFromStorage();
 
     try {
       var response = await fetch(API + "/simulate/scene", {
@@ -641,7 +2029,8 @@ const buildInjectionScript = (apiBase) => `
         },
         body: JSON.stringify({
           scenario_name: state.scenarioName,
-          env_type: "multimodal"
+          env_type: "multimodal",
+          custom_base_stations: buildScenarioDeviceBaseStations()
         })
       });
 
@@ -657,7 +2046,7 @@ const buildInjectionScript = (apiBase) => `
       appendTerminalLine(
         "已同步场景：" + scenarioLabel(state.scenarioName) +
           "，用户 " + (initialState.total_users || 0) +
-          "，残余基站 " + (((initialState.residual_base_stations || []).length)) + " 个。",
+          "，残余基站 " + (((initialState.residual_base_stations || []).length)) + " 个，设备接入 " + deviceSummaryLabel() + "。",
         "success"
       );
       updateSummaryLine(
@@ -668,6 +2057,8 @@ const buildInjectionScript = (apiBase) => `
       if (!state.running) {
         setStatus(state.checkpointPath ? "场景就绪" : "缺少权重", state.checkpointPath ? "success" : "error");
       }
+      state.activeSceneTab = "imported";
+      setTabVisual("imported");
     } catch (error) {
       appendTerminalLine("场景同步失败：" + (error && error.message ? error.message : error), "error");
       updateSummaryLine("场景同步失败，请检查后端服务状态。");
@@ -714,8 +2105,8 @@ const buildInjectionScript = (apiBase) => `
       state.simulationResult = payload;
       updateMetrics(payload);
       persistTestHistory(payload);
-      setTabVisual(payload.scene_export && payload.scene_export.deployment_scene ? "deployment" : "imported");
       state.activeSceneTab = payload.scene_export && payload.scene_export.deployment_scene ? "deployment" : "imported";
+      setTabVisual(state.activeSceneTab);
       var note = byId("tester-scene-note");
       if (note) {
         note.textContent = state.activeSceneTab === "deployment" ? "部署后场景" : "导入的场景";
@@ -807,7 +2198,9 @@ const buildInjectionScript = (apiBase) => `
     state.running = true;
     setStartButton("测试中...", "running", false);
     setStatus("测试中", "warning");
+    syncDeviceRowsFromStorage();
     updateSummaryLine(comboLabel(state.scenarioName, state.algorithm) + "，测试执行中，实时日志已接入真实后端流。");
+    appendTerminalLine("当前场景已应用设备：" + deviceSummaryLabel() + "。", "info");
 
     try {
       var response = await fetch(API + "/simulate/stream", {
@@ -824,7 +2217,7 @@ const buildInjectionScript = (apiBase) => `
           stochastic_eval: true,
           eval_seed: 13,
           custom_devices: buildImportedDevices(),
-          custom_base_stations: null
+          custom_base_stations: buildScenarioDeviceBaseStations()
         })
       });
 
@@ -865,33 +2258,31 @@ const buildInjectionScript = (apiBase) => `
       }, true);
     }
 
-    var importedTab = byId("u2844");
-    if (importedTab && !importedTab.dataset.liveBound) {
-      importedTab.dataset.liveBound = "true";
-      importedTab.style.pointerEvents = "auto";
-      importedTab.addEventListener("click", function (event) {
-        event.preventDefault();
-        event.stopPropagation();
-        state.activeSceneTab = "imported";
-        setTabVisual("imported");
-        var note = byId("tester-scene-note");
-        if (note) note.textContent = "导入的场景";
-      }, true);
-    }
-
-    var deploymentTab = byId("u2843");
-    if (deploymentTab && !deploymentTab.dataset.liveBound) {
-      deploymentTab.dataset.liveBound = "true";
-      deploymentTab.style.pointerEvents = "auto";
-      deploymentTab.addEventListener("click", function (event) {
-        event.preventDefault();
-        event.stopPropagation();
-        state.activeSceneTab = "deployment";
-        setTabVisual("deployment");
-        var note = byId("tester-scene-note");
-        if (note) note.textContent = "部署后场景";
-      }, true);
-    }
+    [
+      { ids: ["u2844", "u2844_img", "u2844_text"], key: "imported", label: "导入的场景" },
+      { ids: ["u2843", "u2843_img", "u2843_text"], key: "deployment", label: "部署后场景" }
+    ].forEach(function (tab) {
+      tab.ids.forEach(function (id) {
+        var node = byId(id);
+        if (!node || node.dataset.liveBound) return;
+        node.dataset.liveBound = "true";
+        node.style.pointerEvents = "auto";
+        node.style.cursor = "pointer";
+        node.addEventListener("click", function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          if (tab.key === "deployment" && !hasDeploymentScene()) {
+            state.activeSceneTab = "imported";
+            setTabVisual("imported");
+            return;
+          }
+          state.activeSceneTab = tab.key;
+          setTabVisual(tab.key);
+          var note = byId("tester-scene-note");
+          if (note) note.textContent = tab.label;
+        }, true);
+      });
+    });
 
     ["u2418", "u2418_div", "u2418_text"].forEach(function (id) {
       var historyTrigger = byId(id);
@@ -905,9 +2296,21 @@ const buildInjectionScript = (apiBase) => `
         openTestHistoryModal();
       }, true);
     });
+
+    var deviceTrigger = byId("tester-device-entry");
+    if (deviceTrigger && !deviceTrigger.dataset.liveBound) {
+      deviceTrigger.dataset.liveBound = "true";
+      deviceTrigger.style.pointerEvents = "auto";
+      deviceTrigger.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        openDeviceModal();
+      }, true);
+    }
   }
 
   async function bootstrap() {
+    ensureDeviceLibrarySeeded();
     ensureOverlay();
     wireButtons();
     setTabVisual("imported");
@@ -940,6 +2343,7 @@ const buildInjectionScript = (apiBase) => `
       state.algorithm = latestArtifact && latestArtifact.algorithm ? latestArtifact.algorithm : "ppo";
 
       bindComboPicker();
+      syncDeviceRowsFromStorage();
       syncCheckpoint();
       await importScene();
       appendTerminalLine("策略测试页已切换为真实后端驱动模式。", "success");
@@ -966,6 +2370,6 @@ export function injectPrototypeTester(doc) {
 
   var script = doc.createElement("script");
   script.id = "tester-api-inject";
-  script.textContent = buildInjectionScript("/api");
+  script.textContent = buildInjectionScript("/api", COMMUNICATION_TYPE_OPTIONS, DEFAULT_DEVICE_TEMPLATES);
   doc.head && doc.head.appendChild(script);
 }
