@@ -23,6 +23,10 @@ env/
 # Project outputs
 artifacts/
 
+# Large data resources (use external storage)
+data/extreme_disaster_resources.zip
+data/extreme_disaster_resources/
+
 # Frontend build artifacts
 frontend/node_modules/
 frontend/dist/
