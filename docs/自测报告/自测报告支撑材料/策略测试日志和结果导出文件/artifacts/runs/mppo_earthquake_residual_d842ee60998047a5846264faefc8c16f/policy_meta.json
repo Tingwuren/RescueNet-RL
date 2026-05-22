@@ -1,0 +1,20 @@
+{
+  "algorithm": "mppo",
+  "env_type": "multimodal",
+  "policy_path": "artifacts/runs/mppo_earthquake_residual_d842ee60998047a5846264faefc8c16f/mppo_policy.pt",
+  "config": {
+    "learning_rate": 0.0003,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_coef": 0.2,
+    "update_epochs": 10,
+    "mini_batch_size": 256,
+    "entropy_coef": 0.01,
+    "value_coef": 0.5,
+    "max_grad_norm": 0.5,
+    "head_keys": [
+      "default"
+    ],
+    "default_head_key": "default"
+  }
+}

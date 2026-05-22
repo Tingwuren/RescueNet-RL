@@ -1,0 +1,94 @@
+{
+  "residual_topology": {
+    "scenario": "earthquake_residual",
+    "disaster_type": "earthquake",
+    "per_user_bandwidth_mbps": 40.0,
+    "target_bandwidth_utilization": 0.95,
+    "communication_modes": [
+      "5G_600MHz",
+      "5G_mmWave",
+      "Satellite_Ku",
+      "WiFi6",
+      "Shortwave_HF"
+    ],
+    "broadcast_modes": [
+      "satellite_broadcast",
+      "digital_audio",
+      "emergency_loudspeaker"
+    ],
+    "residual_network_enabled": true,
+    "layers": [
+      {
+        "layer": "residual_core",
+        "description": "Exploit surviving 5G macro baseband and microwave backhaul for synchronization.",
+        "capacity_mbps": 170.0
+      },
+      {
+        "layer": "edge_cluster",
+        "description": "Deploy bonded small cells (5G/WiFi/Mesh_UAV) per coverage island.",
+        "capacity_mbps": 140.0
+      },
+      {
+        "layer": "broadcast_layer",
+        "description": "Parallel terrestrial + satellite broadcast for warning content, fallback to loudspeakers.",
+        "modes": [
+          "satellite_broadcast",
+          "digital_audio",
+          "emergency_loudspeaker"
+        ]
+      },
+      {
+        "layer": "terminal_slice",
+        "description": "UE aggregates multi-radio flows, enforces \u226540 Mbps theoretical throughput per user.",
+        "sla_per_user_mbps": 40.0,
+        "utilization_target": 0.95
+      }
+    ]
+  },
+  "no_residual_topology": {
+    "scenario": "earthquake_residual",
+    "disaster_type": "earthquake",
+    "per_user_bandwidth_mbps": 40.0,
+    "target_bandwidth_utilization": 0.95,
+    "communication_modes": [
+      "5G_600MHz",
+      "5G_mmWave",
+      "Satellite_Ku",
+      "WiFi6",
+      "Shortwave_HF"
+    ],
+    "broadcast_modes": [
+      "satellite_broadcast",
+      "digital_audio",
+      "emergency_loudspeaker"
+    ],
+    "residual_network_enabled": false,
+    "layers": [
+      {
+        "layer": "satellite_backhaul",
+        "description": "Use Satellite/Shortwave pair as independent control + broadcast backhaul.",
+        "capacity_mbps": 138.0
+      },
+      {
+        "layer": "edge_cluster",
+        "description": "Deploy bonded small cells (5G/WiFi/Mesh_UAV) per coverage island.",
+        "capacity_mbps": 140.0
+      },
+      {
+        "layer": "broadcast_layer",
+        "description": "Parallel terrestrial + satellite broadcast for warning content, fallback to loudspeakers.",
+        "modes": [
+          "satellite_broadcast",
+          "digital_audio",
+          "emergency_loudspeaker"
+        ]
+      },
+      {
+        "layer": "terminal_slice",
+        "description": "UE aggregates multi-radio flows, enforces \u226540 Mbps theoretical throughput per user.",
+        "sla_per_user_mbps": 40.0,
+        "utilization_target": 0.95
+      }
+    ]
+  }
+}

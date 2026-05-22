@@ -1,0 +1,28 @@
+{
+  "algorithm": "hmarl",
+  "env_type": "multimodal",
+  "policy_path": "artifacts/runs/hmarl_typhoon_residual_b99dd20e34754a9c86392f65a15f6fd8/hmarl_policy.pt",
+  "config": {
+    "learning_rate": 0.0003,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_coef": 0.2,
+    "update_epochs": 8,
+    "mini_batch_size": 256,
+    "entropy_coef": 0.01,
+    "value_coef": 0.5,
+    "max_grad_norm": 0.5,
+    "region_rows": 3,
+    "region_cols": 3,
+    "l1_regions": 9,
+    "l2_link_types": 4,
+    "action_prior_scale": 2.0,
+    "policy_prior_weight": 2.5,
+    "reward_shaping_weight": 0.18,
+    "aux_loss_coef": 0.08,
+    "coverage_gain_weight": 3.4,
+    "broadcast_gain_weight": 1.2,
+    "throughput_gain_weight": 0.8,
+    "eval_use_planner_action": true
+  }
+}

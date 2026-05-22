@@ -21,7 +21,7 @@ env/
 .codex
 
 # Project outputs
-artifacts/
+/artifacts/
 /word/
 /meet/
 
@@ -37,7 +37,7 @@ frontend/.env.local
 frontend/.env.*
 
 # FastAPI/server artifacts
-.uvicorn.log
+/.uvicorn.log
 
 # NS-3 / SUMO generated artifacts
 ns-3.46.1/cmake-cache/
@@ -56,5 +56,5 @@ ns-3.46.1/map.net.xml
 Thumbs.db
 
 # Runtime logs
-logs/
+/logs/
 ns-3.46.1/ns3_backend.log

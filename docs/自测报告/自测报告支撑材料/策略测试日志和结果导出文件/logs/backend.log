@@ -1,0 +1,1863 @@
+INFO:     Started server process [1062406]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:55114 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55128 - "GET /api/train/artifacts/detail?run_dir=test HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:55328 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55338 - "GET /api/train/artifacts/detail?run_dir=artifacts%2Fruns%2Fppo_typhoon_residual_7d3f4d07f745400aa17059c62594b78e HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32874 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32878 - "GET /api/train/artifacts/detail?run_dir=artifacts%2Fruns%2Fppo_typhoon_residual_7d3f4d07f745400aa17059c62594b78e HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33384 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54200 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37694 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59620 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59628 - "GET /api/train/artifacts/detail?run_dir=artifacts%2Fruns%2Fppo_typhoon_residual_7d3f4d07f745400aa17059c62594b78e HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44358 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44378 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58106 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50516 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42766 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42184 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56838 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56842 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56846 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56852 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56860 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56866 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46594 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46600 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46614 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38994 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39006 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39008 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39024 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39028 - "POST /api/simulate/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60940 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60946 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60952 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60962 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60972 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60974 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41904 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41906 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41922 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41930 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41934 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41940 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42786 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42788 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42800 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42814 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42824 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42828 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41094 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41100 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41102 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41108 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41114 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41130 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60996 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32778 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32780 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32812 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32810 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32820 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32844 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32832 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32848 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32864 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32856 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32870 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47534 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47544 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47546 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47554 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47560 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47568 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47572 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47574 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47586 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47588 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47594 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47610 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53380 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46034 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46040 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46056 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46064 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46072 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46086 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42556 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42558 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42562 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42566 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42570 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42572 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42584 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42594 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42596 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42600 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42606 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42616 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42622 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54510 - "POST /api/simulate/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32894 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32904 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32912 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32926 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40560 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40552 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40566 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34280 - "GET /api/mahimahi/status HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 674, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 330, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/Projects/RescueNet-RL/server/api.py", line 581, in mahimahi_status
+    "mahimahi_available": mahimahi_manager.mahimahi_available,
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MahimahiManager' object has no attribute 'mahimahi_available'
+INFO:     127.0.0.1:34296 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57344 - "POST /api/mahimahi/simulate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56626 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56634 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56638 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56642 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56644 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56660 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33916 - "POST /api/mahimahi/simulate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33928 - "POST /api/mahimahi/simulate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42838 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42858 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42854 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42848 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42860 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42870 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42878 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42888 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60710 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60722 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60728 - "POST /api/mahimahi/simulate/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54504 - "POST /api/mahimahi/simulate/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39548 - "POST /api/mahimahi/simulate/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33416 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33420 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33968 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38570 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38582 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38586 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38594 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49618 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49630 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49640 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49650 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49656 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49658 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47624 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47628 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47632 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47638 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47648 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47662 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34198 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34210 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34212 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34220 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34236 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55940 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55944 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55958 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42234 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42250 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42238 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42260 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42270 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35408 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35414 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35430 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35428 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57058 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57064 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57074 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57088 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57102 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57108 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40302 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40312 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40318 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40334 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40346 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40358 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58846 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58860 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43996 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44008 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44030 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44022 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57370 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57382 - "GET /api/mahimahi/status HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 674, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 330, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/Projects/RescueNet-RL/server/api.py", line 581, in mahimahi_status
+    "mahimahi_available": mahimahi_manager.mahimahi_available,
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MahimahiManager' object has no attribute 'mahimahi_available'
+INFO:     127.0.0.1:57378 - "GET /api/ns3/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57386 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57374 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57380 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57392 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57408 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53944 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53968 - "GET /api/mahimahi/status HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 674, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 330, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/Projects/RescueNet-RL/server/api.py", line 581, in mahimahi_status
+    "mahimahi_available": mahimahi_manager.mahimahi_available,
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MahimahiManager' object has no attribute 'mahimahi_available'
+INFO:     127.0.0.1:53962 - "GET /api/ns3/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53932 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53970 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53948 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53984 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53998 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55494 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55508 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55522 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55530 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55596 - "GET /api/mahimahi/status HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 674, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 330, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/Projects/RescueNet-RL/server/api.py", line 581, in mahimahi_status
+    "mahimahi_available": mahimahi_manager.mahimahi_available,
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MahimahiManager' object has no attribute 'mahimahi_available'
+INFO:     127.0.0.1:55538 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55552 - "GET /ns3-native/index.html HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55580 - "GET /api/ns3/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55564 - "GET /api/experiments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55602 - "GET /ns3-native/map.png HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:55606 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55622 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55628 - "GET /api/experiments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55642 - "GET /api/ns3/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55656 - "GET /api/mahimahi/status HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 674, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 330, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/Projects/RescueNet-RL/server/api.py", line 581, in mahimahi_status
+    "mahimahi_available": mahimahi_manager.mahimahi_available,
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MahimahiManager' object has no attribute 'mahimahi_available'
+INFO:     127.0.0.1:54672 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54674 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54676 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54678 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54710 - "GET /api/mahimahi/status HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 674, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 330, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/Projects/RescueNet-RL/server/api.py", line 581, in mahimahi_status
+    "mahimahi_available": mahimahi_manager.mahimahi_available,
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MahimahiManager' object has no attribute 'mahimahi_available'
+INFO:     127.0.0.1:54680 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54724 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54684 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54708 - "GET /api/ns3/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54698 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54740 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54756 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48906 - "GET /api/mahimahi/status HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 674, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 330, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/Projects/RescueNet-RL/server/api.py", line 581, in mahimahi_status
+    "mahimahi_available": mahimahi_manager.mahimahi_available,
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MahimahiManager' object has no attribute 'mahimahi_available'
+INFO:     127.0.0.1:48876 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48922 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48872 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48898 - "GET /api/ns3/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48886 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48938 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48924 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50512 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50510 - "GET /api/mahimahi/status HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 674, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 330, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/Projects/RescueNet-RL/server/api.py", line 581, in mahimahi_status
+    "mahimahi_available": mahimahi_manager.mahimahi_available,
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MahimahiManager' object has no attribute 'mahimahi_available'
+INFO:     127.0.0.1:50500 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50506 - "GET /api/ns3/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50484 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50504 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50526 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50518 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40820 - "GET /api/mahimahi/status HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 674, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 330, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/Projects/RescueNet-RL/server/api.py", line 581, in mahimahi_status
+    "mahimahi_available": mahimahi_manager.mahimahi_available,
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MahimahiManager' object has no attribute 'mahimahi_available'
+INFO:     127.0.0.1:40814 - "GET /api/ns3/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40786 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40822 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40774 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40802 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40830 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40836 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35750 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35766 - "GET /api/mahimahi/status HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 674, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 330, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/Projects/RescueNet-RL/server/api.py", line 581, in mahimahi_status
+    "mahimahi_available": mahimahi_manager.mahimahi_available,
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MahimahiManager' object has no attribute 'mahimahi_available'
+INFO:     127.0.0.1:35746 - "GET /api/ns3/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35722 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35714 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35736 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35770 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35784 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35832 - "GET /api/mahimahi/status HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 674, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 330, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/Projects/RescueNet-RL/server/api.py", line 581, in mahimahi_status
+    "mahimahi_available": mahimahi_manager.mahimahi_available,
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MahimahiManager' object has no attribute 'mahimahi_available'
+INFO:     127.0.0.1:35796 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35836 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35820 - "GET /api/ns3/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35806 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35816 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35850 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35858 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35784 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35780 - "GET /api/mahimahi/status HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 674, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 330, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/Projects/RescueNet-RL/server/api.py", line 581, in mahimahi_status
+    "mahimahi_available": mahimahi_manager.mahimahi_available,
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MahimahiManager' object has no attribute 'mahimahi_available'
+INFO:     127.0.0.1:35750 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35736 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35770 - "GET /api/ns3/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35758 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35796 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35790 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35826 - "GET /api/mahimahi/status HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 674, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 330, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/Projects/RescueNet-RL/server/api.py", line 581, in mahimahi_status
+    "mahimahi_available": mahimahi_manager.mahimahi_available,
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MahimahiManager' object has no attribute 'mahimahi_available'
+INFO:     127.0.0.1:35834 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35808 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35824 - "GET /api/ns3/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35800 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35812 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35844 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35858 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35882 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35904 - "GET /api/mahimahi/status HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 674, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 330, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/Projects/RescueNet-RL/server/api.py", line 581, in mahimahi_status
+    "mahimahi_available": mahimahi_manager.mahimahi_available,
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MahimahiManager' object has no attribute 'mahimahi_available'
+INFO:     127.0.0.1:35914 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35872 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35896 - "GET /api/ns3/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35890 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35926 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35918 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60744 - "GET /api/mahimahi/status HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 674, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 330, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/Projects/RescueNet-RL/server/api.py", line 581, in mahimahi_status
+    "mahimahi_available": mahimahi_manager.mahimahi_available,
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MahimahiManager' object has no attribute 'mahimahi_available'
+INFO:     127.0.0.1:60718 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60708 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60736 - "GET /api/ns3/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60756 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60720 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60760 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60766 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60770 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57626 - "GET /api/mahimahi/status HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 674, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 330, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/Projects/RescueNet-RL/server/api.py", line 581, in mahimahi_status
+    "mahimahi_available": mahimahi_manager.mahimahi_available,
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MahimahiManager' object has no attribute 'mahimahi_available'
+INFO:     127.0.0.1:57640 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57600 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57606 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57642 - "GET /api/ns3/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57618 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57662 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57658 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57672 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57698 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57710 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57716 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57756 - "GET /api/mahimahi/status HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 674, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 330, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/Projects/RescueNet-RL/server/api.py", line 581, in mahimahi_status
+    "mahimahi_available": mahimahi_manager.mahimahi_available,
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MahimahiManager' object has no attribute 'mahimahi_available'
+INFO:     127.0.0.1:57744 - "GET /api/experiments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57726 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57736 - "GET /api/ns3/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57764 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57776 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57794 - "GET /api/experiments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57780 - "GET /api/ns3/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57800 - "GET /api/mahimahi/status HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 674, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 330, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/Projects/RescueNet-RL/server/api.py", line 581, in mahimahi_status
+    "mahimahi_available": mahimahi_manager.mahimahi_available,
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MahimahiManager' object has no attribute 'mahimahi_available'
+INFO:     127.0.0.1:57804 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57812 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57828 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57878 - "GET /api/mahimahi/status HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 674, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/fastapi/routing.py", line 330, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/root/.local/share/mamba/envs/rescuenet-rl/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/Projects/RescueNet-RL/server/api.py", line 581, in mahimahi_status
+    "mahimahi_available": mahimahi_manager.mahimahi_available,
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MahimahiManager' object has no attribute 'mahimahi_available'
+INFO:     127.0.0.1:57868 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57880 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57842 - "GET /api/ns3/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57852 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57872 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57896 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57910 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57920 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54894 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54912 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54908 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54916 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49872 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49880 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49890 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49902 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49904 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49908 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49914 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34970 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34974 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34978 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34982 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35828 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35812 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54826 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54842 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54850 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52508 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52506 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52522 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52534 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52528 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57954 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57938 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57962 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43102 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43104 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43118 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38492 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43034 - "GET /ns3-native/index.html HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:43050 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43054 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34660 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34672 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34698 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34714 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54564 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34490 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34500 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52072 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52086 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58466 - "HEAD /ns3-native/index.html HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57330 - "GET /ns3-native/index.html HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34956 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34954 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36062 - "GET /ns3-native/index.html HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36066 - "GET /ns3-native/index.html HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55808 - "GET /ns3-native/index.html?v=1777448795506 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52894 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52880 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53262 - "POST /api/mahimahi/simulate/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55390 - "GET /ns3-native/index.html?v=1777450533330 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55392 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55402 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59770 - "POST /api/mahimahi/simulate/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35844 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35860 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38756 - "POST /api/mahimahi/simulate/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48476 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48488 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48490 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57330 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57320 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57338 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57344 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57348 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57364 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46038 - "GET /ns3-native/index.html?v=1777451138120 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34280 - "GET /ns3-native/map.png HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34290 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34298 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52648 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52658 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50058 - "GET /ns3-native/index.html?v=1777452234805 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50072 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50082 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60370 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60364 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60384 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60398 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60410 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60416 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60424 - "GET /ns3-native/index.html?v=1777452241961 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60438 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60440 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38354 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38360 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38362 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38364 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38378 - "GET /ns3-native/index.html?v=1777452254042 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38392 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38402 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44160 - "GET /ns3-native/index.html?v=1777452261950 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46388 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54480 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54482 - "GET /ns3-native/index.html?v=1777452294767 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54484 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54500 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54514 - "GET /ns3-native/index.html?v=1777452296576 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52088 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45766 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56000 - "POST /api/train HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56002 - "GET /api/train/da8eb7fd13aa472b8c6ccbe76359e476/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60816 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60830 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60840 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60844 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60866 - "GET /ns3-native/index.html?v=1777452372665 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60876 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60892 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+    Eval -> avg_reward=14.92 | avg_final_coverage=88.88% | avg_broadcast=100.00%
+[Update 5] step=5120 | mean_reward=15.00 | mean_coverage=89.41% | mean_broadcast=100.00% | loss_pi=-0.220 | loss_v=0.416
+    Eval -> avg_reward=16.99 | avg_final_coverage=95.71% | avg_broadcast=100.00%
+[Update 10] step=10240 | mean_reward=16.93 | mean_coverage=95.29% | mean_broadcast=100.00% | loss_pi=-0.068 | loss_v=0.515
+    Eval -> avg_reward=16.63 | avg_final_coverage=95.16% | avg_broadcast=100.00%
+Artifacts saved to /root/Projects/RescueNet-RL/artifacts/runs/ppo_typhoon_residual_da8eb7fd13aa472b8c6ccbe76359e476
+Training coverage curve saved to /root/Projects/RescueNet-RL/artifacts/runs/ppo_typhoon_residual_da8eb7fd13aa472b8c6ccbe76359e476/training_coverage_curve.png
+INFO:     127.0.0.1:45226 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45240 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45246 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45250 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45258 - "GET /ns3-native/index.html?v=1777452686396 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33564 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33548 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53474 - "POST /api/mahimahi/simulate/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54428 - "GET /ns3-native/index.html?v=1777453720493 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54432 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54438 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39618 - "POST /api/mahimahi/simulate/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45306 - "GET /ns3-native/index.html?v=1777453808758 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45308 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45318 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36270 - "POST /api/mahimahi/simulate/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38212 - "GET /ns3-native/index.html?v=1777453890410 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38226 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38240 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33906 - "POST /api/mahimahi/simulate/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57046 - "GET /ns3-native/index.html?v=1777455417952 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54484 - "GET /ns3-native/index.html?v=1777457342987 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54516 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54500 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37130 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37140 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37150 - "POST /api/mahimahi/simulate/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33348 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60338 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58966 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58960 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60660 - "POST /api/mahimahi/simulate/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45748 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43702 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43696 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37476 - "GET /ns3-native/index.html?v=1777463486235 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34326 - "GET /ns3-native/index.html?v=1777466109299 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41448 - "GET /ns3-native/index.html?v=1777518581288 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35876 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58810 - "GET /ns3-native/index.html?v=1777519262433 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58826 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58836 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35420 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35434 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35442 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35448 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35464 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35468 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38572 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38582 - "POST /api/simulate/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36734 - "GET /ns3-native/index.html?v=1777519588820 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36758 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36742 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36770 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36772 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45862 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45852 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45870 - "GET /ns3-native/index.html?v=1777519603684 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45876 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45880 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45888 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38780 - "GET /ns3-native/index.html?v=1777519613207 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49898 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49908 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49918 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49944 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49932 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49946 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38304 - "GET /ns3-native/index.html?v=1777530653739 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38316 - "GET /ns3-native/map.png HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50486 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39536 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39540 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39542 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39556 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39564 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39574 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39590 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39604 - "GET /ns3-native/index.html?v=1777991097905 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53860 - "GET /ns3-native/map.png HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53870 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53878 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53890 - "POST /api/mahimahi/simulate/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60484 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60482 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60494 - "GET /ns3-native/index.html?v=1777991132569 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50640 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52988 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42578 - "GET /ns3-native/index.html?v=1777991377524 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42582 - "GET /ns3-native/map.png HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38062 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38070 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38082 - "GET /ns3-native/index.html?v=1777991381367 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34830 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52472 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52458 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52482 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52488 - "GET /ns3-native/index.html?v=1778035923006 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52502 - "GET /ns3-native/map.png HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52510 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52518 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52532 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57548 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41928 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41942 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41958 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41970 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41984 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41998 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42008 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42022 - "GET /ns3-native/index.html?v=1778044118029 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57890 - "GET /ns3-native/map.png HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57904 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57916 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57920 - "GET /ns3-native/index.html?v=1778044125851 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57936 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57948 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36014 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49062 - "GET /ns3-native/index.html?v=1778051298359 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49064 - "GET /ns3-native/map.png HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:53262 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59282 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59294 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59308 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59322 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59330 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48254 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47584 - "GET /ns3-native/index.html?v=1778051407959 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42336 - "GET /ns3-native/index.html?v=1778051412637 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47184 - "GET /ns3-native/index.html?v=1778051447342 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53606 - "GET /ns3-native/index.html?v=1778051451301 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56770 - "GET /ns3-native/index.html?v=1778051466687 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44714 - "GET /ns3-native/index.html?v=1778051469299 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44730 - "GET /ns3-native/index.html?v=1778051474282 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57768 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57774 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39980 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39994 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40010 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40014 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40022 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40028 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38596 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38604 - "GET /ns3-native/index.html?v=1778052113937 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38610 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38606 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33390 - "GET /ns3-native/index.html?v=1778052119244 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33404 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33402 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55384 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55386 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55394 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55410 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49508 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49512 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49528 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51810 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55762 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55750 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55770 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44078 - "GET /ns3-native/index.html?v=1778052354560 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44080 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44084 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52684 - "GET /ns3-native/index.html?v=1778052359683 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52696 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52710 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52712 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52722 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52738 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52742 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51194 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55344 - "GET /ns3-native/index.html?v=1778052953200 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55350 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55352 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55356 - "GET /ns3-native/index.html?v=1778052956887 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42348 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42356 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42368 - "GET /ns3-native/index.html?v=1778052959898 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42372 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42374 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41672 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35596 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35602 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35608 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35628 - "GET /api/scenarios HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35612 - "GET /api/train/artifacts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35634 - "POST /api/simulate/scene HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35640 - "POST /api/simulate/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60832 - "GET /ns3-native/index.html?v=1778053084298 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60848 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60856 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41486 - "GET /ns3-native/index.html?v=1778053122291 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41580 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41574 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41590 - "GET /api/train/latest-artifact HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41598 - "GET /api/mahimahi/traces HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54328 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54332 - "GET /openapi.json HTTP/1.1" 200 OK
+--- Logging error ---
+--- Logging error ---
+--- Logging error ---
+--- Logging error ---
+--- Logging error ---
+--- Logging error ---
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [1062406]

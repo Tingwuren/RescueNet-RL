@@ -1,0 +1,16 @@
+{
+  "algorithm": "ppo",
+  "env_type": "multimodal",
+  "policy_path": "artifacts/runs/ppo_flood_no_residual_117949e422374cc59a0e2ce2dd23cf82/ppo_policy.pt",
+  "config": {
+    "learning_rate": 0.0003,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_coef": 0.2,
+    "update_epochs": 10,
+    "mini_batch_size": 256,
+    "entropy_coef": 0.01,
+    "value_coef": 0.5,
+    "max_grad_norm": 0.5
+  }
+}
