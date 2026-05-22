@@ -1911,7 +1911,7 @@ function trainingInjector(apiBase, communicationTypes, defaultTemplates) {
   }
 
   function backendAlgorithmKey(key) {
-    return key === "hmarl" ? "mppo" : key;
+    return key;
   }
 
   function styleAlgorithmText(id, left, top, width, height, fontSize, fontWeight, color, lineHeight) {

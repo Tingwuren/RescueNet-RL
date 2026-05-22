@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>应急通信仿真实验平台 (Advanced Edition)</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            var(--primary): #00F0FF;
+            --primary: #00F0FF;
+            --primary-dark: #0088CC;
+            --success: #00FF9D;
+            --warning: #FFB700;
+            --danger: #FF0055;
+            --bg-base: #050810;
+            --bg-panel: rgba(13, 20, 36, 0.75);
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
+            --border-glow: rgba(0, 240, 255, 0.25);
+            --border-panel: rgba(255, 255, 255, 0.08);
+            --shadow-panel: 0 8px 32px rgba(0, 0, 0, 0.6);
+            --glow-text: 0 0 10px rgba(0, 240, 255, 0.5);
+
+            --c-user: #00FF9D;
+            --c-macro: #00F0FF;
+            --c-manpack: #FFB700;
+            --c-smallcell: #B026FF;
+            --c-relay: #FF0055;
+        }
+
+        body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg-base); color: var(--text-main); overflow: hidden; }
+
+        /* 地图与底层 */
+        #map-container { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 1; background: var(--bg-base); }
+        #map-container::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 120;
+            pointer-events: none;
+            opacity: 0.28;
+            transition: opacity 0.35s ease, background 0.35s ease;
+            background: radial-gradient(circle at 50% 46%, rgba(0, 240, 255, 0.08) 0%, rgba(0, 240, 255, 0.03) 42%, transparent 74%);
+        }
+        #map-container.map-phase--normal::after {
+            opacity: 0.18;
+            background: radial-gradient(circle at 50% 46%, rgba(0, 240, 255, 0.08) 0%, rgba(0, 240, 255, 0.03) 42%, transparent 74%);
+        }
+        #map-container.map-phase--disaster::after {
+            opacity: 0.52;
+            background: radial-gradient(circle at 50% 46%, rgba(255, 0, 85, 0.22) 0%, rgba(255, 0, 85, 0.12) 38%, transparent 72%);
+        }
+        #map-container.map-phase--recovery::after {
+            opacity: 0.34;
+            background: radial-gradient(circle at 50% 46%, rgba(0, 255, 157, 0.14) 0%, rgba(0, 240, 255, 0.1) 38%, transparent 72%);
+        }
+        #map { width: 100%; height: 100%; background: var(--bg-base); }
+        .leaflet-image-layer { filter: invert(95%) hue-rotate(180deg) brightness(0.6) contrast(1.2) grayscale(0.2); mix-blend-mode: screen; opacity: 0.8 !important; }
+        .leaflet-control-attribution { display: none; }
+        #overlay-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 500; }
+
+        /* 毛玻璃面板 */
+        .glass-panel { background: var(--bg-panel); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--border-panel); box-shadow: var(--shadow-panel); }
+
+        /* 顶部工具栏 */
+        .top-bar { position: fixed; top: 0; left: 0; right: 0; height: 64px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; z-index: 1000; border-bottom: 1px solid var(--border-glow); background: linear-gradient(180deg, rgba(5,8,16,0.9) 0%, rgba(5,8,16,0.5) 100%); }
+        .logo { display: flex; align-items: center; gap: 14px; }
+        .logo-icon { width: 40px; height: 40px; background: rgba(0, 240, 255, 0.1); border: 1px solid var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 0 15px rgba(0, 240, 255, 0.2); }
+        .logo-text { font-size: 18px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; text-shadow: var(--glow-text); }
+        .experiment-select select { appearance: none; background: rgba(0,0,0,0.4); border: 1px solid var(--border-panel); color: var(--text-main); padding: 8px 36px 8px 16px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 13px; cursor: pointer; transition: all 0.3s; }
+        .experiment-select select:hover { border-color: var(--primary); box-shadow: 0 0 10px rgba(0,240,255,0.2); }
+        .experiment-select::after { content: '▼'; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 10px; color: var(--primary); pointer-events: none; }
+
+        .btn { padding: 8px 20px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 8px; font-family: inherit; }
+        .btn-primary { background: rgba(0, 240, 255, 0.15); color: var(--primary); border: 1px solid var(--primary); box-shadow: inset 0 0 10px rgba(0,240,255,0.1); }
+        .btn-primary:hover { background: var(--primary); color: #000; box-shadow: 0 0 20px rgba(0,240,255,0.4); }
+        .btn-outline { background: transparent; color: var(--text-muted); border: 1px solid var(--border-panel); }
+        .btn-outline:hover { color: var(--text-main); border-color: var(--text-muted); }
+
+        /* 新增：参数配置控制台 */
+        .settings-bar { position: fixed; top: 64px; left: 0; right: 0; height: 56px; background: rgba(13, 20, 36, 0.85); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border-panel); z-index: 990; display: flex; align-items: center; padding: 0 24px; gap: 20px; font-size: 12px; color: var(--text-main); }
+        .setting-group { display: flex; align-items: center; gap: 8px; }
+        .setting-label { color: var(--text-muted); font-weight: 500; }
+        .setting-input { background: rgba(0,0,0,0.5); border: 1px solid var(--border-panel); color: var(--primary); padding: 6px 8px; border-radius: 4px; width: 65px; font-family: 'JetBrains Mono', monospace; text-align: center; transition: 0.3s;}
+        .setting-input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 10px rgba(0,240,255,0.2); }
+        .setting-divider { width: 1px; height: 24px; background: var(--border-panel); margin: 0 4px; }
+
+        /* 左侧监控 面板高度自适应 */
+        .left-panel { position: fixed; top: 136px; left: 20px; width: 300px; border-radius: 12px; z-index: 900; overflow-y: auto; max-height: calc(100vh - 430px); }
+        .panel-header { padding: 14px 20px; border-bottom: 1px solid var(--border-panel); font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        .panel-content { padding: 20px; }
+
+        .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .stat-card { background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-panel); border-radius: 8px; padding: 12px; }
+        .stat-card.full { grid-column: span 2; }
+        .stat-label { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; }
+        .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 700; }
+
+        .stat-value.primary { color: var(--primary); text-shadow: 0 0 10px rgba(0,240,255,0.4); }
+        .stat-value.success { color: var(--success); text-shadow: 0 0 10px rgba(0,255,157,0.4); }
+        .stat-value.warning { color: var(--warning); text-shadow: 0 0 10px rgba(255,183,0,0.4); }
+        .stat-unit { font-size: 12px; font-weight: 400; color: var(--text-muted); margin-left: 4px; }
+
+        .status-card { padding: 14px; border-radius: 8px; display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-panel); }
+        .status-card.normal { background: rgba(0, 255, 157, 0.05); border-color: rgba(0, 255, 157, 0.2); }
+        .status-card.disaster { background: rgba(255, 0, 85, 0.1); border-color: rgba(255, 0, 85, 0.4); }
+        .status-card.recovery { background: rgba(0, 240, 255, 0.1); border-color: rgba(0, 240, 255, 0.3); }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 8px currentColor; }
+        .status-dot.green { background: var(--success); color: var(--success); }
+        .status-dot.red { background: var(--danger); color: var(--danger); animation: blink 1s infinite; }
+        .status-dot.cyan { background: var(--primary); color: var(--primary); animation: pulse 1.4s ease-in-out infinite; }
+        .status-text { font-size: 13px; font-weight: 600; letter-spacing: 0.5px; }
+
+        /* 右侧装备面板 */
+        .right-panel { position: fixed; top: 136px; right: 20px; width: 280px; border-radius: 12px; z-index: 900; overflow-y: auto; max-height: calc(100vh - 430px); }
+        .equipment-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; border-radius: 8px; margin-bottom: 8px; background: rgba(0,0,0,0.2); border: 1px solid transparent; transition: all 0.2s; }
+        .equipment-item:hover { border-color: var(--border-panel); background: rgba(0,0,0,0.4); }
+        .equipment-left { display: flex; align-items: center; gap: 12px; }
+        .equipment-icon { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 8px currentColor; }
+        .equipment-name { font-size: 12px; font-weight: 600; color: var(--text-main); }
+        .equipment-count { font-family: 'JetBrains Mono'; font-size: 11px; color: var(--text-muted); margin-top: 2px;}
+        .equipment-status { font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 4px; text-transform: uppercase; }
+        .equipment-status.online { background: rgba(0,255,157,0.1); color: var(--success); }
+        .equipment-status.offline { background: rgba(255,0,85,0.1); color: var(--danger); }
+
+        /* 新增：底部宽屏日志控制台 */
+        .bottom-log-panel { position: fixed; bottom: 86px; left: 20px; right: 20px; height: 200px; border-radius: 12px; z-index: 900; display: flex; flex-direction: column; }
+        .log-panel-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--border-panel); background: rgba(0,0,0,0.2); }
+        .log-search { display: flex; align-items: center; gap: 10px; }
+        .log-search input { background: rgba(0,0,0,0.5); border: 1px solid var(--border-panel); color: var(--text-main); padding: 6px 16px; border-radius: 20px; font-size: 12px; width: 280px; outline: none; transition: 0.3s; }
+        .log-search input:focus { border-color: var(--primary); box-shadow: 0 0 10px rgba(0,240,255,0.2); }
+        .event-log { flex: 1; overflow-y: auto; padding: 10px 20px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.6; }
+        .event-log p { padding: 4px 0; color: var(--text-muted); border-bottom: 1px dashed rgba(255,255,255,0.05); transition: color 0.3s;}
+
+        /* 底部控制栏 */
+        .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; display: flex; align-items: center; padding: 0 30px; gap: 20px; z-index: 1000; border-top: 1px solid var(--border-glow); background: linear-gradient(0deg, rgba(5,8,16,0.95) 0%, rgba(5,8,16,0.7) 100%); }
+        .time-display { font-family: 'JetBrains Mono'; font-size: 13px; color: var(--text-muted); min-width: 60px; }
+        .time-display .current { color: var(--primary); font-size: 18px; font-weight: 700; text-shadow: var(--glow-text); }
+        .timeline-slider { flex: 1; height: 4px; -webkit-appearance: none; background: rgba(255,255,255,0.1); border-radius: 2px; outline: none; }
+        .timeline-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--primary); cursor: pointer; box-shadow: 0 0 15px var(--primary); }
+        .playback-controls { display: flex; gap: 10px; }
+        .control-btn { width: 36px; height: 36px; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-panel); cursor: pointer; color: var(--text-main); transition: 0.2s; }
+        .control-btn:hover { background: rgba(0,240,255,0.2); border-color: var(--primary); color: var(--primary); }
+        .control-btn.active { background: var(--primary); color: #000; box-shadow: 0 0 15px var(--primary); }
+
+        /* 灾害警报 */
+        .disaster-alert { position: fixed; top: 140px; left: 50%; transform: translateX(-50%); background: rgba(255, 0, 85, 0.15); backdrop-filter: blur(10px); border: 1px solid var(--danger); color: var(--danger); padding: 12px 30px; border-radius: 30px; font-weight: 700; font-size: 14px; letter-spacing: 1px; z-index: 1100; display: none; align-items: center; gap: 10px; box-shadow: 0 0 30px rgba(255,0,85,0.4); animation: alert-flash 1s infinite; }
+        .disaster-alert.show { display: flex; }
+        .disaster-alert.recovery {
+            background: rgba(0, 240, 255, 0.12);
+            border-color: rgba(0, 240, 255, 0.38);
+            color: #bff8ff;
+            box-shadow: 0 0 26px rgba(0, 240, 255, 0.22);
+            animation: none;
+        }
+        @keyframes alert-flash { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.58; } }
+
+        .mini-chart { height: 70px; margin-top: 10px; width: 100%; }
+
+        /* 图例 位置调整 */
+        .legend { position: fixed; bottom: 300px; right: 20px; padding: 16px; border-radius: 10px; z-index: 900; }
+        .legend-title { font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 1px;}
+        .legend-item { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 11px; }
+        .legend-dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 8px currentColor; }
+        .legend-line { width: 20px; height: 2px; box-shadow: 0 0 5px currentColor; }
+
+        ::-webkit-scrollbar { width: 4px; height: 4px;}
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+    </style>
+</head>
+<body>
+    <!-- 顶部 -->
+    <div class="top-bar glass-panel">
+        <div class="logo">
+            <div class="logo-icon">🛰️</div>
+            <span class="logo-text">应急通信仿真实验平台</span>
+        </div>
+        <div class="top-center">
+            <div class="experiment-select">
+                <select id="expSelect" onchange="loadExperiment()">
+                    <option value="">-- 加载预设实验数据 --</option>
+                </select>
+            </div>
+        </div>
+        <div class="top-right" style="display: flex; gap: 12px;">
+            <button class="btn btn-outline" onclick="resetSimulation()">⟲ 重置</button>
+            <button class="btn btn-primary" id="playBtn" onclick="togglePlay()">▶ 启动</button>
+        </div>
+    </div>
+
+    <!-- 新增：参数配置控制台 -->
+    <div class="settings-bar glass-panel">
+        <div style="font-weight: 700; color: var(--primary); text-shadow: var(--glow-text); margin-right: 10px;">⚙ 全局参数调试</div>
+
+        <div class="setting-group">
+            <span class="setting-label">总时长(s)</span>
+            <input type="number" id="inpDuration" class="setting-input" title="仿真总时间长度">
+        </div>
+        <div class="setting-group">
+            <span class="setting-label">断网时刻(s)</span>
+            <input type="number" id="inpDisaster" class="setting-input" title="灾害爆发时刻">
+        </div>
+
+        <div class="setting-divider"></div>
+
+        <div class="setting-group"><span class="setting-label">用户</span><input type="number" id="inpUser" class="setting-input"></div>
+        <div class="setting-group"><span class="setting-label">宏基站</span><input type="number" id="inpMacro" class="setting-input"></div>
+        <div class="setting-group"><span class="setting-label">背负基站</span><input type="number" id="inpManpack" class="setting-input"></div>
+        <div class="setting-group"><span class="setting-label">微基站</span><input type="number" id="inpSmall" class="setting-input"></div>
+        <div class="setting-group"><span class="setting-label">中继节点</span><input type="number" id="inpRelay" class="setting-input"></div>
+
+        <button class="btn btn-primary" style="margin-left: auto; padding: 6px 16px;" onclick="applyParameters()">应用参数并重构</button>
+    </div>
+
+    <!-- 地图与画布 -->
+    <div id="map-container">
+        <div id="map"></div>
+        <canvas id="overlay-canvas"></canvas>
+    </div>
+
+    <!-- 灾害警报 -->
+    <div class="disaster-alert" id="disasterAlert">
+        ⚠ 监测到极端灾害 | 宏基站受损 | 应急自组网协议已激活
+    </div>
+
+    <!-- 左侧监控 -->
+    <div class="left-panel glass-panel">
+        <div class="panel-header">网络实时遥测</div>
+        <div class="panel-content">
+            <div class="stat-row">
+                <div class="stat-card">
+                    <div class="stat-label">推演时间 (T+)</div>
+                    <div class="stat-value primary"><span id="currentTime">0</span><span class="stat-unit">s</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">帧渲染率</div>
+                    <div class="stat-value"><span id="currentFrame">60</span><span class="stat-unit">fps</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">在线节点</div>
+                    <div class="stat-value success" id="activeNodes">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">活跃链路</div>
+                    <div class="stat-value primary" id="activeLinks">0</div>
+                </div>
+                <div class="stat-card full">
+                    <div class="stat-label">集群吞吐量</div>
+                    <div class="stat-value success"><span id="throughput">0</span><span class="stat-unit"> Mbps</span></div>
+                </div>
+                <div class="stat-card full">
+                    <div class="stat-label">端到端延迟</div>
+                    <div class="stat-value warning"><span id="latency">0</span><span class="stat-unit"> ms</span></div>
+                </div>
+            </div>
+
+            <div class="status-card normal" id="statusCard">
+                <div class="status-dot green" id="statusDot"></div>
+                <span class="status-text" id="statusText">通信枢纽运行正常</span>
+            </div>
+
+            <div class="panel-header" style="margin: 20px -20px 0; padding-top: 20px;">全网吞吐趋势</div>
+            <canvas id="chartCanvas" class="mini-chart"></canvas>
+        </div>
+    </div>
+
+    <!-- 右侧装备面板 -->
+    <div class="right-panel glass-panel">
+        <div class="panel-header">装备编队状态</div>
+        <div class="panel-content">
+            <div class="equipment-item"><div class="equipment-left"><div class="equipment-icon" style="color:var(--c-macro); background:var(--c-macro)"></div><div><div class="equipment-name">宏基站</div><div class="equipment-count"><span id="macroOnline">0</span>/<span id="macroTotal">0</span> ACTIVE</div></div></div><div class="equipment-status online" id="macroStatus">ONLINE</div></div>
+            <div class="equipment-item"><div class="equipment-left"><div class="equipment-icon" style="color:var(--c-manpack); background:var(--c-manpack)"></div><div><div class="equipment-name">背负式基站</div><div class="equipment-count"><span id="manpackOnline">0</span>/<span id="manpackTotal">0</span> ACTIVE</div></div></div><div class="equipment-status online" id="manpackStatus">ONLINE</div></div>
+            <div class="equipment-item"><div class="equipment-left"><div class="equipment-icon" style="color:var(--c-smallcell); background:var(--c-smallcell)"></div><div><div class="equipment-name">微型基站</div><div class="equipment-count"><span id="smallCellOnline">0</span>/<span id="smallCellTotal">0</span> ACTIVE</div></div></div><div class="equipment-status online" id="smallCellStatus">ONLINE</div></div>
+            <div class="equipment-item"><div class="equipment-left"><div class="equipment-icon" style="color:var(--c-relay); background:var(--c-relay)"></div><div><div class="equipment-name">自组网中继节点</div><div class="equipment-count"><span id="relayOnline">0</span>/<span id="relayTotal">0</span> ACTIVE</div></div></div><div class="equipment-status online" id="relayStatus">ONLINE</div></div>
+        </div>
+    </div>
+
+    <!-- 新增：底部宽屏日志控制台 -->
+    <div class="bottom-log-panel glass-panel">
+        <div class="log-panel-header">
+            <div style="font-weight: 700; font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">📡 DB 底层交互日志记录</div>
+            <div class="log-search">
+                <input type="text" id="logQuery" placeholder="输入关键字检索本地 DB 日志..." onkeypress="if(event.key==='Enter') queryLogs()">
+                <button class="btn btn-outline" style="padding: 6px 12px; font-size:12px;" onclick="queryLogs()">🔍 检索</button>
+                <button class="btn btn-outline" style="padding: 6px 12px; font-size:12px;" onclick="downloadLogs()">💾 导出完整日志</button>
+            </div>
+        </div>
+        <div class="event-log" id="eventLog">
+            <p>> SYSTEM INTIALIZED...</p>
+        </div>
+    </div>
+
+    <!-- 图例 -->
+    <div class="legend glass-panel">
+        <div class="legend-title">物理节点标识</div>
+        <div class="legend-item"><div class="legend-dot" style="color:var(--c-user); background:var(--c-user)"></div> 用户终端 (USER)</div>
+        <div class="legend-item"><div class="legend-dot" style="color:var(--c-macro); background:var(--c-macro)"></div> 宏基站 (MACRO)</div>
+        <div class="legend-item"><div class="legend-dot" style="color:var(--c-manpack); background:var(--c-manpack)"></div> 背负基站 (MANPACK)</div>
+        <div class="legend-item"><div class="legend-dot" style="color:var(--c-smallcell); background:var(--c-smallcell)"></div> 微基站 (SMALL_CELL)</div>
+        <div class="legend-item"><div class="legend-dot" style="color:var(--c-relay); background:var(--c-relay)"></div> 中继节点 (RELAY)</div>
+        <div class="legend-title" style="margin-top:16px">空间链路标识</div>
+        <div class="legend-item"><div class="legend-line" style="color:var(--c-user); background:var(--c-user)"></div> D2D / Mesh 链路</div>
+        <div class="legend-item"><div class="legend-line" style="color:var(--c-macro); background:var(--c-macro)"></div> 骨干回传链路</div>
+    </div>
+
+    <!-- 底部控制栏 -->
+    <div class="bottom-bar">
+        <div class="time-display">00:00</div>
+        <input type="range" class="timeline-slider" id="timelineSlider" min="0" max="300" value="0" oninput="seekTime(this.value)">
+        <div class="time-display"><span class="current" id="maxTimeDisplay">300</span>s</div>
+
+        <div class="playback-controls">
+            <button class="control-btn" onclick="jumpToStart()" title="复位">⏮</button>
+            <button class="control-btn" id="playControlBtn" onclick="togglePlay()">▶</button>
+            <button class="control-btn" onclick="jumpToEnd()" title="直达结束">⏭</button>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // 数据配置模块
+        // ============================================================
+        let CONFIG = {
+            mapSize: 5000,
+            simDuration: 300,
+            disasterTime: 60,
+            nodeTypes: {
+                USER:       { color: '#00FF9D', count: 800 },
+                MACRO:      { color: '#00F0FF', count: 8 },
+                MANPACK:    { color: '#FFB700', count: 15 },
+                SMALL_CELL: { color: '#B026FF', count: 50 },
+                RELAY:      { color: '#FF0055', count: 80 }
+            }
+        };
+
+        const EXPERIMENTS =[
+            { id: 'exp001', name: 'TACTICAL-OP-001[实验一: 城区域断网]', duration: 300, disasterTime: 60, desc: '模拟核心城区遭受地震，宏基站物理损毁' },
+            { id: 'exp002', name: 'TACTICAL-OP-002 [实验二: 山区重度灾害]', duration: 450, disasterTime: 40, desc: '模拟山区滑坡，测试多跳中继性能' }
+        ];
+
+        let nodes = [], links =[], currentExp = null;
+        let isPlaying = false, currentTime = 0, isDisaster = false, currentPhase = 'normal';
+        let animationId = null, lastUpdateTime = 0;
+        let chartData = { times:[], throughput: [], latency:[] };
+        let map = null; let overlayCanvas, overlayCtx;
+
+        // ============================================================
+        // IndexedDB 日志系统 与 检索查询模块
+        // ============================================================
+        let dbInstance = null;
+        let isQueryMode = false; // 查询模式锁定标记
+
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('SimLogDB', 1);
+                request.onupgradeneeded = e => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains('logs')) {
+                        db.createObjectStore('logs', { keyPath: 'id', autoIncrement: true });
+                    }
+                };
+                request.onsuccess = e => { dbInstance = e.target.result; resolve(dbInstance); };
+                request.onerror = e => reject(e);
+            });
+        }
+
+        function clearDB() {
+            if (!dbInstance) return;
+            const tx = dbInstance.transaction(['logs'], 'readwrite');
+            tx.objectStore('logs').clear();
+        }
+
+        function saveLogToDB(logEntry) {
+            if (!dbInstance) return;
+            const tx = dbInstance.transaction(['logs'], 'readwrite');
+            tx.objectStore('logs').add(logEntry);
+        }
+
+        function renderSingleLog(logEntry, prepend = false) {
+            const logContainer = document.getElementById('eventLog');
+            const p = document.createElement('p');
+
+            if (logEntry.level === 'ERROR') p.style.cssText = 'color: var(--danger) !important; text-shadow: 0 0 5px rgba(255,0,85,0.4) !important;';
+            else if (logEntry.level === 'WARN') p.style.cssText = 'color: var(--warning) !important;';
+            else if (logEntry.level === 'SYSTEM') p.style.cssText = 'color: var(--primary) !important; text-shadow: 0 0 5px rgba(0,240,255,0.3) !important;';
+
+            p.textContent = `[T+${logEntry.simTime}s][${logEntry.type}] ${logEntry.message}`;
+
+            if (prepend) {
+                logContainer.insertBefore(p, logContainer.firstChild);
+                if (logContainer.children.length > 60) logContainer.removeChild(logContainer.lastChild);
+            } else {
+                logContainer.appendChild(p);
+            }
+        }
+
+        function logEvent(level, type, msg, showInUI = true) {
+            const simMs = currentTime * 1000;
+            const realTimeStr = new Date(Date.now() + simMs).toISOString().replace('T', ' ').slice(0, -1);
+            const logEntry = { simTime: currentTime.toFixed(2), realTime: realTimeStr, level, type, message: msg };
+
+            saveLogToDB(logEntry);
+
+            // 如果没开启查询模式，且允许显示，则将新日志实时推送到最前面
+            if (showInUI && !isQueryMode) {
+                renderSingleLog(logEntry, true);
+            }
+        }
+
+        // 本地数据库模糊查询逻辑
+        function queryLogs() {
+            const keyword = document.getElementById('logQuery').value.trim().toLowerCase();
+            const logContainer = document.getElementById('eventLog');
+
+            if (!keyword) {
+                isQueryMode = false;
+                logContainer.innerHTML = '<p style="color:var(--primary)">> 检索已取消，已恢复物理引擎实时日志同步流...</p>';
+                return;
+            }
+
+            isQueryMode = true; // 锁定 UI 不再接收实时日志推送
+            logContainer.innerHTML = '<p>> 正在向 IndexedDB 派发查询指令...</p>';
+
+            const tx = dbInstance.transaction(['logs'], 'readonly');
+            const store = tx.objectStore('logs');
+            const request = store.getAll();
+
+            request.onsuccess = () => {
+                const logs = request.result;
+                const filtered = logs.filter(l =>
+                    l.message.toLowerCase().includes(keyword) ||
+                    l.type.toLowerCase().includes(keyword) ||
+                    l.level.toLowerCase().includes(keyword)
+                );
+
+                logContainer.innerHTML = ''; // 清空面板
+
+                if (filtered.length === 0) {
+                    logContainer.innerHTML = `<p style="color:var(--warning)">> 检索完毕，数据库中不存在包含 "${keyword}" 的日志。</p>`;
+                    return;
+                }
+
+                logContainer.innerHTML = `<p style="color:var(--success); font-weight:bold; border-bottom:1px solid var(--border-panel); padding-bottom:8px; margin-bottom:8px;">> 检索成功，共捕获历史数据 ${filtered.length} 条记录 (仅展示最新 200 条)：</p>`;
+
+                // 为了防止卡顿，展示最新的200条
+                const displayLogs = filtered.reverse().slice(0, 200);
+                displayLogs.forEach(l => renderSingleLog(l, false));
+            };
+        }
+
+        function downloadLogs() {
+            if (!dbInstance) return;
+            const tx = dbInstance.transaction(['logs'], 'readonly');
+            const store = tx.objectStore('logs');
+            const request = store.getAll();
+
+            request.onsuccess = () => {
+                const logs = request.result;
+                if(logs.length === 0) { alert("无日志数据"); return; }
+
+                let text = "=== 应急通信仿真实验平台 | 全链路底层日志 ===\n";
+                text += `记录事件总数: ${logs.length} 条\n==============================================\n\n`;
+                logs.forEach(l => text += `[${l.realTime}] [T+${l.simTime}s][${l.level}][${l.type}] ${l.message}\n`);
+
+                const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = `SimLog_${new Date().getTime()}.txt`;
+                a.click(); URL.revokeObjectURL(url);
+            };
+        }
+
+        // ============================================================
+        // 初始化与参数控制模块
+        // ============================================================
+        async function init() {
+            await initDB(); clearDB();
+
+            initMap();
+            initExperiments();
+            syncConfigToInputs(); // 将CONFIG数据同步到顶部输入框
+            generateNodes();
+            generateSimulationData();
+            initChart();
+            syncScenarioState();
+            updateUI();
+
+            const resizeObserver = new ResizeObserver(() => resizeCanvas());
+            resizeObserver.observe(document.getElementById('map-container'));
+            logEvent('SYSTEM', 'SYS_INIT', '数字孪生框架构建完毕，可导入参数进行推演。');
+        }
+
+        // 同步配置到顶部的 Input 输入框
+        function syncConfigToInputs() {
+            document.getElementById('inpDuration').value = CONFIG.simDuration;
+            document.getElementById('inpDisaster').value = CONFIG.disasterTime;
+            document.getElementById('inpUser').value = CONFIG.nodeTypes.USER.count;
+            document.getElementById('inpMacro').value = CONFIG.nodeTypes.MACRO.count;
+            document.getElementById('inpManpack').value = CONFIG.nodeTypes.MANPACK.count;
+            document.getElementById('inpSmall').value = CONFIG.nodeTypes.SMALL_CELL.count;
+            document.getElementById('inpRelay').value = CONFIG.nodeTypes.RELAY.count;
+        }
+
+        // 用户点击“应用参数”后的重构逻辑
+        function applyParameters() {
+            CONFIG.simDuration = parseInt(document.getElementById('inpDuration').value) || 300;
+            CONFIG.disasterTime = parseInt(document.getElementById('inpDisaster').value) || 60;
+            CONFIG.nodeTypes.USER.count = parseInt(document.getElementById('inpUser').value) || 0;
+            CONFIG.nodeTypes.MACRO.count = parseInt(document.getElementById('inpMacro').value) || 0;
+            CONFIG.nodeTypes.MANPACK.count = parseInt(document.getElementById('inpManpack').value) || 0;
+            CONFIG.nodeTypes.SMALL_CELL.count = parseInt(document.getElementById('inpSmall').value) || 0;
+            CONFIG.nodeTypes.RELAY.count = parseInt(document.getElementById('inpRelay').value) || 0;
+
+            document.getElementById('maxTimeDisplay').textContent = CONFIG.simDuration;
+            document.getElementById('timelineSlider').max = CONFIG.simDuration;
+            document.getElementById('expSelect').value = ""; // 清空下拉框选中状态，表示当前为自定义
+
+            resetSimulation();
+            logEvent('SYSTEM', 'PARAM_APPLY', '用户物理参数已生效，沙盘环境已依规重置！');
+        }
+
+        function initExperiments() {
+            const select = document.getElementById('expSelect');
+            EXPERIMENTS.forEach(exp => {
+                const option = document.createElement('option');
+                option.value = exp.id; option.textContent = exp.name;
+                select.appendChild(option);
+            });
+            select.value = 'exp001';
+            loadExperiment();
+        }
+
+        function loadExperiment() {
+            const expId = document.getElementById('expSelect').value;
+            if(!expId) return; // 如果是空的说明是用户自定义参数
+
+            currentExp = EXPERIMENTS.find(e => e.id === expId);
+            CONFIG.simDuration = currentExp.duration;
+            CONFIG.disasterTime = currentExp.disasterTime;
+
+            // 同步到 UI 框中
+            syncConfigToInputs();
+
+            document.getElementById('maxTimeDisplay').textContent = currentExp.duration;
+            document.getElementById('timelineSlider').max = currentExp.duration;
+
+            resetSimulation();
+            logEvent('SYSTEM', 'DATA_LOAD', '加载预设实验: ' + currentExp.desc);
+        }
+
+        // ============================================================
+        // 地图与物理引擎
+        // ============================================================
+        function initMap() {
+            map = L.map('map', { crs: L.CRS.Simple, minZoom: -4, maxZoom: 2, zoomControl: false, attributionControl: false });
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+            L.imageOverlay('map.png', [[0,0],[CONFIG.mapSize, CONFIG.mapSize]]).addTo(map);
+
+            function fitScreen() {
+                const mapEl = document.getElementById('map');
+                const winW = mapEl.clientWidth || window.innerWidth;
+                const winH = mapEl.clientHeight || window.innerHeight;
+                map.setView([CONFIG.mapSize/2, CONFIG.mapSize/2], Math.log2(Math.max(winW / CONFIG.mapSize, winH / CONFIG.mapSize)));
+            }
+            fitScreen();
+
+            overlayCanvas = document.getElementById('overlay-canvas');
+            overlayCtx = overlayCanvas.getContext('2d', { alpha: true });
+            resizeCanvas();
+
+            map.on('move', drawOverlay);
+            map.on('zoom', drawOverlay);
+        }
+
+        function resizeCanvas() {
+            const container = document.getElementById('map');
+            overlayCanvas.width = container.clientWidth;
+            overlayCanvas.height = container.clientHeight;
+            drawOverlay();
+        }
+
+        function generateNodes() {
+            nodes =[]; let id = 0;
+            for (const[type, config] of Object.entries(CONFIG.nodeTypes)) {
+                for (let i = 0; i < config.count; i++) {
+                    let x, y;
+                    if (type === 'MACRO') {
+                        const grid = Math.ceil(Math.sqrt(config.count));
+                        const spacing = CONFIG.mapSize / (grid + 1);
+                        x = spacing * (Math.floor(i % grid) + 1); y = spacing * (Math.floor(i / grid) + 1);
+                    } else {
+                        x = Math.random() * (CONFIG.mapSize - 400) + 200; y = Math.random() * (CONFIG.mapSize - 400) + 200;
+                    }
+                    nodes.push({
+                        id: id++, type: type, x: x, y: y,
+                        vx: (Math.random() - 0.5) * 15, vy: (Math.random() - 0.5) * 15,
+                        online:['USER', 'MACRO', 'SMALL_CELL'].includes(type)
+                    });
+                }
+            }
+        }
+
+        function generateSimulationData() {
+            chartData = { times:[], throughput:[], latency:[] };
+            for (let t = 0; t <= CONFIG.simDuration; t++) {
+                let tp;
+                let lat;
+                if (t < CONFIG.disasterTime) {
+                    tp = 85 + Math.random() * 10;
+                    lat = 12 + Math.random() * 3;
+                } else if (t < CONFIG.disasterTime + 10) {
+                    tp = 15 + Math.random() * 5;
+                    lat = 80 + Math.random() * 20;
+                } else {
+                    const recoveryWindow = Math.max(1, CONFIG.simDuration - CONFIG.disasterTime - 10);
+                    const recoveryRatio = Math.min(1, Math.max(0, (t - CONFIG.disasterTime - 10) / recoveryWindow));
+                    tp = 42 + recoveryRatio * 38 + Math.random() * 6;
+                    lat = 38 - recoveryRatio * 18 + Math.random() * 8;
+                }
+                chartData.times.push(t); chartData.throughput.push(tp); chartData.latency.push(lat);
+            }
+            generateLinks();
+        }
+
+        function getRecoveryTimeline() {
+            const remaining = Math.max(1, CONFIG.simDuration - CONFIG.disasterTime);
+            const recoveryStart = Math.min(CONFIG.simDuration, CONFIG.disasterTime + Math.max(12, remaining * 0.22));
+            const recoveryComplete = Math.min(CONFIG.simDuration, CONFIG.disasterTime + Math.max(32, remaining * 0.78));
+            return { recoveryStart, recoveryComplete };
+        }
+
+        function getRecoveryProgress(time = currentTime) {
+            const { recoveryStart, recoveryComplete } = getRecoveryTimeline();
+            if (time <= recoveryStart) return 0;
+            if (time >= recoveryComplete) return 1;
+            return (time - recoveryStart) / Math.max(1, recoveryComplete - recoveryStart);
+        }
+
+        function getPhaseForTime(time = currentTime) {
+            if (time < CONFIG.disasterTime) return 'normal';
+            const recoveryProgress = getRecoveryProgress(time);
+            if (recoveryProgress >= 0.995) return 'restored';
+            if (recoveryProgress > 0.12) return 'recovery';
+            return 'disaster';
+        }
+
+        function setSystemVisualState(phase) {
+            const alertEl = document.getElementById('disasterAlert');
+            const statusCard = document.getElementById('statusCard');
+            const statusText = document.getElementById('statusText');
+            const statusDot = document.getElementById('statusDot');
+            const mapContainer = document.getElementById('map-container');
+
+            mapContainer.classList.remove('map-phase--normal', 'map-phase--disaster', 'map-phase--recovery');
+            alertEl.classList.remove('show', 'recovery');
+
+            if (phase === 'normal') {
+                mapContainer.classList.add('map-phase--normal');
+                statusCard.className = 'status-card normal';
+                statusText.textContent = '通信枢纽运行正常';
+                statusDot.className = 'status-dot green';
+                return;
+            }
+
+            if (phase === 'disaster') {
+                mapContainer.classList.add('map-phase--disaster');
+                alertEl.textContent = '⚠ 监测到极端灾害 | 宏基站受损 | 应急自组网协议已激活';
+                alertEl.classList.add('show');
+                statusCard.className = 'status-card disaster';
+                statusText.textContent = '极端灾害爆发 | 宏网熔断';
+                statusDot.className = 'status-dot red';
+                return;
+            }
+
+            mapContainer.classList.add('map-phase--recovery');
+            alertEl.classList.add('show', 'recovery');
+            statusCard.className = 'status-card recovery';
+            statusDot.className = 'status-dot cyan';
+
+            if (phase === 'restored') {
+                alertEl.textContent = '✓ 主干链路已恢复 | 宏站回传重建 | 通信网络趋于稳定';
+                statusText.textContent = '通信网络已恢复 | 覆盖稳定';
+                return;
+            }
+
+            alertEl.textContent = '↻ 应急链路接管中 | 回传骨干重建 | 覆盖持续回升';
+            statusText.textContent = '应急链路重构中 | 网络恢复推进';
+        }
+
+        function applyNodeStateForTime(time = currentTime) {
+            const phase = getPhaseForTime(time);
+            const recoveryProgress = getRecoveryProgress(time);
+            const macroNodes = nodes.filter(n => n.type === 'MACRO');
+            const manpackNodes = nodes.filter(n => n.type === 'MANPACK');
+            const smallCellNodes = nodes.filter(n => n.type === 'SMALL_CELL');
+            const relayNodes = nodes.filter(n => n.type === 'RELAY');
+
+            if (phase === 'normal') {
+                nodes.forEach(n => {
+                    if (n.type === 'MACRO' || n.type === 'SMALL_CELL' || n.type === 'USER') n.online = true;
+                    if (n.type === 'MANPACK' || n.type === 'RELAY') n.online = false;
+                });
+                return;
+            }
+
+            macroNodes.forEach((node, index) => {
+                const normalized = macroNodes.length <= 1 ? 1 : index / (macroNodes.length - 1);
+                node.online = recoveryProgress >= normalized * 0.9;
+            });
+
+            manpackNodes.forEach((node, index) => {
+                if (phase === 'restored') {
+                    node.online = index / Math.max(1, manpackNodes.length) < 0.35;
+                    return;
+                }
+                node.online = recoveryProgress >= 0.02 || index < Math.ceil(manpackNodes.length * 0.85);
+            });
+
+            smallCellNodes.forEach((node, index) => {
+                if (phase === 'restored') {
+                    node.online = index / Math.max(1, smallCellNodes.length) < 0.92;
+                    return;
+                }
+                node.online = recoveryProgress >= 0.08 || index < Math.ceil(smallCellNodes.length * 0.72);
+            });
+
+            relayNodes.forEach((node, index) => {
+                if (phase === 'restored') {
+                    node.online = index / Math.max(1, relayNodes.length) < 0.18;
+                    return;
+                }
+                node.online = recoveryProgress >= 0.01 || index < Math.ceil(relayNodes.length * 0.95);
+            });
+        }
+
+        function syncScenarioState() {
+            const nextPhase = getPhaseForTime(currentTime);
+            const previousPhase = currentPhase;
+            const phaseChanged = previousPhase !== nextPhase;
+
+            isDisaster = nextPhase !== 'normal';
+            applyNodeStateForTime(currentTime);
+            setSystemVisualState(nextPhase);
+            currentPhase = nextPhase;
+
+            if (!phaseChanged) return;
+
+            if (nextPhase === 'disaster') {
+                logEvent('ERROR', 'SYS_ALERT', '探测到物理层毁灭性打击！灾区内宏基站心跳彻底丢失。');
+                nodes.filter(n => n.type === 'MACRO' && !n.online).forEach(n => {
+                    logEvent('ERROR', 'NODE_OFFLINE', `MACRO_${n.id} 连接丢失，硬件损毁`, false);
+                });
+                logEvent('SYSTEM', 'CMD_EXEC', '应急干预启动：唤醒自组网集群接入...');
+            } else if (nextPhase === 'recovery') {
+                logEvent('SYSTEM', 'RECOVERY', '应急链路已接管核心业务，骨干回传正在重建。');
+            } else if (nextPhase === 'restored') {
+                logEvent('SYSTEM', 'RECOVERY_DONE', '主干链路恢复完成，通信网络进入稳定运行阶段。');
+            }
+        }
+
+        function generateLinks() {
+            links =[];
+            const users = nodes.filter(n => n.type === 'USER' && n.online);
+            const baseStations = nodes.filter(n =>['MACRO', 'MANPACK', 'SMALL_CELL', 'RELAY'].includes(n.type) && n.online);
+            const recoveryProgress = getRecoveryProgress(currentTime);
+            const maxLinks = isDisaster ? Math.round(400 - recoveryProgress * 110) : 250;
+            const baseReach = isDisaster ? 800 + recoveryProgress * 420 : 1200;
+            const d2dChance = Math.max(0.16, 0.62 - recoveryProgress * 0.44);
+
+            users.forEach((user, idx) => {
+                if (idx > maxLinks) return;
+                let nearest = null, minDist = Infinity;
+                for (const bs of baseStations) {
+                    const dist = Math.hypot(bs.x - user.x, bs.y - user.y);
+                    if (dist < minDist && dist < baseReach) { minDist = dist; nearest = bs; }
+                }
+                if (nearest) links.push({ src: user, dst: nearest, type: 'LTE' });
+
+                if (isDisaster && Math.random() > d2dChance) {
+                    const randomUser = users[Math.floor(Math.random() * users.length)];
+                    if(Math.hypot(randomUser.x - user.x, randomUser.y - user.y) < 300) {
+                        links.push({ src: user, dst: randomUser, type: 'WIFI' });
+                    }
+                }
+            });
+            if(isPlaying && links.length > 0) logEvent('INFO', 'TOPOLOGY', `拓扑重构: 活跃空间链路数更新为 ${links.length}`, false);
+        }
+
+        function generateTrafficLogs() {
+            if (!isPlaying || links.length === 0) return;
+            const numLogs = Math.floor(Math.random() * 3) + 1;
+            for(let i=0; i<numLogs; i++) {
+                const link = links[Math.floor(Math.random() * links.length)];
+                const dataSize = (Math.random() * 45 + 1).toFixed(2);
+                const speed = (Math.random() * 15 + 5).toFixed(1);
+                const protocol = link.type === 'WIFI' ? 'IEEE 802.11s' : 'LTE RRC';
+                const msg = `[${protocol}] ${link.src.type}_${link.src.id} -> ${link.dst.type}_${link.dst.id} 信道握手成功. 下发 ${dataSize} MB 数据包, 速率: ${speed} Mbps.`;
+                const showInUI = Math.random() > 0.85;
+                logEvent('INFO', 'DATA_TX', msg, showInUI);
+            }
+        }
+
+        function drawOverlay() {
+            if (!overlayCtx || !map) return;
+            const ctx = overlayCtx; ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+            const toScreen = (x, y) => map.latLngToContainerPoint([y, x]);
+            ctx.globalCompositeOperation = 'screen';
+
+            ctx.lineWidth = 1;
+            for (const link of links) {
+                if (!link.src.online || !link.dst.online) continue;
+                const p1 = toScreen(link.src.x, link.src.y); const p2 = toScreen(link.dst.x, link.dst.y);
+                ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+                ctx.strokeStyle = link.type === 'WIFI' ? 'rgba(0, 255, 157, 0.3)' : 'rgba(0, 240, 255, 0.2)';
+                ctx.stroke();
+            }
+
+            const coverageCfg = { 'MACRO': { fill: 'rgba(0, 240, 255, 0.05)', stroke: 'rgba(0, 240, 255, 0.2)', radius: 800 }, 'MANPACK': { fill: 'rgba(255, 183, 0, 0.05)', stroke: 'rgba(255, 183, 0, 0.2)', radius: 500 }, 'SMALL_CELL': { fill: 'rgba(176, 38, 255, 0.05)', stroke: 'rgba(176, 38, 255, 0.2)', radius: 300 }, 'RELAY': { fill: 'rgba(255, 0, 85, 0.05)', stroke: 'rgba(255, 0, 85, 0.2)', radius: 200 } };
+            for (const node of nodes) {
+                if (node.type === 'USER' || !node.online) continue;
+                const p = toScreen(node.x, node.y); const cfg = coverageCfg[node.type];
+                const screenRadius = Math.abs(toScreen(node.x + cfg.radius, node.y).x - toScreen(node.x, node.y).x);
+                ctx.beginPath(); ctx.arc(p.x, p.y, screenRadius, 0, Math.PI * 2); ctx.fillStyle = cfg.fill; ctx.fill(); ctx.strokeStyle = cfg.stroke; ctx.lineWidth = 1; ctx.stroke();
+            }
+
+            const typeConfig = { 'USER': { c: '#00FF9D', r: 2, glow: 0 }, 'MACRO': { c: '#00F0FF', r: 6, glow: 15 }, 'MANPACK': { c: '#FFB700', r: 4, glow: 10 }, 'SMALL_CELL': { c: '#B026FF', r: 4, glow: 10 }, 'RELAY': { c: '#FF0055', r: 3, glow: 10 } };
+            for (const node of nodes) {
+                if (!node.online) continue;
+                const p = toScreen(node.x, node.y); const cfg = typeConfig[node.type];
+                ctx.beginPath(); ctx.arc(p.x, p.y, cfg.r, 0, Math.PI * 2); ctx.fillStyle = cfg.c;
+                ctx.shadowBlur = cfg.glow > 0 ? cfg.glow : 0; ctx.shadowColor = cfg.c; ctx.fill();
+                if (node.type !== 'USER') { ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 1.5; ctx.stroke(); }
+            }
+            ctx.shadowBlur = 0; ctx.globalCompositeOperation = 'source-over';
+        }
+
+        function triggerDisaster() {
+            if (currentPhase !== 'normal') return;
+            currentTime = Math.max(currentTime, CONFIG.disasterTime);
+            syncScenarioState();
+            generateLinks();
+        }
+
+        function updateUI() {
+            document.getElementById('currentTime').textContent = currentTime.toFixed(1);
+            document.getElementById('timelineSlider').value = currentTime;
+            const online = nodes.filter(n => n.online).length;
+            document.getElementById('activeNodes').textContent = online;
+            document.getElementById('activeLinks').textContent = links.length;
+            const idx = Math.min(Math.floor(currentTime), chartData.throughput.length - 1);
+            document.getElementById('throughput').textContent = chartData.throughput[idx]?.toFixed(1) || "0.0";
+            document.getElementById('latency').textContent = chartData.latency[idx]?.toFixed(0) || "0";['macro', 'manpack', 'smallCell', 'relay'].forEach(prefix => {
+                const type = prefix.toUpperCase().replace('SMALLCELL', 'SMALL_CELL');
+                const total = nodes.filter(n => n.type === type).length;
+                const online = nodes.filter(n => n.type === type && n.online).length;
+                document.getElementById(prefix + 'Online').textContent = online;
+                document.getElementById(prefix + 'Total').textContent = total;
+                const status = document.getElementById(prefix + 'Status');
+                status.textContent = online > 0 ? 'ACTIVE' : 'OFFLINE';
+                status.className = 'equipment-status ' + (online > 0 ? 'online' : 'offline');
+            });
+            drawChart();
+        }
+
+        function drawChart() {
+            const canvas = document.getElementById('chartCanvas'); const ctx = canvas.getContext('2d');
+            canvas.width = canvas.parentElement.clientWidth; const w = canvas.width, h = canvas.height; ctx.clearRect(0, 0, w, h);
+            if (!chartData.throughput.length) return;
+            const maxTp = Math.max(...chartData.throughput) * 1.2; const displayTime = Math.min(Math.floor(currentTime), chartData.throughput.length - 1);
+            ctx.beginPath();
+            for (let i = 0; i <= displayTime; i++) {
+                const x = (i / CONFIG.simDuration) * w; const y = h - (chartData.throughput[i] / maxTp) * h;
+                i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+            }
+            ctx.strokeStyle = '#00F0FF'; ctx.lineWidth = 2; ctx.shadowBlur = 10; ctx.shadowColor = '#00F0FF'; ctx.stroke();
+            ctx.shadowBlur = 0; ctx.lineTo((displayTime / CONFIG.simDuration) * w, h); ctx.lineTo(0, h); ctx.fillStyle = 'rgba(0, 240, 255, 0.15)'; ctx.fill();
+        }
+
+        function togglePlay() {
+            isPlaying = !isPlaying;
+            const btn = document.getElementById('playBtn'); const ctrlBtn = document.getElementById('playControlBtn');
+            if (isPlaying) {
+                btn.innerHTML = '⏸ 暂停'; ctrlBtn.innerHTML = '⏸'; ctrlBtn.classList.add('active');
+                logEvent('INFO', 'SYS_STATE', '物理引擎推进...');
+                lastUpdateTime = performance.now(); runSimulation();
+            } else {
+                btn.innerHTML = '▶ 继续'; ctrlBtn.innerHTML = '▶'; ctrlBtn.classList.remove('active');
+                logEvent('WARN', 'SYS_STATE', '物理推演已人工阻断挂起');
+                if (animationId) cancelAnimationFrame(animationId);
+            }
+        }
+
+        function runSimulation() {
+            if (!isPlaying) return;
+            const now = performance.now(); const delta = (now - lastUpdateTime) / 1000; lastUpdateTime = now;
+            document.getElementById('currentFrame').textContent = Math.round(1/delta);
+            currentTime += delta * 2;
+            if (currentTime >= CONFIG.disasterTime && !isDisaster) triggerDisaster();
+            syncScenarioState();
+            if (currentTime >= CONFIG.simDuration) {
+                currentTime = CONFIG.simDuration;
+                syncScenarioState();
+                generateLinks();
+                updateUI();
+                drawOverlay();
+                togglePlay();
+                logEvent('SYSTEM', 'SYS_FINISH', '进程自然结束，网络已收敛至恢复态。');
+                return;
+            }
+            for (const node of nodes) {
+                if (node.type !== 'USER') continue;
+                if (Math.random() < 0.05) { node.vx = (Math.random() - 0.5) * 20; node.vy = (Math.random() - 0.5) * 20; }
+                node.x += node.vx * delta; node.y += node.vy * delta;
+                if (node.x < 100 || node.x > CONFIG.mapSize - 100) node.vx *= -1;
+                if (node.y < 100 || node.y > CONFIG.mapSize - 100) node.vy *= -1;
+            }
+            if(Math.floor(currentTime * 10) % 5 === 0) { generateLinks(); generateTrafficLogs(); }
+            updateUI(); drawOverlay();
+            animationId = requestAnimationFrame(runSimulation);
+        }
+
+        function seekTime(time) {
+            const previousPhase = getPhaseForTime(currentTime);
+            currentTime = parseFloat(time);
+            const nextPhase = getPhaseForTime(currentTime);
+            if (nextPhase !== previousPhase && nextPhase === 'normal' && previousPhase !== 'normal') {
+                logEvent('WARN', 'SYS_ROLLBACK', '推演时间轴倒流回溯。');
+            }
+            syncScenarioState();
+            generateLinks(); updateUI(); drawOverlay();
+        }
+
+        function jumpToStart() { seekTime(0); }
+        function jumpToEnd() { seekTime(CONFIG.simDuration); }
+
+        function resetSimulation() {
+            if(isPlaying) togglePlay();
+            currentTime = 0; isDisaster = false; currentPhase = 'normal';
+
+            clearDB();
+            document.getElementById('eventLog').innerHTML = ''; // 清空面板
+            document.getElementById('logQuery').value = ''; // 清空搜索框
+            isQueryMode = false;
+
+            generateNodes(); syncScenarioState(); generateLinks(); updateUI(); drawOverlay();
+            logEvent('SYSTEM', 'SYS_RESET', '全局缓存已释放，DB清空完毕。');
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

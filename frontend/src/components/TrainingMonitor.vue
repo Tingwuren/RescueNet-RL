@@ -223,6 +223,27 @@ const formatConsoleLine = (event) => {
     ];
     if (payload.steps != null) parts.push(`steps=${payload.steps}`);
     if (payload.total_timesteps != null) parts.push(`timesteps=${payload.total_timesteps}`);
+    if (payload.hierarchy) {
+      const summary = payload.hierarchy.summary || {};
+      const rewards = payload.hierarchical_rewards || {};
+      parts.push(`hmarl_region=${summary.target_region_id ?? "-"}`);
+      parts.push(`l2_links=${summary.l2_link_count ?? 0}`);
+      parts.push(`l3_devices=${summary.l3_deployed_devices ?? 0}`);
+      parts.push(`hmarl_reward=${fixed(rewards.l3_final)}`);
+    }
+    return `${prefix} ${parts.join(" | ")}`;
+  }
+  if (event?.type === "update") {
+    const parts = [
+      `update=${payload.update ?? "-"}`,
+      `step=${payload.step ?? "-"}`,
+      `reward=${fixed(payload.mean_reward)}`,
+      `coverage=${percent(payload.mean_coverage)}`,
+      `broadcast=${percent(payload.mean_broadcast)}`,
+      `loss_pi=${fixed(payload.loss_pi)}`,
+      `loss_v=${fixed(payload.loss_v)}`,
+    ];
+    if (payload.aux_loss != null) parts.push(`aux=${fixed(payload.aux_loss)}`);
     return `${prefix} ${parts.join(" | ")}`;
   }
   if (event?.type === "train") {

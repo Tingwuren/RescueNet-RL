@@ -22,6 +22,8 @@ env/
 
 # Project outputs
 artifacts/
+/word/
+/meet/
 
 # Large data resources (use external storage)
 data/extreme_disaster_resources.zip

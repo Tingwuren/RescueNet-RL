@@ -416,6 +416,7 @@ class DQNTrainer:
                     "algorithm": "dqn",
                     "env_type": self.config.get("experiment", {}).get("env_type", "baseline"),
                     "policy_path": str(policy_path),
+                    "evaluation_protocol": self.config.get("evaluation", {}).get("protocol", "standard"),
                     "config": self.config.get("dqn", {}),
                 },
                 fp,

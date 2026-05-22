@@ -102,6 +102,11 @@ class PPOTrainer:
                         "mean_broadcast": float(mean_broadcast),
                         "loss_pi": float(loss_info["policy_loss"]),
                         "loss_v": float(loss_info["value_loss"]),
+                        **{
+                            key: float(value)
+                            for key, value in loss_info.items()
+                            if key not in {"policy_loss", "value_loss"}
+                        },
                     },
                 )
 
@@ -340,6 +345,7 @@ class PPOTrainer:
                     "algorithm": self.algo_key,
                     "env_type": self.config.get("experiment", {}).get("env_type", "baseline"),
                     "policy_path": str(policy_path),
+                    "evaluation_protocol": self.config.get("evaluation", {}).get("protocol", "standard"),
                     "config": self.config.get(self.algo_key, {}),
                 },
                 fp,

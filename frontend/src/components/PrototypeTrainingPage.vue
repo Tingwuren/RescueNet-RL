@@ -144,6 +144,7 @@
                 <option value="dqn">DQN（大动作空间）</option>
                 <option value="a3c">A3C（多目标）</option>
                 <option value="mppo">MPPO（多头策略）</option>
+                <option value="hmarl">HMARL（层次协同）</option>
               </select>
               <select v-model="historyFilterScenario" class="field__input" style="width:260px">
                 <option value="">请选择场景类型</option>
@@ -433,6 +434,7 @@ const algorithmCards = [
   { value: "dqn", label: "DQN", desc: "大动作空间" },
   { value: "a3c", label: "A3C", desc: "多目标" },
   { value: "mppo", label: "MPPO", desc: "多头策略" },
+  { value: "hmarl", label: "HMARL", desc: "层次协同" },
 ];
 
 const paramTabs = [
@@ -447,6 +449,9 @@ const selectedScenario = computed(() => {
 });
 
 const selectedScenarioName = computed(() => selectedScenario.value?.name || null);
+const evaluationProtocol = computed(() =>
+  selectedScenario.value?.disaster_type === "earthquake" ? "earthquake_stress" : "standard"
+);
 const selectedScenarioLabel = computed(() =>
   selectedScenarioName.value ? formatScenarioName(selectedScenarioName.value) : "未加载"
 );
@@ -546,6 +551,7 @@ const fetchTrainingHistory = async () => {
       updated_at: a.updated_at,
       checkpoint_path: a.checkpoint_path,
       reward_mode: a.reward_mode,
+      evaluation_protocol: a.evaluation_protocol,
     }));
   } catch (error) {
     console.warn("Failed to load training history", error);
@@ -594,7 +600,8 @@ const resolveTrainingCheckpoint = async (runMeta) => {
   const matchesRun = (artifact) =>
     artifact?.checkpoint_path &&
     artifact?.scenario_name === runMeta.scenarioName &&
-    artifact?.algorithm === runMeta.algorithm;
+    artifact?.algorithm === runMeta.algorithm &&
+    (!runMeta.evaluationProtocol || !artifact?.evaluation_protocol || artifact.evaluation_protocol === runMeta.evaluationProtocol);
 
   try {
     const { data } = await axios.get(`${API_BASE}/train/latest-artifact`, { timeout: 10000 });
@@ -623,6 +630,7 @@ const generateReplayFromTraining = async (runMeta) => {
       algorithm: runMeta.algorithm,
       checkpoint_path: checkpointPath,
       reward_mode: runMeta.rewardMode,
+      evaluation_protocol: runMeta.evaluationProtocol,
       stochastic_eval: true,
       eval_seed: 13,
       episodes: 1,
@@ -702,6 +710,14 @@ const startTraining = async () => {
       total_timesteps: totalTimesteps.value,
       stochastic_eval: stochasticEval.value,
       reward_mode: rewardMode,
+      evaluation_protocol: evaluationProtocol.value,
+      learning_rate: learningRate.value,
+      discount_factor: discountFactor.value,
+      batch_size: batchSize.value,
+      rollout_steps: rolloutSteps.value,
+      entropy_coef: entropyCoef.value,
+      clip_range: clipRange.value,
+      eval_interval: evalInterval.value,
     });
 
     activeRunMeta.value = {
@@ -709,6 +725,7 @@ const startTraining = async () => {
       scenarioName: selectedScenarioName.value,
       algorithm: selectedAlgorithm.value,
       rewardMode,
+      evaluationProtocol: evaluationProtocol.value,
     };
 
     subscribeToEvents(data.run_id);

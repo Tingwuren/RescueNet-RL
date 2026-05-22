@@ -13,13 +13,15 @@ from algos.ppo import PPOTrainer
 from algos.dqn import DQNTrainer
 from algos.a3c import A3CTrainer
 from algos.mppo import MPPOTrainer
-from configs.default_config import get_default_config
+from algos.hmarl import HMARLTrainer
+from configs.default_config import apply_evaluation_protocol, get_default_config
 from envs import DisasterCellularEnv, MultiModalCommEnv
 from models.policy_network import MLPActorCritic
 from models.multimodal_policy import MultimodalPolicy
 from models.dqn_network import DQNNetwork
 from models.a3c_policy import A3CPolicy
 from models.mppo_policy import MPPOPolicy
+from models.hmarl_policy import HMARLPolicy
 from planning.broadcast_architecture import export_architecture
 
 
@@ -75,6 +77,18 @@ def build_policy(env, config: Dict[str, Dict[str, object]], env_type: str, devic
             device=device,
         )
 
+    if algorithm == "hmarl":
+        hmarl_cfg = config.get("hmarl", {})
+        return HMARLPolicy(
+            obs_dim=obs_dim,
+            action_dim=action_dim,
+            hidden_sizes=model_config.get("hmarl_hidden_sizes", [768, 512, 256]),
+            l1_regions=int(hmarl_cfg.get("l1_regions", hmarl_cfg.get("region_rows", 3) * hmarl_cfg.get("region_cols", 3))),
+            l2_link_types=int(hmarl_cfg.get("l2_link_types", 4)),
+            prior_weight=float(hmarl_cfg.get("policy_prior_weight", 1.25)),
+            device=device,
+        )
+
     if env_type == "multimodal":
         return MultimodalPolicy(
             obs_dim=obs_dim,
@@ -108,7 +122,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--algo",
         type=str,
-        choices=["ppo", "dqn", "a3c", "mppo"],
+        choices=["ppo", "dqn", "a3c", "mppo", "hmarl"],
         default=None,
         help="Algorithm to train with (default=ppo).",
     )
@@ -123,6 +137,12 @@ def parse_args() -> argparse.Namespace:
         type=str,
         default=None,
         help="Override scenario-specific reward profile when env-type=multimodal.",
+    )
+    parser.add_argument(
+        "--eval-protocol",
+        type=str,
+        default=None,
+        help="Evaluation protocol to apply, e.g. standard or earthquake_stress.",
     )
     parser.add_argument(
         "--deterministic-eval",
@@ -155,11 +175,14 @@ def main() -> None:
         config["experiment"]["env_type"] = args.env_type
     if args.algo:
         config["experiment"]["algorithm"] = args.algo
+        if args.algo == "hmarl" and not args.env_type:
+            config["experiment"]["env_type"] = "multimodal"
     env_type = config["experiment"].get("env_type", "baseline")
     if args.scenario_name:
         config["multimodal_env"]["scenario_name"] = args.scenario_name
     if args.reward_mode:
         config["multimodal_env"]["reward_mode"] = args.reward_mode
+    apply_evaluation_protocol(config, args.eval_protocol)
     if args.deterministic_eval:
         config["train"]["eval_deterministic"] = True
     elif args.stochastic_eval:
@@ -182,6 +205,7 @@ def main() -> None:
         "dqn": DQNTrainer,
         "a3c": A3CTrainer,
         "mppo": MPPOTrainer,
+        "hmarl": HMARLTrainer,
     }.get(algo, PPOTrainer)
 
     trainer = trainer_cls(env=env, eval_env=eval_env, policy=policy, config=config)

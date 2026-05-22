@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from algos.ppo import PPOTrainer
-from configs.default_config import get_default_config
+from configs.default_config import apply_evaluation_protocol, get_default_config
 from planning.broadcast_architecture import export_architecture
 from train import build_policy, make_env, plot_training_metrics
 
@@ -24,6 +24,7 @@ class TrainingRun:
     env_type: str
     algorithm: str
     reward_mode: Optional[str] = None
+    evaluation_protocol: Optional[str] = None
     status: str = "pending"
     started_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
@@ -49,6 +50,7 @@ class TrainingManager:
         total_timesteps: Optional[int],
         stochastic_eval: bool,
         reward_mode: Optional[str],
+        evaluation_protocol: Optional[str],
         learning_rate: Optional[float],
         discount_factor: Optional[float],
         batch_size: Optional[int],
@@ -64,6 +66,7 @@ class TrainingManager:
             env_type=env_type,
             algorithm=algorithm,
             reward_mode=reward_mode,
+            evaluation_protocol=evaluation_protocol,
         )
         with self._lock:
             self._runs[run_id] = run
@@ -78,6 +81,7 @@ class TrainingManager:
                 total_timesteps,
                 stochastic_eval,
                 reward_mode,
+                evaluation_protocol,
                 learning_rate,
                 discount_factor,
                 batch_size,
@@ -122,6 +126,7 @@ class TrainingManager:
         total_timesteps: Optional[int],
         stochastic_eval: bool,
         reward_mode: Optional[str],
+        evaluation_protocol: Optional[str],
         learning_rate: Optional[float],
         discount_factor: Optional[float],
         batch_size: Optional[int],
@@ -136,10 +141,16 @@ class TrainingManager:
             config = get_default_config()
             config["experiment"]["env_type"] = env_type
             config["experiment"]["algorithm"] = algorithm
+            if algorithm == "hmarl" and env_type != "multimodal":
+                env_type = "multimodal"
+                config["experiment"]["env_type"] = env_type
+                run.env_type = env_type
             if env_type == "multimodal":
                 config["multimodal_env"]["scenario_name"] = scenario_name
                 if reward_mode is not None:
                     config["multimodal_env"]["reward_mode"] = reward_mode
+            apply_evaluation_protocol(config, evaluation_protocol)
+            run.evaluation_protocol = config.get("evaluation", {}).get("protocol", "standard")
             if total_timesteps:
                 config["train"]["total_timesteps"] = total_timesteps
             if rollout_steps:
@@ -158,9 +169,9 @@ class TrainingManager:
                     algo_cfg["batch_size"] = batch_size
                 else:
                     algo_cfg["mini_batch_size"] = batch_size
-            if entropy_coef is not None and algorithm in {"ppo", "a3c", "mppo"}:
+            if entropy_coef is not None and algorithm in {"ppo", "a3c", "mppo", "hmarl"}:
                 algo_cfg["entropy_coef"] = entropy_coef
-            if clip_range is not None and algorithm in {"ppo", "a3c", "mppo"}:
+            if clip_range is not None and algorithm in {"ppo", "a3c", "mppo", "hmarl"}:
                 algo_cfg["clip_coef"] = clip_range
 
             latest_artifact_dir = Path(config["logging"]["artifact_dir"])
@@ -177,12 +188,14 @@ class TrainingManager:
             from algos.dqn import DQNTrainer
             from algos.a3c import A3CTrainer
             from algos.mppo import MPPOTrainer
+            from algos.hmarl import HMARLTrainer
 
             trainer_cls = {
                 "ppo": PPOTrainer,
                 "dqn": DQNTrainer,
                 "a3c": A3CTrainer,
                 "mppo": MPPOTrainer,
+                "hmarl": HMARLTrainer,
             }.get(algorithm, PPOTrainer)
 
             trainer = trainer_cls(

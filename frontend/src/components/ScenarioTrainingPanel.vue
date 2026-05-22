@@ -433,6 +433,7 @@ const algorithms = [
   { value: "dqn", label: "DQN", desc: "大动作空间" },
   { value: "a3c", label: "A3C", desc: "多目标" },
   { value: "mppo", label: "MPPO", desc: "多头策略" },
+  { value: "hmarl", label: "HMARL", desc: "层次协同" },
   { value: "custom", label: "自创算法", desc: "预留中", disabled: true },
 ];
 
@@ -488,6 +489,9 @@ const replayRunIdInFlight = ref(null);
 let eventSource = null;
 
 const currentScenario = computed(() => scenarios.value.find((item) => item.name === selectedScenario.value));
+const evaluationProtocol = computed(() =>
+  currentScenario.value?.disaster_type === "earthquake" ? "earthquake_stress" : "standard"
+);
 const rewardProfiles = computed(() => currentScenario.value?.reward_profiles || []);
 const regionMetrics = computed(() => buildRegionMetrics(currentScenario.value?.region_grid));
 const equipmentLibrary = computed(() => currentScenario.value?.base_stations || []);
@@ -674,6 +678,7 @@ const buildImportManifest = () => ({
     logWindow: logWindow.value,
     evalInterval: evalInterval.value,
     autoReplay: autoReplay.value,
+    evaluationProtocol: evaluationProtocol.value,
   },
 });
 
@@ -681,7 +686,8 @@ const resolveTrainingCheckpoint = async (runMeta) => {
   const matchesRun = (artifact) =>
     artifact?.checkpoint_path &&
     artifact?.scenario_name === runMeta.scenarioName &&
-    artifact?.algorithm === runMeta.algorithm;
+    artifact?.algorithm === runMeta.algorithm &&
+    (!runMeta.evaluationProtocol || !artifact?.evaluation_protocol || artifact.evaluation_protocol === runMeta.evaluationProtocol);
 
   try {
     const { data } = await axios.get(`${API_BASE}/train/latest-artifact`, { timeout: 10000 });
@@ -714,6 +720,7 @@ const generateReplayFromTraining = async (runMeta) => {
       algorithm: runMeta.algorithm,
       checkpoint_path: checkpointPath,
       reward_mode: runMeta.rewardMode,
+      evaluation_protocol: runMeta.evaluationProtocol,
       stochastic_eval: true,
       eval_seed: 13,
       episodes: 1,
@@ -776,6 +783,14 @@ const startTraining = async () => {
       total_timesteps: totalTimesteps.value,
       stochastic_eval: stochasticEval.value,
       reward_mode: selectedRewardMode.value,
+      evaluation_protocol: evaluationProtocol.value,
+      learning_rate: learningRate.value,
+      discount_factor: discountFactor.value,
+      batch_size: batchSize.value,
+      rollout_steps: rolloutSteps.value,
+      entropy_coef: entropyCoef.value,
+      clip_range: clipRange.value,
+      eval_interval: evalInterval.value,
     });
 
     const importManifest = buildImportManifest();
@@ -784,6 +799,7 @@ const startTraining = async () => {
       scenarioName: selectedScenario.value,
       algorithm: selectedAlgorithm.value,
       rewardMode: selectedRewardMode.value,
+      evaluationProtocol: evaluationProtocol.value,
       config: importManifest.advancedSettings,
     };
 

@@ -8,7 +8,7 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 
-from configs.default_config import get_default_config
+from configs.default_config import apply_evaluation_protocol, get_default_config
 from services.evaluation import build_env, evaluate_policy, format_episode_report, load_policy
 
 
@@ -21,7 +21,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--algo",
         type=str,
-        choices=["ppo", "dqn", "a3c", "mppo"],
+        choices=["ppo", "dqn", "a3c", "mppo", "hmarl"],
         default=None,
         help="Algorithm used to train the checkpoint.",
     )
@@ -33,6 +33,12 @@ def parse_args() -> argparse.Namespace:
         help="Select evaluation environment variant.",
     )
     parser.add_argument("--scenario-name", type=str, default=None, help="Scenario to load when env-type=multimodal.")
+    parser.add_argument(
+        "--eval-protocol",
+        type=str,
+        default=None,
+        help="Evaluation protocol to apply, e.g. standard or earthquake_stress.",
+    )
     parser.add_argument(
         "--stochastic-eval",
         action="store_true",
@@ -46,11 +52,14 @@ def main() -> None:
     config = get_default_config()
     if args.algo:
         config["experiment"]["algorithm"] = args.algo
+        if args.algo == "hmarl" and not args.env_type:
+            config["experiment"]["env_type"] = "multimodal"
     if args.env_type:
         config["experiment"]["env_type"] = args.env_type
     env_type = config["experiment"].get("env_type", "baseline")
     if args.scenario_name:
         config["multimodal_env"]["scenario_name"] = args.scenario_name
+    apply_evaluation_protocol(config, args.eval_protocol)
 
     checkpoint_path = Path(args.checkpoint)
     artifact_dir = checkpoint_path.parent
@@ -67,6 +76,7 @@ def main() -> None:
         args.episodes,
         deterministic=deterministic,
         render=args.render,
+        dqn_use_lookahead=bool(config.get("evaluation", {}).get("dqn_use_lookahead", True)),
     )
     for report in reports:
         print(format_episode_report(report))

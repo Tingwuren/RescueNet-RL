@@ -1,0 +1,137 @@
+docs/自测报告/自测报告支撑材料/专用设备接入配置记录/frontend/public/prototype/策略测试.html
+docs/自测报告/自测报告支撑材料/专用设备接入配置记录/frontend/src/components/CustomEnvironmentTester.vue
+docs/自测报告/自测报告支撑材料/专用设备接入配置记录/frontend/src/components/SceneGraphPreview.vue
+docs/自测报告/自测报告支撑材料/专用设备接入配置记录/frontend/src/components/StreamingTerminal.vue
+docs/自测报告/自测报告支撑材料/专用设备接入配置记录/frontend/src/utils/prototypeTesterInjection.js
+docs/自测报告/自测报告支撑材料/专用设备接入配置记录/frontend/src/utils/regionMetrics.js
+docs/自测报告/自测报告支撑材料/专用设备接入配置记录/frontend/src/utils/scenarioLabels.js
+docs/自测报告/自测报告支撑材料/专用设备接入配置记录/server/api.py
+docs/自测报告/自测报告支撑材料/专用设备接入配置记录/server/schemas.py
+docs/自测报告/自测报告支撑材料/专用设备接入配置记录/services/evaluation.py
+docs/自测报告/自测报告支撑材料/场景回放记录及链路 trace 结果/data/traces/damaged-station.trace
+docs/自测报告/自测报告支撑材料/场景回放记录及链路 trace 结果/data/traces/emergency-command.trace
+docs/自测报告/自测报告支撑材料/场景回放记录及链路 trace 结果/data/traces/flood-emergency.trace
+docs/自测报告/自测报告支撑材料/场景回放记录及链路 trace 结果/data/traces/generate_traces.py
+docs/自测报告/自测报告支撑材料/场景回放记录及链路 trace 结果/data/traces/mobile-patrol.trace
+docs/自测报告/自测报告支撑材料/场景回放记录及链路 trace 结果/data/traces/temp-relay.trace
+docs/自测报告/自测报告支撑材料/场景回放记录及链路 trace 结果/frontend/public/prototype/场景回放.html
+docs/自测报告/自测报告支撑材料/场景回放记录及链路 trace 结果/frontend/public/prototype/链路仿真.html
+docs/自测报告/自测报告支撑材料/场景回放记录及链路 trace 结果/frontend/src/components/LinkSimulationPage.vue
+docs/自测报告/自测报告支撑材料/场景回放记录及链路 trace 结果/frontend/src/components/MahimahiSimulator.vue
+docs/自测报告/自测报告支撑材料/场景回放记录及链路 trace 结果/frontend/src/components/Ns3ReplayPanel.vue
+docs/自测报告/自测报告支撑材料/场景回放记录及链路 trace 结果/frontend/src/components/ReplayWorkbench.vue
+docs/自测报告/自测报告支撑材料/场景回放记录及链路 trace 结果/frontend/src/utils/replaySessions.js
+docs/自测报告/自测报告支撑材料/场景回放记录及链路 trace 结果/ns-3.46.1/data_adapter.py
+docs/自测报告/自测报告支撑材料/场景回放记录及链路 trace 结果/ns-3.46.1/deployment.json
+docs/自测报告/自测报告支撑材料/场景回放记录及链路 trace 结果/ns-3.46.1/index.html
+docs/自测报告/自测报告支撑材料/场景回放记录及链路 trace 结果/ns-3.46.1/ns3_backend.log
+docs/自测报告/自测报告支撑材料/场景回放记录及链路 trace 结果/ns-3.46.1/scratch/disaster-pro.cc
+docs/自测报告/自测报告支撑材料/场景回放记录及链路 trace 结果/ns-3.46.1/server_pro.py
+docs/自测报告/自测报告支撑材料/场景回放记录及链路 trace 结果/ns-3.46.1/simulation_history.db
+docs/自测报告/自测报告支撑材料/场景回放记录及链路 trace 结果/server/mahimahi_manager.py
+docs/自测报告/自测报告支撑材料/场景回放记录及链路 trace 结果/server/ns3_replay_manager.py
+docs/自测报告/自测报告支撑材料/场景配置与用户规模统计/configs/default_config.py
+docs/自测报告/自测报告支撑材料/场景配置与用户规模统计/data/extreme_disaster_resources/README.md
+docs/自测报告/自测报告支撑材料/场景配置与用户规模统计/data/extreme_disaster_resources/metadata.json
+docs/自测报告/自测报告支撑材料/场景配置与用户规模统计/data/extreme_disaster_resources/regions.json
+docs/自测报告/自测报告支撑材料/场景配置与用户规模统计/data/resource_dataset.py
+docs/自测报告/自测报告支撑材料/场景配置与用户规模统计/data/scenarios.json
+docs/自测报告/自测报告支撑材料/场景配置与用户规模统计/docs/数据集.md
+docs/自测报告/自测报告支撑材料/场景配置与用户规模统计/envs/multimodal_comm_env.py
+docs/自测报告/自测报告支撑材料/广播通信融合网络模拟与资源优化调度仿真系统（原型系统）测试大纲/10 仿真平台中期指标自测报告.docx
+docs/自测报告/自测报告支撑材料/广播通信融合网络模拟与资源优化调度仿真系统（原型系统）测试大纲/中期指标.md
+docs/自测报告/自测报告支撑材料/广播通信融合网络模拟与资源优化调度仿真系统（原型系统）测试大纲/技术指标.md
+docs/自测报告/自测报告支撑材料/广播通信融合网络模拟与资源优化调度仿真系统（原型系统）测试大纲/指标.md
+docs/自测报告/自测报告支撑材料/广播通信融合网络模拟与资源优化调度仿真系统（原型系统）测试大纲/测试大纲.md
+docs/自测报告/自测报告支撑材料/广播通信融合网络模拟与资源优化调度仿真系统（原型系统）测试大纲/测试大纲v1.docx
+docs/自测报告/自测报告支撑材料/广播通信融合网络模拟与资源优化调度仿真系统（原型系统）测试大纲/测试大纲v1.md
+docs/自测报告/自测报告支撑材料/广播通信融合网络模拟与资源优化调度仿真系统（原型系统）测试大纲/测试大纲v2.docx
+docs/自测报告/自测报告支撑材料/广播通信融合网络模拟与资源优化调度仿真系统（原型系统）测试大纲/测试大纲v2.md
+docs/自测报告/自测报告支撑材料/广播通信融合网络模拟与资源优化调度仿真系统（原型系统）测试大纲/测试大纲v3.docx
+docs/自测报告/自测报告支撑材料/支撑材料清单.md
+docs/自测报告/自测报告支撑材料/文件列表.txt
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/录屏材料/仿真系统三项指标录制视频.mkv
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/录屏材料/仿真系统三项指标录制视频.mp4
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/录屏材料/仿真系统三项指标录制视频_字幕.srt
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/录屏材料/仿真系统三项指标录制视频_配音字幕文稿.txt
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/录屏材料/仿真系统三项指标录制视频_配音字幕版.mp4
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/录屏材料/仿真系统三项指标录制视频_配音旁白.wav
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/录屏材料/仿真系统三项指标录制视频指导文档.docx
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/录屏材料/仿真系统三项指标录制视频指导文档.md
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图1 指标一台风场景选择截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图10 指标三1360用户规模截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图11 指标三大规模场景同步截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图12 指标三大规模用户测试结果截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图13 步骤一系统首页与顶部菜单截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图14 步骤二策略测试页面截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图15 步骤三场景回放页面截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图16 步骤四链路仿真页面截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图17 步骤一组合弹窗截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图18 步骤二组合与状态列表截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图19 步骤三有权重选中截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图2 指标一台风场景同步截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图20 步骤四无权重禁用截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图21 辅助设备新增行截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图22 辅助设备字段修改截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图23 辅助设备应用截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图24 辅助设备移除截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图25 暴雨洪涝组合截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图26 暴雨洪涝无残余设备状态截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图27 暴雨洪涝无残余启动截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图28 暴雨洪涝无残余结果截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图29 暴雨洪涝残余组合截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图3 指标一台风仿真启动截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图30 暴雨洪涝添加设备截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图31 暴雨洪涝应用设备截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图32 暴雨洪涝残余结果截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图33 步骤一导出路径截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图34 步骤二受灾场景下载截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图35 步骤三部署后场景下载截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图36 步骤四策略测试记录截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图37 步骤一回放首页截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图38 步骤二启动回放截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图39 步骤三中间阶段截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图4 指标一台风仿真结果截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图4-1 现有仿真平台与本系统实际数据契合度对比图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图40 步骤四最后状态截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图41 步骤一trace列表截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图42 步骤二trace选择截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图43 步骤三启动日志截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图44 步骤四trace绘制完成截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图5 指标二设备接入入口截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图6 指标二添加专用设备截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图7 指标二应用设备配置截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图8 指标二设备接入测试结果截图.png
+docs/自测报告/自测报告支撑材料/测试过程截图或录屏材料/截图材料/图9 指标三地震场景选择截图.png
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/.uvicorn.log
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/policy_meta.json
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/runs/hmarl_typhoon_residual_b99dd20e34754a9c86392f65a15f6fd8/broadcast_architecture_typhoon_residual.json
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/runs/hmarl_typhoon_residual_b99dd20e34754a9c86392f65a15f6fd8/hmarl_policy.pt
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/runs/hmarl_typhoon_residual_b99dd20e34754a9c86392f65a15f6fd8/policy_meta.json
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/runs/hmarl_typhoon_residual_b99dd20e34754a9c86392f65a15f6fd8/training_coverage_curve.png
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/runs/hmarl_typhoon_residual_b99dd20e34754a9c86392f65a15f6fd8/training_metrics.json
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/runs/mppo_earthquake_residual_d842ee60998047a5846264faefc8c16f/broadcast_architecture_earthquake_residual.json
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/runs/mppo_earthquake_residual_d842ee60998047a5846264faefc8c16f/mppo_policy.pt
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/runs/mppo_earthquake_residual_d842ee60998047a5846264faefc8c16f/policy_meta.json
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/runs/mppo_earthquake_residual_d842ee60998047a5846264faefc8c16f/training_coverage_curve.png
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/runs/mppo_earthquake_residual_d842ee60998047a5846264faefc8c16f/training_metrics.json
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/runs/ppo_flood_no_residual_117949e422374cc59a0e2ce2dd23cf82/broadcast_architecture_flood_no_residual.json
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/runs/ppo_flood_no_residual_117949e422374cc59a0e2ce2dd23cf82/policy_meta.json
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/runs/ppo_flood_no_residual_117949e422374cc59a0e2ce2dd23cf82/ppo_policy.pt
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/runs/ppo_flood_no_residual_117949e422374cc59a0e2ce2dd23cf82/training_coverage_curve.png
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/runs/ppo_flood_no_residual_117949e422374cc59a0e2ce2dd23cf82/training_metrics.json
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/runs/ppo_typhoon_residual_927ddf38a8ba47cca0c7be97ae66a83e/broadcast_architecture_typhoon_residual.json
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/runs/ppo_typhoon_residual_927ddf38a8ba47cca0c7be97ae66a83e/policy_meta.json
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/runs/ppo_typhoon_residual_927ddf38a8ba47cca0c7be97ae66a83e/ppo_policy.pt
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/runs/ppo_typhoon_residual_927ddf38a8ba47cca0c7be97ae66a83e/training_coverage_curve.png
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/runs/ppo_typhoon_residual_927ddf38a8ba47cca0c7be97ae66a83e/training_metrics.json
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/scene_exports/earthquake_residual_episode_1_deployment_scene.json
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/scene_exports/earthquake_residual_episode_1_disaster_scene.json
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/scene_exports/flood_no_residual_episode_1_deployment_scene.json
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/scene_exports/flood_no_residual_episode_1_disaster_scene.json
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/scene_exports/typhoon_residual_episode_1_deployment_scene.json
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/scene_exports/typhoon_residual_episode_1_disaster_scene.json
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/training_coverage_curve.png
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/artifacts/training_metrics.json
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/logs/api-8000.log
+docs/自测报告/自测报告支撑材料/策略测试日志和结果导出文件/logs/backend.log
