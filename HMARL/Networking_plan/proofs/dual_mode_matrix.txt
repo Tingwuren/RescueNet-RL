@@ -1,0 +1,13 @@
+
+======================================================================
+  指标三：残余/无残余双模式组网验证
+======================================================================
+
+场景                    模式                    残余复用      应急部署  主回传                   状态
+------------------------------------------------------------------------------------------
+extreme_rainstorm     with_residual           32        16  5G_residual_link    PASS
+extreme_rainstorm     no_residual              0        59  Satellite_Ka        PASS
+super_typhoon         with_residual           57        28  5G_residual_link    PASS
+super_typhoon         no_residual              0       105  Satellite_Ka        PASS
+
+[PASS] 双模式组网 4/4 组合验证

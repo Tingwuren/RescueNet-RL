@@ -9,12 +9,15 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from algos.ppo import PPOTrainer
-from configs.default_config import apply_evaluation_protocol, get_default_config
+from configs.default_config import apply_evaluation_protocol, apply_level4_algorithm_profile, get_default_config
 from planning.broadcast_architecture import export_architecture
-from train import build_policy, make_env, plot_training_metrics
+
+
+def _update_interval_from_step_interval(step_interval: int, rollout_steps: int) -> int:
+    return max(1, (max(1, int(step_interval)) + max(1, int(rollout_steps)) - 1) // max(1, int(rollout_steps)))
 
 
 @dataclass
@@ -58,6 +61,7 @@ class TrainingManager:
         entropy_coef: Optional[float],
         clip_range: Optional[float],
         eval_interval: Optional[int],
+        custom_base_stations: Optional[List[Dict[str, Any]]] = None,
     ) -> TrainingRun:
         run_id = uuid.uuid4().hex
         run = TrainingRun(
@@ -89,6 +93,7 @@ class TrainingManager:
                 entropy_coef,
                 clip_range,
                 eval_interval,
+                custom_base_stations,
             ),
             daemon=True,
         )
@@ -134,10 +139,13 @@ class TrainingManager:
         entropy_coef: Optional[float],
         clip_range: Optional[float],
         eval_interval: Optional[int],
+        custom_base_stations: Optional[List[Dict[str, Any]]],
     ) -> None:
         run.status = "initializing"
         self._push_event(run, {"type": "status", "payload": {"state": "initializing"}})
         try:
+            from train import build_policy, make_env, plot_training_metrics
+
             config = get_default_config()
             config["experiment"]["env_type"] = env_type
             config["experiment"]["algorithm"] = algorithm
@@ -150,13 +158,21 @@ class TrainingManager:
                 if reward_mode is not None:
                     config["multimodal_env"]["reward_mode"] = reward_mode
             apply_evaluation_protocol(config, evaluation_protocol)
+            profile = apply_level4_algorithm_profile(config, algorithm)
             run.evaluation_protocol = config.get("evaluation", {}).get("protocol", "standard")
             if total_timesteps:
                 config["train"]["total_timesteps"] = total_timesteps
             if rollout_steps:
                 config["train"]["rollout_steps"] = rollout_steps
             if eval_interval:
-                config["train"]["eval_interval"] = eval_interval
+                eval_interval_steps = max(1, int(eval_interval))
+                eval_interval_updates = _update_interval_from_step_interval(
+                    eval_interval_steps,
+                    int(config["train"].get("rollout_steps") or 1),
+                )
+                config["train"]["eval_interval_steps"] = eval_interval_steps
+                config["train"]["eval_interval_updates"] = eval_interval_updates
+                config["train"]["eval_interval"] = eval_interval_updates
             config["train"]["eval_deterministic"] = not stochastic_eval
 
             algo_cfg = config.get(algorithm, {})
@@ -174,6 +190,20 @@ class TrainingManager:
             if clip_range is not None and algorithm in {"ppo", "a3c", "mppo", "hmarl"}:
                 algo_cfg["clip_coef"] = clip_range
 
+            if profile:
+                self._push_event(
+                    run,
+                    {
+                        "type": "log",
+                        "payload": {
+                            "message": (
+                                f"已启用特别严重场景算法基准：{profile['name']} "
+                                f"algorithm={profile['algorithm']} scenario_kind={profile['scenario_kind']}。"
+                            )
+                        },
+                    },
+                )
+
             latest_artifact_dir = Path(config["logging"]["artifact_dir"])
             latest_artifact_dir.mkdir(parents=True, exist_ok=True)
             run_artifact_dir = latest_artifact_dir / "runs" / f"{algorithm}_{scenario_name}_{run.run_id}"
@@ -182,6 +212,19 @@ class TrainingManager:
 
             env = make_env(config, env_type)
             eval_env = make_env(config, env_type)
+            if custom_base_stations is not None:
+                for target_env in (env, eval_env):
+                    if hasattr(target_env, "set_custom_base_stations"):
+                        target_env.set_custom_base_stations(custom_base_stations)
+                self._push_event(
+                    run,
+                    {
+                        "type": "log",
+                        "payload": {
+                            "message": f"已加载场景设备配置：{len(custom_base_stations)} 个基站进入训练环境。"
+                        },
+                    },
+                )
             device = config["train"].get("device", "auto")
             policy = build_policy(env, config, env_type=env_type, device=device)
 

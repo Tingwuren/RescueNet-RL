@@ -1,0 +1,17 @@
+{
+  "scenario_id": "extreme_rainstorm",
+  "checkpoint_label": "extreme_rainstorm_best",
+  "rescuenet_scenario": "flood_no_residual",
+  "total_episodes": 500,
+  "total_timesteps": 12500,
+  "converged": true,
+  "stop_episode": 459,
+  "weights": {
+    "L1.pt": "/mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/extreme_rainstorm/weights/L1.pt",
+    "L2.pt": "/mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/extreme_rainstorm/weights/L2.pt",
+    "L3.pt": "/mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/extreme_rainstorm/weights/L3.pt"
+  },
+  "figures_dir": "/mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/extreme_rainstorm/figures",
+  "train_log": "/mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/extreme_rainstorm/train_log.json",
+  "source": "sync_checkpoint_bundle"
+}

@@ -56,7 +56,10 @@
               </template>
               <div v-else class="proto-live-content">
                 <PrototypeTrainingPage v-if="currentRoute === 'train'" />
+                <StrategyTesterPage v-else-if="currentRoute === 'tester'" />
                 <Ns3ReplayPanel v-else-if="currentRoute === 'replay'" />
+                <LinkSimulationPage v-else-if="currentRoute === 'link'" />
+                <DeviceCatalogPage v-else-if="currentRoute === 'device'" />
               </div>
             </div>
           </template>
@@ -113,16 +116,14 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 
 import CustomEnvironmentTester from "./components/CustomEnvironmentTester.vue";
+import DeviceCatalogPage from "./components/DeviceCatalogPage.vue";
 import HomeOverview from "./components/HomeOverview.vue";
 import LinkSimulationPage from "./components/LinkSimulationPage.vue";
 import Ns3ReplayPanel from "./components/Ns3ReplayPanel.vue";
 import PrototypeTrainingPage from "./components/PrototypeTrainingPage.vue";
 import ReplayWorkbench from "./components/ReplayWorkbench.vue";
 import ScenarioTrainingPanel from "./components/ScenarioTrainingPanel.vue";
-import { injectPrototypeDevice } from "./utils/prototypeDeviceInjection";
-import { injectPrototypeLink } from "./utils/prototypeLinkInjection";
-import { injectPrototypeTester } from "./utils/prototypeTesterInjection";
-import { injectPrototypeTraining } from "./utils/prototypeTrainingInjection";
+import StrategyTesterPage from "./components/StrategyTesterPage.vue";
 
 const menuFrameRef = ref(null);
 const contentFrameRef = ref(null);
@@ -143,8 +144,7 @@ const views = {
     title: "模型训练",
     prototypePage: "模型训练.html",
     withMenu: true,
-    useLiveContent: false,
-    enableApiInjection: true,
+    useLiveContent: true,
     stageWidth: 1920,
     stageHeight: 1080,
     contentTop: 70,
@@ -153,11 +153,10 @@ const views = {
     drawerDescription: "",
   },
   tester: {
-    title: "策略测试",
+    title: "策略仿真",
     prototypePage: "策略测试.html",
     withMenu: true,
-    useLiveContent: false,
-    enableApiInjection: true,
+    useLiveContent: true,
     stageWidth: 1920,
     stageHeight: 1080,
     contentTop: 70,
@@ -181,8 +180,7 @@ const views = {
     title: "链路仿真",
     prototypePage: "链路仿真.html",
     withMenu: true,
-    useLiveContent: false,
-    enableApiInjection: true,
+    useLiveContent: true,
     stageWidth: 1920,
     stageHeight: 1080,
     contentTop: 70,
@@ -194,8 +192,7 @@ const views = {
     title: "设备管理",
     prototypePage: "设备管理.html",
     withMenu: true,
-    useLiveContent: false,
-    enableApiInjection: true,
+    useLiveContent: true,
     stageWidth: 1920,
     stageHeight: 1080,
     contentTop: 70,
@@ -220,7 +217,7 @@ const views = {
 const menuHotspots = [
   { key: "home", label: "首页", href: "#/home", x: 113, y: 18, width: 150, height: 40 },
   { key: "train", label: "模型训练", href: "#/train", x: 297, y: 18, width: 150, height: 40 },
-  { key: "tester", label: "策略测试", href: "#/tester", x: 482, y: 18, width: 150, height: 40 },
+  { key: "tester", label: "策略仿真", href: "#/tester", x: 482, y: 18, width: 150, height: 40 },
   { key: "replay", label: "场景回放", href: "#/replay", x: 1290, y: 18, width: 150, height: 40 },
   { key: "link", label: "链路仿真", href: "#/link", x: 1464, y: 18, width: 150, height: 40 },
   { key: "device", label: "设备管理", href: "#/device", x: 1636, y: 18, width: 150, height: 40 },
@@ -243,13 +240,9 @@ const pageHotspots = {
   login: [
     { key: "login-enter", action: "route", route: "train", x: 821, y: 712, width: 278, height: 56 },
   ],
-  train: [
-    { key: "train-open-drawer", action: "drawer", x: 1640, y: 24, width: 180, height: 50 },
-  ],
+  train: [],
   tester: [],
-  replay: [
-    { key: "replay-open", action: "drawer", x: 293, y: 128, width: 150, height: 40 },
-  ],
+  replay: [],
   link: [],
   device: [],
 };
@@ -263,7 +256,7 @@ const viewportWidth = ref(typeof window === "undefined" ? 1440 : window.innerWid
 const viewportHeight = ref(typeof window === "undefined" ? 900 : window.innerHeight);
 
 const normalizeRoute = (hash) => {
-  const raw = String(hash || "").replace(/^#\/?/, "").trim().toLowerCase();
+  const raw = String(hash || "").replace(/^#\/?/, "").split("?")[0].trim().toLowerCase();
   if (!raw) return "home";
   if (["home", "index"].includes(raw)) return "home";
   if (["train", "training", "algorithm"].includes(raw)) return "train";
@@ -492,26 +485,6 @@ const handleContentFrameLoad = (event) => {
       }
     `;
     doc.head?.appendChild(style);
-  }
-
-  if (currentRoute.value === "train") {
-    injectNow(injectPrototypeTraining);
-    return;
-  }
-
-  if (currentRoute.value === "tester") {
-    injectNow(injectPrototypeTester);
-    return;
-  }
-
-  if (currentRoute.value === "link") {
-    injectNow(injectPrototypeLink);
-    return;
-  }
-
-  if (currentRoute.value === "device") {
-    injectNow(injectPrototypeDevice);
-    return;
   }
 
   contentFrameReady.value = true;

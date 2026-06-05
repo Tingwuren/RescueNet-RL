@@ -101,7 +101,6 @@ import { computed, onMounted, ref, watch } from "vue";
 import axios from "axios";
 
 import SceneGraphPreview from "./SceneGraphPreview.vue";
-import { listReplaySessions } from "../utils/replaySessions";
 import { rescueApiBase } from "../utils/runtimeEndpoints";
 import { formatDisasterType, formatScenarioName } from "../utils/scenarioLabels";
 
@@ -274,6 +273,7 @@ const refreshAll = async () => {
       ns3Resp,
       mahimahiResp,
       tracesResp,
+      replayResp,
     ] = await Promise.all([
       axios.get(`${API_BASE}/scenarios`),
       axios.get(`${API_BASE}/train/latest-artifact`).catch(() => ({ data: null })),
@@ -281,6 +281,7 @@ const refreshAll = async () => {
       axios.get(`${API_BASE}/ns3/status`).catch(() => ({ data: null })),
       axios.get(`${API_BASE}/mahimahi/status`).catch(() => ({ data: null })),
       axios.get(`${API_BASE}/mahimahi/traces`).catch(() => ({ data: { traces: [] } })),
+      axios.get(`${API_BASE}/replay/sessions?limit=1`).catch(() => ({ data: { total: 0 } })),
     ]);
 
     scenarios.value = Array.isArray(scenariosResp.data?.scenarios) ? scenariosResp.data.scenarios : [];
@@ -293,7 +294,7 @@ const refreshAll = async () => {
     ns3Status.value = ns3Resp.data;
     mahimahiStatus.value = mahimahiResp.data;
     mahimahiTraceCount.value = Array.isArray(tracesResp.data?.traces) ? tracesResp.data.traces.length : 0;
-    replayCount.value = listReplaySessions().length;
+    replayCount.value = Number(replayResp.data?.total || 0);
 
     await fetchScenePreview();
   } catch (error) {

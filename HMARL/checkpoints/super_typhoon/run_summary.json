@@ -1,0 +1,17 @@
+{
+  "scenario_id": "super_typhoon",
+  "checkpoint_label": "super_typhoon_best",
+  "rescuenet_scenario": "typhoon_residual",
+  "total_episodes": 500,
+  "total_timesteps": 12500,
+  "converged": true,
+  "stop_episode": 395,
+  "weights": {
+    "L1.pt": "/mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/super_typhoon_best/weights/L1.pt",
+    "L2.pt": "/mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/super_typhoon_best/weights/L2.pt",
+    "L3.pt": "/mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/super_typhoon_best/weights/L3.pt"
+  },
+  "figures_dir": "/mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/super_typhoon_best/figures",
+  "train_log": "/mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/super_typhoon_best/train_log.json",
+  "source": "sync_checkpoint_bundle"
+}

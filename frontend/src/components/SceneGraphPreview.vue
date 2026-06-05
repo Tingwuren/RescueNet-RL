@@ -99,7 +99,7 @@ const innerHeight = viewportHeight - padding * 2;
 
 const styleMap = {
   USER: {
-    label: "受灾用户节点",
+    label: "用户节点",
     color: "#ef4444",
     stroke: "rgba(254, 226, 226, 0.95)",
     radius: 4.4,
@@ -142,6 +142,21 @@ const styleMap = {
   },
 };
 
+const stationPalette = [
+  "#f59e0b",
+  "#22c55e",
+  "#38bdf8",
+  "#e879f9",
+  "#fb7185",
+  "#14b8a6",
+  "#f97316",
+  "#818cf8",
+  "#84cc16",
+  "#06b6d4",
+  "#d946ef",
+  "#facc15",
+];
+
 const rawNodes = computed(() => props.scene?.nodes || []);
 const hasNodes = computed(() => rawNodes.value.length > 0);
 const showHeader = computed(() => Boolean(props.title || props.subtitle));
@@ -163,6 +178,28 @@ const hashNumber = (value) => {
   return hash / 9973;
 };
 
+const stationKey = (node) => String(node?.base_station || node?.label || node?.type || "UNKNOWN_STATION");
+
+const stationLabel = (node) => String(node?.label || node?.base_station || node?.type || "未知基站");
+
+const stationColor = (key) => {
+  const index = Math.floor(hashNumber(key) * stationPalette.length) % stationPalette.length;
+  return stationPalette[index];
+};
+
+const styleForNode = (node) => {
+  if (node.type === "USER") return styleMap.USER;
+  const key = stationKey(node);
+  const baseStyle = styleMap[node.type] || styleMap.MANPACK_ENB;
+  const color = stationColor(key);
+  return {
+    ...baseStyle,
+    label: stationLabel(node),
+    color,
+    stroke: "rgba(255, 255, 255, 0.82)",
+  };
+};
+
 const hasGeoMap = computed(() => {
   const bounds = props.scene?.geo_bounds;
   return Boolean(
@@ -177,13 +214,7 @@ const hasGeoMap = computed(() => {
 
 const scaledNodes = computed(() =>
   rawNodes.value.map((node) => {
-    const style = styleMap[node.type] || {
-      label: node.type || "未知节点",
-      color: "#cbd5f5",
-      stroke: "rgba(255, 255, 255, 0.7)",
-      radius: 6,
-      strokeWidth: 1.5,
-    };
+    const style = styleForNode(node);
     return {
       ...node,
       ...style,
@@ -256,7 +287,7 @@ const visualBounds = computed(() => {
 const nodeCellCounts = computed(() => {
   const counts = new Map();
   rawNodes.value.forEach((node) => {
-    const key = `${Math.round(Number(node.x) || 0)}:${Math.round(Number(node.y) || 0)}:${node.type || "UNKNOWN"}`;
+    const key = `${Math.round(Number(node.x) || 0)}:${Math.round(Number(node.y) || 0)}:${node.type === "USER" ? "USER" : stationKey(node)}`;
     counts.set(key, (counts.get(key) || 0) + 1);
   });
   return counts;
@@ -266,7 +297,7 @@ const nodeCellRanks = computed(() => {
   const seen = new Map();
   const ranks = new Map();
   rawNodes.value.forEach((node) => {
-    const key = `${Math.round(Number(node.x) || 0)}:${Math.round(Number(node.y) || 0)}:${node.type || "UNKNOWN"}`;
+    const key = `${Math.round(Number(node.x) || 0)}:${Math.round(Number(node.y) || 0)}:${node.type === "USER" ? "USER" : stationKey(node)}`;
     const rank = seen.get(key) || 0;
     seen.set(key, rank + 1);
     ranks.set(node.id, rank);
@@ -299,7 +330,7 @@ const projectedGeoNodes = computed(() => {
       const y = Number(node.y);
       if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
 
-      const cellKey = `${Math.round(x)}:${Math.round(y)}:${node.type || "UNKNOWN"}`;
+      const cellKey = `${Math.round(x)}:${Math.round(y)}:${node.type === "USER" ? "USER" : stationKey(node)}`;
       const cellCount = nodeCellCounts.value.get(cellKey) || 1;
       const cellRank = nodeCellRanks.value.get(node.id) || 0;
       const ring = Math.floor(Math.sqrt(cellRank));
@@ -401,28 +432,40 @@ const restorationLinks = computed(() => {
 });
 
 const restoredUserIds = computed(() => new Set(restorationLinks.value.map((link) => link.user.id)));
-const hasConnectedUsers = computed(
-  () =>
-    rawNodes.value.some((node) => node.type === "USER" && node.connected) || restoredUserIds.value.size > 0
-);
-const hasBroadcastUsers = computed(() => rawNodes.value.some((node) => node.type === "USER" && node.broadcast_served));
+
+const stationTypeEntries = computed(() => {
+  const entriesByKey = new Map();
+  rawNodes.value
+    .filter((node) => node.type !== "USER")
+    .forEach((node) => {
+      const key = stationKey(node);
+      const current = entriesByKey.get(key);
+      if (current) {
+        current.count += 1;
+        return;
+      }
+      entriesByKey.set(key, {
+        type: `STATION_${key}`,
+        label: stationLabel(node),
+        color: stationColor(key),
+        count: 1,
+      });
+    });
+  return [...entriesByKey.values()].sort((a, b) => a.label.localeCompare(b.label, "zh-CN"));
+});
 
 const legendEntries = computed(() => {
   const entries = [];
 
   if (nodeCounts.value.USER) {
-    if (hasConnectedUsers.value) {
-      entries.push({ type: "CONNECTED_USER", label: "正常用户节点", color: "#38bdf8" });
-    }
     entries.push({ type: "USER", label: "受灾用户节点", color: styleMap.USER.color });
-    if (hasBroadcastUsers.value) {
-      entries.push({ type: "BROADCAST_USER", label: "广播覆盖用户", color: "#facc15" });
-    }
   }
 
-  ["MANPACK_ENB", "MACRO_ENB", "SMALL_CELL", "RELAY_ENB", "RELAY"].forEach((type) => {
-    if (!nodeCounts.value[type] || !styleMap[type]) return;
-    entries.push({ type, label: styleMap[type].label, color: styleMap[type].color });
+  stationTypeEntries.value.forEach((entry) => {
+    entries.push({
+      ...entry,
+      label: `${entry.label} ${entry.count}`,
+    });
   });
 
   return entries;
@@ -535,12 +578,7 @@ const renderLeafletMap = async () => {
     const lat = Number(node.lat);
     const lon = Number(node.lon);
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
-    const style = styleMap[node.type] || {
-      color: "#64748b",
-      stroke: "rgba(15, 23, 42, 0.42)",
-      radius: 5,
-        strokeWidth: 1.3,
-    };
+    const style = styleForNode(node);
     const fillColor =
       node.type === "USER"
         ? restoredUserIds.value.has(node.id) || node.connected

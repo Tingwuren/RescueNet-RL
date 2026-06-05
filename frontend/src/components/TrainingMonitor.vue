@@ -92,21 +92,21 @@
       </div>
     </div>
     </div>
-  <div class="monitor__events">
-    <div class="console__header">
-      <p class="monitor__label">训练控制台</p>
-      <span>{{ consoleLines.length }} lines</span>
-    </div>
-    <div class="monitor__event-list console">
-      <pre v-for="(line, idx) in consoleLines" :key="idx" class="console__line">{{ line }}</pre>
-      <p v-if="!consoleLines.length" class="monitor__placeholder console__placeholder">暂无控制台输出，请启动训练。</p>
-      </div>
-    </div>
+    <StreamingTerminal
+      v-if="showTerminal"
+      title="实时终端输出"
+      subtitle="实时输出训练配置、后端 SSE 状态、episode/update 指标和回放生成结果。"
+      :lines="consoleLines"
+      :status="status"
+      placeholder="暂无终端输出，请启动训练。"
+    />
   </div>
 </template>
 
 <script setup>
 import { computed } from "vue";
+import StreamingTerminal from "./StreamingTerminal.vue";
+import { buildTerminalLine } from "../utils/terminalOutput";
 
 const props = defineProps({
   events: {
@@ -116,6 +116,10 @@ const props = defineProps({
   status: {
     type: String,
     default: "Idle",
+  },
+  showTerminal: {
+    type: Boolean,
+    default: true,
   },
 });
 
@@ -130,19 +134,39 @@ const latestUpdate = computed(() => {
 const chartWidth = 320;
 const chartHeight = 140;
 
-const buildEpisodeSeries = (keyEpisode) => {
+const firstNumeric = (payload, keys) => {
+  for (const key of keys) {
+    const value = Number(payload?.[key]);
+    if (Number.isFinite(value)) return value;
+  }
+  return null;
+};
+
+const buildMetricSeries = (keys) => {
   const series = [];
   for (const event of props.events) {
     const payload = event.payload || {};
-    if (event.type === "episode" && typeof payload[keyEpisode] === "number") {
-      series.push({ value: payload[keyEpisode], label: `Episode ${payload.episode}` });
-    }
+    const value = firstNumeric(payload, keys);
+    if (value == null) continue;
+    const label =
+      payload.episode != null
+        ? `Episode ${payload.episode}`
+        : payload.update != null
+          ? `Update ${payload.update}`
+          : payload.step != null
+            ? `Step ${payload.step}`
+            : event.type || "event";
+    series.push({ value, label });
   }
   return series;
 };
 
-const coverageSeries = computed(() => buildEpisodeSeries("coverage"));
-const broadcastSeries = computed(() => buildEpisodeSeries("broadcast"));
+const coverageSeries = computed(() =>
+  buildMetricSeries(["coverage", "mean_coverage", "episode_coverage", "comm_coverage", "coverage_ratio"])
+);
+const broadcastSeries = computed(() =>
+  buildMetricSeries(["broadcast", "mean_broadcast", "episode_broadcast", "broadcast_coverage", "broadcast_ratio"])
+);
 
 const latestAccuracy = computed(() => {
   if (!coverageSeries.value.length) return "--";
@@ -198,21 +222,39 @@ const pointStyle = (point) => ({
 
 const percent = (value) => `${(Math.max(0, Math.min(1, Number(value || 0))) * 100).toFixed(2)}%`;
 const fixed = (value, digits = 3) => Number(value || 0).toFixed(digits);
-const timeText = (timestamp) => {
-  if (!timestamp) return "--:--:--";
-  return new Date(timestamp * 1000).toLocaleTimeString("zh-CN", { hour12: false });
-};
-
 const formatConsoleLine = (event) => {
   const payload = event?.payload || {};
-  const prefix = `[${timeText(event?.timestamp)}]`;
-  if (event?.message) return `${prefix} ${event.message}`;
+  const timestamp = event?.timestamp;
+  if (event?.message) {
+    const levelMap = {
+      backend: "BACKEND",
+      device_state_sync: "SYNC",
+      error: "ERROR",
+      info: "INFO",
+      scene_import: "ACTION",
+      training_replay_error: "ERROR",
+      training_replay_ready: "REPLAY",
+      ui_action: "ACTION",
+      warn: "WARN",
+    };
+    return buildTerminalLine(event.message, {
+      level: levelMap[event?.type] || "INFO",
+      source: "TRAIN",
+      timestamp,
+    });
+  }
+  if (event?.type === "log") {
+    return buildTerminalLine(payload.message || JSON.stringify(payload), { level: "BACKEND", source: "TRAIN", timestamp });
+  }
   if (event?.type === "experiment_config") {
-    return `${prefix} loaded config lr=${payload.learningRate ?? "-"} gamma=${payload.discountFactor ?? "-"} batch=${payload.batchSize ?? "-"} rollout=${payload.rolloutSteps ?? "-"}`;
+    return buildTerminalLine(
+      `loaded config lr=${payload.learningRate ?? payload.learning_rate ?? "-"} gamma=${payload.discountFactor ?? payload.discount_factor ?? "-"} batch=${payload.batchSize ?? payload.batch_size ?? "-"} rollout=${payload.rolloutSteps ?? payload.rollout_steps ?? "-"}`,
+      { level: "CONFIG", source: "TRAIN", timestamp }
+    );
   }
   if (event?.type === "status") {
     const step = payload.step != null ? ` step=${payload.step}` : "";
-    return `${prefix} status=${payload.state || "unknown"}${step}`;
+    return buildTerminalLine(`status=${payload.state || "unknown"}${step}`, { level: "STATUS", source: "TRAIN", timestamp });
   }
   if (event?.type === "episode") {
     const parts = [
@@ -231,7 +273,7 @@ const formatConsoleLine = (event) => {
       parts.push(`l3_devices=${summary.l3_deployed_devices ?? 0}`);
       parts.push(`hmarl_reward=${fixed(rewards.l3_final)}`);
     }
-    return `${prefix} ${parts.join(" | ")}`;
+    return buildTerminalLine(parts.join(" | "), { level: "METRIC", source: "TRAIN", timestamp });
   }
   if (event?.type === "update") {
     const parts = [
@@ -244,18 +286,23 @@ const formatConsoleLine = (event) => {
       `loss_v=${fixed(payload.loss_v)}`,
     ];
     if (payload.aux_loss != null) parts.push(`aux=${fixed(payload.aux_loss)}`);
-    return `${prefix} ${parts.join(" | ")}`;
+    return buildTerminalLine(parts.join(" | "), { level: "METRIC", source: "TRAIN", timestamp });
   }
   if (event?.type === "train") {
-    return `${prefix} train step=${payload.step ?? "-"} reward=${fixed(payload.reward)} loss=${fixed(payload.loss)}`;
+    const parts = [`train step=${payload.step ?? "-"}`, `reward=${fixed(payload.reward)}`, `loss=${fixed(payload.loss)}`];
+    const coverage = firstNumeric(payload, ["coverage", "mean_coverage", "episode_coverage", "comm_coverage", "coverage_ratio"]);
+    const broadcast = firstNumeric(payload, ["broadcast", "mean_broadcast", "episode_broadcast", "broadcast_coverage", "broadcast_ratio"]);
+    if (coverage != null) parts.push(`coverage=${percent(coverage)}`);
+    if (broadcast != null) parts.push(`broadcast=${percent(broadcast)}`);
+    return buildTerminalLine(parts.join(" | "), { level: "METRIC", source: "TRAIN", timestamp });
   }
   if (event?.type === "error" || event?.type === "training_replay_error") {
-    return `${prefix} error: ${payload.message || "unknown error"}`;
+    return buildTerminalLine(payload.message || "unknown error", { level: "ERROR", source: "TRAIN", timestamp });
   }
   if (event?.type === "training_replay_ready") {
-    return `${prefix} replay: ${event.message || "训练回放已生成"}`;
+    return buildTerminalLine(event.message || "训练回放已生成", { level: "REPLAY", source: "TRAIN", timestamp });
   }
-  return `${prefix} ${event?.type || "event"} ${JSON.stringify(payload)}`;
+  return buildTerminalLine(`${event?.type || "event"} ${JSON.stringify(payload)}`, { level: "EVENT", source: "TRAIN", timestamp });
 };
 
 const consoleLines = computed(() => props.events.map(formatConsoleLine).slice(-80));
@@ -263,15 +310,10 @@ const consoleLines = computed(() => props.events.map(formatConsoleLine).slice(-8
 
 <style scoped>
 .monitor {
-  border: 1px solid rgba(100, 116, 139, 0.22);
-  border-radius: 16px;
-  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.9));
   color: #0f172a;
-  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.06);
 }
 
 .monitor__status {

@@ -1,0 +1,25 @@
+# 极端暴雨灾害场景 — 对齐设计文档表3-1
+scenario_id: extreme_rainstorm
+scenario_name: 极端暴雨
+scenario_name_en: Extreme Rainstorm
+
+# 灾害特征
+disaster_type: rainstorm
+residual_pattern: point_scattered  # 点式残余、链路断裂
+base_station_outage_min: 0.30
+base_station_outage_max: 0.80
+link_breakage_rate: 0.35
+road_pass_rate: 0.50
+power_outage_rate: 0.90
+affected_area_km2: [100, 500]
+population: [50000, 500000]
+time_window_hours: [0, 72]
+
+# 组网适配
+default_network_mode: no_residual
+has_residual_links: false
+fiber_damage_rate: [0.20, 0.50]
+core_feature: 以基站断电和光缆冲毁为主，残余网络呈点式分布
+
+# HMARL 交叉引用
+hmari_config: ../HMARL/configs/scenarios/extreme_rainstorm.yaml

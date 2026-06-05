@@ -68,6 +68,19 @@ const buildInjectionScript = (apiBase, communicationTypes, defaultTemplates) => 
     { key: "hmarl", label: "HMARL（层次协同）" }
   ];
   var STATION_COLORS = ["#f59e0b", "#a78bfa", "#14b8a6", "#f97316", "#22c55e", "#38bdf8", "#eab308"];
+  var DATASET_PANEL_MIN_HEIGHT = 520;
+  var DISASTER_SEVERITY_LABELS = {
+    level_1_general: "一般",
+    level_2_moderate: "中等",
+    level_3_severe: "严重",
+    level_4_extreme: "特别严重"
+  };
+  var DISASTER_COMM_LABELS = {
+    cellular_5g_700mhz: "5G 700MHz",
+    satellite_ka: "Ka 卫星",
+    shortwave_hf: "短波 HF",
+    wifi6_mesh: "WiFi6 Mesh"
+  };
   var state = {
     scenarios: [],
     artifacts: [],
@@ -79,7 +92,21 @@ const buildInjectionScript = (apiBase, communicationTypes, defaultTemplates) => 
     activeSceneTab: "imported",
     loadingScene: false,
     running: false,
-    scenarioDeviceRows: []
+    scenarioDeviceRows: [],
+    disasterScenarios: [],
+    disasterScenarioDetails: {},
+    disasterSeverityOverview: null,
+    disasterImports: [],
+    disasterImportDetails: {},
+    selectedDisasterScenario: "",
+    selectedDisasterSeverity: "level_4_extreme",
+    selectedDisasterImportId: "",
+    activeDisasterImportId: "",
+    disasterSessionSampleLimit: 100,
+    disasterLoading: false,
+    disasterImporting: false,
+    disasterImportStage: -1,
+    disasterError: ""
   };
 
   function byId(id) {
@@ -247,6 +274,603 @@ const buildInjectionScript = (apiBase, communicationTypes, defaultTemplates) => 
       return new Date(value).toLocaleString("zh-CN");
     } catch (error) {
       return "--";
+    }
+  }
+
+  function formatInteger(value) {
+    var number = Number(value);
+    return Number.isFinite(number) ? Math.round(number).toLocaleString("zh-CN") : "--";
+  }
+
+  function disasterScenarioKey(record) {
+    return record && (record.scenario || record.name || record.disaster_scenario) || "";
+  }
+
+  function disasterScenarioLabel(record) {
+    return record && (record.display_name || record.label || record.disaster_scenario_label || record.scenario || record.name) || "未选择";
+  }
+
+  function disasterScenarioOptions() {
+    return state.disasterScenarios.map(function (scenario) {
+      return {
+        key: disasterScenarioKey(scenario),
+        label: disasterScenarioLabel(scenario),
+        raw: scenario
+      };
+    }).filter(function (item) {
+      return item.key;
+    });
+  }
+
+  function currentDisasterScenario() {
+    return disasterScenarioOptions().find(function (item) {
+      return item.key === state.selectedDisasterScenario;
+    }) || null;
+  }
+
+  function currentDisasterScenarioDetail() {
+    return state.disasterScenarioDetails[state.selectedDisasterScenario] || null;
+  }
+
+  function disasterSeverityOptions() {
+    var detail = currentDisasterScenarioDetail();
+    var scenario = currentDisasterScenario();
+    var levels = detail && detail.severity_levels != null
+      ? detail.severity_levels
+      : scenario && scenario.raw ? scenario.raw.severity_levels : [];
+    if (Array.isArray(levels)) {
+      return levels.map(function (key) {
+        return { key: key, label: DISASTER_SEVERITY_LABELS[key] || key, meta: {} };
+      });
+    }
+    return Object.keys(levels || {}).map(function (key) {
+      var meta = levels[key] || {};
+      return { key: key, label: meta.label || DISASTER_SEVERITY_LABELS[key] || key, meta: meta };
+    });
+  }
+
+  function currentDisasterSeverityMeta() {
+    var option = disasterSeverityOptions().find(function (item) {
+      return item.key === state.selectedDisasterSeverity;
+    });
+    return option ? option.meta || {} : {};
+  }
+
+  function currentDisasterImport() {
+    if (!state.selectedDisasterImportId) return null;
+    return state.disasterImportDetails[state.selectedDisasterImportId] ||
+      state.disasterImports.find(function (item) { return item.import_id === state.selectedDisasterImportId; }) ||
+      null;
+  }
+
+  function currentDisasterImportDetail() {
+    return state.selectedDisasterImportId ? state.disasterImportDetails[state.selectedDisasterImportId] || null : null;
+  }
+
+  function activeDatasetImportIds() {
+    return state.activeDisasterImportId ? [state.activeDisasterImportId] : [];
+  }
+
+  function disasterScenarioNameForImport(record) {
+    if (!record || !record.disaster_scenario || !record.disaster_severity) return "";
+    return record.disaster_scenario + "__" + record.disaster_severity;
+  }
+
+  function disasterGridSize(record) {
+    var grid = record && record.grid_size ? record.grid_size : null;
+    if (typeof grid === "number") return { rows: grid, cols: grid };
+    return {
+      rows: Number(grid && grid.rows) || 24,
+      cols: Number(grid && grid.cols) || 24
+    };
+  }
+
+  function disasterBounds(record) {
+    return record && record.effective_geo_bounds ||
+      state.disasterSeverityOverview && state.disasterSeverityOverview.effective_geo_bounds ||
+      currentDisasterScenarioDetail() && currentDisasterScenarioDetail().effective_geo_bounds ||
+      currentDisasterScenario() && currentDisasterScenario().raw && currentDisasterScenario().raw.effective_geo_bounds ||
+      null;
+  }
+
+  function disasterBoundsText(bounds) {
+    if (!bounds) return "--";
+    return "lat " + formatMetric(Number(bounds.lat_min), 3) + "~" + formatMetric(Number(bounds.lat_max), 3) +
+      "，lon " + formatMetric(Number(bounds.lon_min), 3) + "~" + formatMetric(Number(bounds.lon_max), 3);
+  }
+
+  function normalizeDisasterImport(record) {
+    if (!record) return null;
+    var normalized = Object.assign({}, record);
+    normalized.disaster_scenario_label = normalized.disaster_scenario_label || normalized.disaster_scenario;
+    normalized.disaster_severity_label = normalized.disaster_severity_label || DISASTER_SEVERITY_LABELS[normalized.disaster_severity] || normalized.disaster_severity;
+    return normalized;
+  }
+
+  function mergeDisasterImport(record) {
+    var normalized = normalizeDisasterImport(record);
+    if (!normalized || !normalized.import_id) return;
+    state.disasterImports = [normalized].concat(state.disasterImports.filter(function (item) {
+      return item.import_id !== normalized.import_id;
+    }));
+  }
+
+  function ensureDatasetImportStyles() {
+    if (byId("dataset-import-style")) return;
+    var style = document.createElement("style");
+    style.id = "dataset-import-style";
+    style.textContent =
+      "#dataset-import-area{box-sizing:border-box;font-family:'Microsoft YaHei','PingFang SC',sans-serif;color:#0f172a;}" +
+      "#dataset-import-area *{box-sizing:border-box;}" +
+      ".dataset-card{border:1px solid rgba(148,163,184,.26);border-radius:8px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.06);padding:14px;}" +
+      ".dataset-header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:12px;}" +
+      ".dataset-header h2{margin:0;font-size:20px;color:#0f172a;}" +
+      ".dataset-header p{margin:4px 0 0;color:#64748b;font-size:13px;line-height:1.5;}" +
+      ".dataset-controls{display:grid;grid-template-columns:220px 180px 120px 120px;gap:12px;align-items:end;margin-bottom:12px;}" +
+      ".dataset-controls label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700;color:#334155;}" +
+      ".dataset-controls select,.dataset-controls input{height:36px;border:1px solid #d7e3f4;border-radius:6px;background:#fff;color:#17315d;padding:0 10px;}" +
+      ".dataset-btn{height:36px;border:1px solid #b7e0fe;border-radius:6px;background:#3961f6;color:#fff;padding:0 12px;cursor:pointer;font-weight:700;}" +
+      ".dataset-btn.secondary{background:#fff;color:#2563eb;}" +
+      ".dataset-btn.danger{border-color:#fecaca;background:#fff;color:#b91c1c;}" +
+      ".dataset-btn:disabled{opacity:.55;cursor:not-allowed;}" +
+      ".dataset-preview{display:grid;grid-template-columns:minmax(0,1.2fr) 620px;gap:12px;margin-bottom:12px;}" +
+      ".dataset-preview h3{margin:0 0 6px;font-size:17px;color:#111827;}" +
+      ".dataset-preview p{margin:0;color:#64748b;font-size:13px;line-height:1.55;}" +
+      ".dataset-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}" +
+      ".dataset-metric{border:1px solid #e2e8f0;border-radius:7px;background:#f8fafc;padding:9px 10px;}" +
+      ".dataset-metric span{display:block;color:#64748b;font-size:12px;}" +
+      ".dataset-metric strong{display:block;margin-top:4px;color:#0f172a;font-size:18px;}" +
+      ".dataset-progress{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}" +
+      ".dataset-stage{border:1px solid #e2e8f0;border-radius:7px;background:#fff;padding:9px 10px;color:#64748b;}" +
+      ".dataset-stage.active{border-color:#93c5fd;background:#eff6ff;color:#1d4ed8;}" +
+      ".dataset-stage.done{border-color:#86efac;background:#f0fdf4;color:#166534;}" +
+      ".dataset-main{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:12px;}" +
+      ".dataset-map{border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:12px;}" +
+      ".dataset-map-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;}" +
+      ".dataset-map-head h3{margin:0;font-size:16px;color:#111827;}" +
+      ".dataset-map-head p{margin:3px 0 0;color:#64748b;font-size:12px;}" +
+      ".dataset-grid{position:relative;height:278px;overflow:hidden;border:1px solid #cbd5e1;border-radius:7px;background:linear-gradient(180deg,#e2e8f0,#f8fafc);}" +
+      ".dataset-grid:before{content:'';position:absolute;inset:0;z-index:2;pointer-events:none;background-image:linear-gradient(to right,rgba(51,65,85,.17) 1px,transparent 1px),linear-gradient(to bottom,rgba(51,65,85,.17) 1px,transparent 1px);background-size:calc(100% / var(--grid-cols)) calc(100% / var(--grid-rows));}" +
+      ".dataset-heat{position:absolute;z-index:1;border-radius:2px;}" +
+      ".dataset-station{position:absolute;z-index:3;width:12px;height:12px;border:2px solid #fff;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 1px 4px rgba(15,23,42,.35);}" +
+      ".dataset-station.active{background:#16a34a;}.dataset-station.degraded{background:#f59e0b;}.dataset-station.offline{background:#dc2626;}.dataset-station.unknown{background:#64748b;}" +
+      ".dataset-map-foot{display:flex;justify-content:space-between;gap:12px;margin-top:8px;color:#64748b;font-size:12px;}" +
+      ".dataset-side{display:flex;flex-direction:column;gap:10px;min-width:0;}" +
+      ".dataset-list{max-height:228px;overflow:auto;}" +
+      ".dataset-import-row{display:flex;justify-content:space-between;gap:8px;border:1px solid #e2e8f0;border-radius:7px;background:#f8fafc;padding:9px;margin-top:8px;}" +
+      ".dataset-import-row.active{border-color:#60a5fa;background:#eff6ff;}" +
+      ".dataset-import-row strong,.dataset-import-row small{display:block;}" +
+      ".dataset-import-row small{margin-top:3px;color:#64748b;font-size:12px;}" +
+      ".dataset-row-actions{display:flex;align-items:center;gap:6px;flex:0 0 auto;}" +
+      ".dataset-row-actions button{height:28px;border:1px solid #d7e3f4;border-radius:6px;background:#fff;color:#2563eb;cursor:pointer;font-size:12px;}" +
+      ".dataset-error{border:1px solid #fecaca;background:#fef2f2;color:#991b1b;border-radius:6px;padding:8px 10px;margin-bottom:10px;font-size:13px;}" +
+      ".dataset-empty{display:grid;place-items:center;height:100%;color:#64748b;font-size:13px;}";
+    document.head && document.head.appendChild(style);
+  }
+
+  function ensureDatasetImportArea() {
+    ensureDatasetImportStyles();
+    var host = byId("u2414_state0_content") || document.body;
+    if (!host) return null;
+    host.style.position = "relative";
+    host.style.pointerEvents = "auto";
+    var area = byId("dataset-import-area");
+    if (!area) {
+      area = document.createElement("div");
+      area.id = "dataset-import-area";
+      host.appendChild(area);
+    }
+    area.style.cssText = [
+      "position:absolute",
+      "left:4px",
+      "top:66px",
+      "width:1628px",
+      "min-height:" + DATASET_PANEL_MIN_HEIGHT + "px",
+      "z-index:220",
+      "pointer-events:auto"
+    ].join(";");
+    relayoutPrototypeForDatasetPanel();
+    return area;
+  }
+
+  function datasetBaseTop(node) {
+    if (!node) return 0;
+    if (node.dataset.datasetBaseTop == null) {
+      var computed = window.getComputedStyle ? window.getComputedStyle(node) : null;
+      var top = parseFloat(node.style.top || (computed && computed.top) || "0");
+      node.dataset.datasetBaseTop = String(Number.isFinite(top) ? top : 0);
+    }
+    return Number(node.dataset.datasetBaseTop) || 0;
+  }
+
+  function shouldShiftForDataset(node) {
+    if (!node || !node.id) return false;
+    if (node.id === "dataset-import-area" || node.id === "u2415" || node.id === "u2418" || node.id === "u2419") return false;
+    if (node.closest && node.closest("#dataset-import-area")) return false;
+    return datasetBaseTop(node) >= 60;
+  }
+
+  function relayoutPrototypeForDatasetPanel() {
+    var area = byId("dataset-import-area");
+    var content = byId("u2414_state0_content");
+    if (!area || !content) return;
+    var height = Math.max(DATASET_PANEL_MIN_HEIGHT, area.scrollHeight || area.offsetHeight || DATASET_PANEL_MIN_HEIGHT);
+    var delta = height + 18;
+    Array.prototype.forEach.call(content.children || [], function (node) {
+      if (!shouldShiftForDataset(node)) return;
+      node.style.top = (datasetBaseTop(node) + delta) + "px";
+    });
+    ["u2414", "u2414_state0"].forEach(function (id) {
+      var panel = byId(id);
+      if (!panel) return;
+      var baseHeight = Number(panel.dataset.datasetBaseHeight);
+      if (!baseHeight) {
+        var computed = window.getComputedStyle ? window.getComputedStyle(panel) : null;
+        baseHeight = parseFloat(panel.style.height || (computed && computed.height) || "927") || 927;
+        panel.dataset.datasetBaseHeight = String(baseHeight);
+      }
+      panel.style.height = (baseHeight + delta) + "px";
+      panel.style.overflow = "visible";
+    });
+    if (document.body) {
+      document.body.style.minHeight = Math.max(document.body.scrollHeight || 0, 44 + 927 + delta + 48) + "px";
+      document.body.style.overflowY = "auto";
+    }
+    if (document.documentElement) {
+      document.documentElement.style.overflowY = "auto";
+    }
+  }
+
+  function renderDatasetProgress() {
+    if (!state.disasterImporting && state.disasterImportStage < 0) return "";
+    var stages = [
+      ["汇总画像", "读取 resource_profile.json"],
+      ["加载站点", "读取 deployment_samples.jsonl"],
+      ["采样会话", "读取 business_users.jsonl"]
+    ];
+    return "<div class='dataset-progress'>" + stages.map(function (stage, index) {
+      var cls = state.disasterImportStage > index ? " done" : (state.disasterImportStage === index ? " active" : "");
+      return "<div class='dataset-stage" + cls + "'><strong>" + (index + 1) + ". " + escapeHtml(stage[0]) + "</strong><div style='font-size:12px;margin-top:3px;'>" + escapeHtml(stage[1]) + "</div></div>";
+    }).join("") + "</div>";
+  }
+
+  function renderDatasetMap(detail) {
+    var grid = disasterGridSize(detail || currentDisasterScenarioDetail());
+    var rows = Math.max(1, Number(grid.rows) || 24);
+    var cols = Math.max(1, Number(grid.cols) || 24);
+    var heatmap = detail && Array.isArray(detail.user_heatmap) ? detail.user_heatmap : [];
+    var deployments = detail && Array.isArray(detail.deployments) ? detail.deployments : [];
+    var maxHeat = Math.max.apply(Math, [1].concat(heatmap.map(function (cell) { return Number(cell.user_count || 0); })));
+    var heatHtml = heatmap.map(function (cell) {
+      var row = Number(cell.grid_row || 0);
+      var col = Number(cell.grid_col || 0);
+      var intensity = Math.min(0.82, 0.16 + (Number(cell.user_count || 0) / maxHeat) * 0.66);
+      return "<div class='dataset-heat' title='网格(" + escapeHtml(row) + "," + escapeHtml(col) + ") 用户密度 " + escapeHtml(cell.user_count || 0) + "' style='top:" + ((row / rows) * 100).toFixed(4) + "%;left:" + ((col / cols) * 100).toFixed(4) + "%;width:" + (100 / cols).toFixed(4) + "%;height:" + (100 / rows).toFixed(4) + "%;background:rgba(37,99,235," + intensity.toFixed(3) + ");'></div>";
+    }).join("");
+    var markerHtml = deployments.map(function (station) {
+      var gridPosition = station.grid_position || {};
+      var row = Number(gridPosition.row || 0);
+      var col = Number(gridPosition.col || 0);
+      var status = station.status || "unknown";
+      var title = (station.station_label || station.station_type || "基站") +
+        " / " + (DISASTER_COMM_LABELS[station.comm_type] || station.comm_type || "--") +
+        " | 状态 " + status +
+        " | 网格(" + row + "," + col + ")" +
+        " | 用户密度 " + (station.cell_user_count || 0) +
+        " | 下行 " + (station.downlink_bandwidth_mbps_avg || 0) + " Mbps";
+      return "<span class='dataset-station " + escapeHtml(status) + "' title='" + escapeHtml(title) + "' style='top:" + (((row + 0.5) / rows) * 100).toFixed(4) + "%;left:" + (((col + 0.5) / cols) * 100).toFixed(4) + "%;'></span>";
+    }).join("");
+    return "<div class='dataset-grid' style='--grid-rows:" + rows + ";--grid-cols:" + cols + ";'>" +
+      (detail ? heatHtml + markerHtml : "<div class='dataset-empty'>导入或选择数据包后显示 24 x 24 网格热力图和站点状态</div>") +
+      "</div>";
+  }
+
+  function renderDatasetImportList() {
+    if (!state.disasterImports.length) {
+      return "<div style='color:#64748b;font-size:13px;margin-top:8px;'>当前服务会话暂无导入记录。</div>";
+    }
+    return state.disasterImports.map(function (record) {
+      var selected = record.import_id === state.selectedDisasterImportId;
+      var active = record.import_id === state.activeDisasterImportId;
+      var counts = record.station_counts || {};
+      return "<div class='dataset-import-row" + (selected ? " active" : "") + "'>" +
+        "<div style='min-width:0;'>" +
+        "<strong>" + escapeHtml((record.disaster_scenario_label || record.disaster_scenario) + " / " + (record.disaster_severity_label || record.disaster_severity)) + (active ? " <span style='color:#16a34a;'>仿真中</span>" : "") + "</strong>" +
+        "<small>" + escapeHtml(formatInteger(counts.total) + "站点 · " + formatInteger(record.unique_user_count) + "用户 · " + formatDateTime(record.imported_at)) + "</small>" +
+        "</div>" +
+        "<div class='dataset-row-actions'>" +
+        "<button type='button' data-disaster-action='detail' data-import-id='" + escapeHtml(record.import_id) + "'>详情</button>" +
+        "<button type='button' data-disaster-action='use' data-import-id='" + escapeHtml(record.import_id) + "'>用于仿真</button>" +
+        "<button type='button' data-disaster-action='delete' data-import-id='" + escapeHtml(record.import_id) + "' style='color:#b91c1c;border-color:#fecaca;'>移除</button>" +
+        "</div>" +
+      "</div>";
+    }).join("");
+  }
+
+  function renderDatasetImportPanel() {
+    var area = ensureDatasetImportArea();
+    if (!area) return;
+    setText("u2417_text", "策略仿真");
+    var scenarioOptions = disasterScenarioOptions();
+    var severityOptions = disasterSeverityOptions();
+    var scenario = currentDisasterScenario();
+    var detail = currentDisasterScenarioDetail();
+    var severityMeta = currentDisasterSeverityMeta();
+    var overview = state.disasterSeverityOverview || {};
+    var selectedImport = currentDisasterImport();
+    var selectedDetail = currentDisasterImportDetail();
+    var activeBounds = disasterBounds(selectedImport || detail);
+    var grid = disasterGridSize(selectedImport || detail);
+    var scenarioSelect = scenarioOptions.map(function (item) {
+      return "<option value='" + escapeHtml(item.key) + "'" + (item.key === state.selectedDisasterScenario ? " selected" : "") + ">" + escapeHtml(item.label) + "</option>";
+    }).join("");
+    var severitySelect = severityOptions.map(function (item) {
+      return "<option value='" + escapeHtml(item.key) + "'" + (item.key === state.selectedDisasterSeverity ? " selected" : "") + ">" + escapeHtml(item.label) + "</option>";
+    }).join("");
+    var characteristics = detail && Array.isArray(detail.characteristics) ? detail.characteristics : scenario && scenario.raw && Array.isArray(scenario.raw.characteristics) ? scenario.raw.characteristics : [];
+    var counts = selectedImport && selectedImport.station_counts ? selectedImport.station_counts : {};
+    var importLabel = selectedImport ? (selectedImport.disaster_scenario_label || selectedImport.disaster_scenario) + " / " + (selectedImport.disaster_severity_label || selectedImport.disaster_severity) : "当前未选择导入数据包";
+    area.innerHTML =
+      "<div class='dataset-card'>" +
+      "<div class='dataset-header'>" +
+      "<div><h2>灾害数据接入</h2><p>嵌入原型策略仿真页，按“场景 x 受灾等级”导入，地图使用 grid_position 与 effective_geo_bounds。</p></div>" +
+      "<button type='button' class='dataset-btn secondary' data-disaster-action='refresh'" + (state.disasterLoading ? " disabled" : "") + ">刷新</button>" +
+      "</div>" +
+      (state.disasterError ? "<div class='dataset-error'>" + escapeHtml(state.disasterError) + "</div>" : "") +
+      "<div class='dataset-controls'>" +
+      "<label>灾害场景<select data-disaster-field='scenario'" + (state.disasterImporting ? " disabled" : "") + ">" + scenarioSelect + "</select></label>" +
+      "<label>受灾等级<select data-disaster-field='severity'" + (state.disasterImporting ? " disabled" : "") + ">" + severitySelect + "</select></label>" +
+      "<label>会话采样<input data-disaster-field='sampleLimit' type='number' min='1' max='500' step='1' value='" + escapeHtml(state.disasterSessionSampleLimit) + "'" + (state.disasterImporting ? " disabled" : "") + "></label>" +
+      "<button type='button' class='dataset-btn' data-disaster-action='create'" + (!state.selectedDisasterScenario || !state.selectedDisasterSeverity || state.disasterImporting ? " disabled" : "") + ">" + (state.disasterImporting ? "导入中..." : "导入数据") + "</button>" +
+      "</div>" +
+      "<div class='dataset-preview'>" +
+      "<div><h3>" + escapeHtml(disasterScenarioLabel(detail || scenario && scenario.raw)) + " / " + escapeHtml((overview.severity_label || severityMeta.label || DISASTER_SEVERITY_LABELS[state.selectedDisasterSeverity] || state.selectedDisasterSeverity || "未选择")) + "</h3>" +
+      "<p>" + escapeHtml(characteristics.slice(0, 2).join(" ") || "暂无场景特征说明。") + "</p>" +
+      "<p style='margin-top:6px;'>有效边界：" + escapeHtml(disasterBoundsText(activeBounds)) + "</p></div>" +
+      "<div class='dataset-metrics'>" +
+      "<div class='dataset-metric'><span>覆盖面积</span><strong>" + escapeHtml(formatMetric(Number((detail || scenario && scenario.raw || {}).coverage_area_km2), 1)) + " km²</strong></div>" +
+      "<div class='dataset-metric'><span>网格</span><strong>" + escapeHtml(grid.rows + " x " + grid.cols) + "</strong></div>" +
+      "<div class='dataset-metric'><span>损毁率</span><strong>" + escapeHtml(formatPercent(Number(overview.damage_rate != null ? overview.damage_rate : severityMeta.damage_rate))) + "</strong></div>" +
+      "<div class='dataset-metric'><span>离线率</span><strong>" + escapeHtml(formatPercent(Number(overview.offline_rate != null ? overview.offline_rate : severityMeta.offline_rate))) + "</strong></div>" +
+      "</div></div>" +
+      renderDatasetProgress() +
+      "<div class='dataset-main'>" +
+      "<div class='dataset-map'>" +
+      "<div class='dataset-map-head'><div><h3>灾害场景地图</h3><p>" + escapeHtml(importLabel) + "</p></div><div style='display:flex;gap:10px;color:#64748b;font-size:12px;'><span>● active</span><span>● degraded</span><span>● offline</span></div></div>" +
+      renderDatasetMap(selectedDetail) +
+      "<div class='dataset-map-foot'><span>用户热力图：" + escapeHtml(formatInteger(selectedImport && selectedImport.unique_user_count)) + " 用户节点</span><span>" + escapeHtml(disasterBoundsText(activeBounds)) + "</span></div>" +
+      "</div>" +
+      "<div class='dataset-side'>" +
+      "<div class='dataset-card' style='box-shadow:none;padding:12px;'><div style='display:flex;justify-content:space-between;gap:8px;'><strong>导入概览</strong><span style='color:#2563eb;font-weight:700;'>" + escapeHtml(selectedImport && selectedImport.status || "未导入") + "</span></div>" +
+      "<div class='dataset-metrics' style='grid-template-columns:repeat(2,1fr);margin-top:10px;'>" +
+      "<div class='dataset-metric'><span>站点</span><strong>" + escapeHtml(formatInteger(counts.total)) + "</strong></div>" +
+      "<div class='dataset-metric'><span>用户</span><strong>" + escapeHtml(formatInteger(selectedImport && selectedImport.unique_user_count)) + "</strong></div>" +
+      "<div class='dataset-metric'><span>active/degraded</span><strong>" + escapeHtml(formatInteger(counts.active) + "/" + formatInteger(counts.degraded)) + "</strong></div>" +
+      "<div class='dataset-metric'><span>offline</span><strong>" + escapeHtml(formatInteger(counts.offline)) + "</strong></div>" +
+      "</div></div>" +
+      "<div class='dataset-card dataset-list' style='box-shadow:none;padding:12px;'><div style='display:flex;justify-content:space-between;'><strong>已导入数据包</strong><span style='color:#64748b;'>" + state.disasterImports.length + "</span></div>" + renderDatasetImportList() + "</div>" +
+      "</div></div>" +
+      "</div>";
+    bindDatasetPanelEvents();
+    relayoutPrototypeForDatasetPanel();
+  }
+
+  function bindDatasetPanelEvents() {
+    var area = byId("dataset-import-area");
+    if (!area) return;
+    Array.prototype.forEach.call(area.querySelectorAll("[data-disaster-field]"), function (field) {
+      field.addEventListener("change", function () {
+        var key = field.getAttribute("data-disaster-field");
+        if (key === "scenario") {
+          state.selectedDisasterScenario = field.value;
+          state.disasterSeverityOverview = null;
+          loadDisasterScenarioDetail(field.value).then(function () {
+            var options = disasterSeverityOptions();
+            if (!options.some(function (item) { return item.key === state.selectedDisasterSeverity; })) {
+              var extremeOption = options.find(function (item) { return item.key === "level_4_extreme"; });
+              state.selectedDisasterSeverity = (extremeOption && extremeOption.key) || (options[0] && options[0].key) || "";
+            }
+            return loadDisasterSeverityOverview();
+          }).then(renderDatasetImportPanel);
+          return;
+        }
+        if (key === "severity") {
+          state.selectedDisasterSeverity = field.value;
+          loadDisasterSeverityOverview().then(renderDatasetImportPanel);
+          return;
+        }
+        if (key === "sampleLimit") {
+          state.disasterSessionSampleLimit = Math.max(1, Math.min(500, integerValue(field.value, 100)));
+          field.value = String(state.disasterSessionSampleLimit);
+        }
+      });
+    });
+    Array.prototype.forEach.call(area.querySelectorAll("[data-disaster-action]"), function (button) {
+      button.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        var action = button.getAttribute("data-disaster-action");
+        var importId = button.getAttribute("data-import-id") || "";
+        if (action === "refresh") {
+          loadDisasterCatalogAndImports();
+        } else if (action === "create") {
+          createDisasterImport();
+        } else if (action === "detail") {
+          selectDisasterImport(importId, false);
+        } else if (action === "use") {
+          selectDisasterImport(importId, true);
+        } else if (action === "delete") {
+          deleteDisasterImport(importId);
+        }
+      }, true);
+    });
+  }
+
+  async function loadDisasterScenarioDetail(key) {
+    if (!key) return null;
+    if (state.disasterScenarioDetails[key]) return state.disasterScenarioDetails[key];
+    var response = await fetch(API + "/disaster-scenarios/" + encodeURIComponent(key));
+    if (!response.ok) throw new Error(await readErrorResponse(response));
+    var payload = await response.json();
+    state.disasterScenarioDetails[key] = payload;
+    return payload;
+  }
+
+  async function loadDisasterSeverityOverview() {
+    if (!state.selectedDisasterScenario || !state.selectedDisasterSeverity) return null;
+    var response = await fetch(API + "/disaster-scenarios/" + encodeURIComponent(state.selectedDisasterScenario) + "/severity-levels/" + encodeURIComponent(state.selectedDisasterSeverity));
+    if (!response.ok) throw new Error(await readErrorResponse(response));
+    state.disasterSeverityOverview = await response.json();
+    return state.disasterSeverityOverview;
+  }
+
+  async function loadDisasterImportDetail(importId) {
+    if (!importId) return null;
+    if (state.disasterImportDetails[importId]) return state.disasterImportDetails[importId];
+    var response = await fetch(API + "/disaster-imports/" + encodeURIComponent(importId));
+    if (!response.ok) throw new Error(await readErrorResponse(response));
+    var payload = normalizeDisasterImport(await response.json());
+    state.disasterImportDetails[importId] = payload;
+    return payload;
+  }
+
+  async function loadDisasterCatalogAndImports() {
+    state.disasterLoading = true;
+    state.disasterError = "";
+    renderDatasetImportPanel();
+    try {
+      var responses = await Promise.all([
+        fetch(API + "/disaster-scenarios"),
+        fetch(API + "/disaster-imports")
+      ]);
+      if (!responses[0].ok) throw new Error(await readErrorResponse(responses[0]));
+      if (!responses[1].ok) throw new Error(await readErrorResponse(responses[1]));
+      var scenarioPayload = await responses[0].json();
+      var importsPayload = await responses[1].json();
+      state.disasterScenarios = Array.isArray(scenarioPayload.scenarios) ? scenarioPayload.scenarios : (Array.isArray(scenarioPayload.disaster_scenarios) ? scenarioPayload.disaster_scenarios : []);
+      state.disasterImports = (Array.isArray(importsPayload.imports) ? importsPayload.imports : []).map(normalizeDisasterImport).reverse();
+      var options = disasterScenarioOptions();
+      if (!state.selectedDisasterScenario && options.length) {
+        state.selectedDisasterScenario = (options.find(function (item) { return item.key === "extreme_rainstorm"; }) || options[0]).key;
+      }
+      await loadDisasterScenarioDetail(state.selectedDisasterScenario);
+      var severityOptions = disasterSeverityOptions();
+      if (!severityOptions.some(function (item) { return item.key === state.selectedDisasterSeverity; })) {
+        state.selectedDisasterSeverity = (severityOptions.find(function (item) { return item.key === "level_4_extreme"; }) || severityOptions[0] || {}).key || "";
+      }
+      await loadDisasterSeverityOverview();
+      if (!state.selectedDisasterImportId && state.disasterImports.length) {
+        state.selectedDisasterImportId = state.disasterImports[0].import_id;
+        await loadDisasterImportDetail(state.selectedDisasterImportId);
+      }
+    } catch (error) {
+      state.disasterError = error && error.message ? error.message : String(error);
+      appendTerminalLine("灾害数据接入初始化失败：" + state.disasterError, "warning");
+    } finally {
+      state.disasterLoading = false;
+      renderDatasetImportPanel();
+    }
+  }
+
+  async function createDisasterImport() {
+    if (!state.selectedDisasterScenario || !state.selectedDisasterSeverity || state.disasterImporting) return;
+    state.disasterImporting = true;
+    state.disasterImportStage = 0;
+    state.disasterError = "";
+    renderDatasetImportPanel();
+    try {
+      state.disasterImportStage = 1;
+      renderDatasetImportPanel();
+      var response = await fetch(API + "/disaster-imports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          disaster_scenario: state.selectedDisasterScenario,
+          disaster_severity: state.selectedDisasterSeverity,
+          session_sample_limit: state.disasterSessionSampleLimit
+        })
+      });
+      if (!response.ok) throw new Error(await readErrorResponse(response));
+      var summary = normalizeDisasterImport(await response.json());
+      mergeDisasterImport(summary);
+      state.disasterImportStage = 2;
+      renderDatasetImportPanel();
+      await selectDisasterImport(summary.import_id, true);
+      state.disasterImportStage = 3;
+      appendTerminalLine("灾害数据导入完成：" + summary.disaster_scenario + "/" + summary.disaster_severity + "，import_id=" + summary.import_id + "。", "success");
+    } catch (error) {
+      state.disasterError = error && error.message ? error.message : String(error);
+      appendTerminalLine("灾害数据导入失败：" + state.disasterError, "error");
+      state.disasterImportStage = -1;
+    } finally {
+      state.disasterImporting = false;
+      renderDatasetImportPanel();
+    }
+  }
+
+  async function selectDisasterImport(importId, applyToSimulation) {
+    if (!importId) return;
+    state.selectedDisasterImportId = importId;
+    try {
+      var detail = await loadDisasterImportDetail(importId);
+      renderDatasetImportPanel();
+      if (applyToSimulation) {
+        applyDisasterImportToSimulation(detail);
+      }
+    } catch (error) {
+      state.disasterError = error && error.message ? error.message : String(error);
+      renderDatasetImportPanel();
+      appendTerminalLine("读取灾害导入详情失败：" + state.disasterError, "error");
+    }
+  }
+
+  function applyDisasterImportToSimulation(record) {
+    if (!record) return;
+    state.activeDisasterImportId = record.import_id;
+    renderDatasetImportPanel();
+    var nextScenarioName = disasterScenarioNameForImport(record);
+    var matched = state.scenarios.find(function (scenario) {
+      return scenario.name === nextScenarioName;
+    });
+    appendTerminalLine("已选择灾害数据包 " + record.import_id + " 作为策略仿真输入。", "success");
+    if (!matched) {
+      appendTerminalLine("训练场景列表未找到 " + nextScenarioName + "，当前仅附带 import_id，不自动切换场景。", "warning");
+      return;
+    }
+    if (state.scenarioName !== nextScenarioName) {
+      state.scenarioName = nextScenarioName;
+      state.simulationResult = null;
+      state.importedScene = null;
+      state.activeSceneTab = "imported";
+      updateMetrics(null);
+      setTabVisual("imported");
+      syncDeviceRowsFromStorage();
+      syncCheckpoint();
+      appendTerminalLine("已按灾害数据包切换策略场景：" + nextScenarioName + "。", "info");
+    }
+    importScene();
+  }
+
+  async function deleteDisasterImport(importId) {
+    if (!importId) return;
+    try {
+      var response = await fetch(API + "/disaster-imports/" + encodeURIComponent(importId), { method: "DELETE" });
+      if (!response.ok) throw new Error(await readErrorResponse(response));
+      state.disasterImports = state.disasterImports.filter(function (item) { return item.import_id !== importId; });
+      delete state.disasterImportDetails[importId];
+      if (state.selectedDisasterImportId === importId) {
+        state.selectedDisasterImportId = state.disasterImports[0] ? state.disasterImports[0].import_id : "";
+        if (state.selectedDisasterImportId) await loadDisasterImportDetail(state.selectedDisasterImportId);
+      }
+      if (state.activeDisasterImportId === importId) {
+        state.activeDisasterImportId = "";
+      }
+      renderDatasetImportPanel();
+      appendTerminalLine("已移除灾害数据包：" + importId + "。", "info");
+    } catch (error) {
+      state.disasterError = error && error.message ? error.message : String(error);
+      renderDatasetImportPanel();
+      appendTerminalLine("移除灾害数据包失败：" + state.disasterError, "error");
     }
   }
 
@@ -1744,8 +2368,7 @@ const buildInjectionScript = (apiBase, communicationTypes, defaultTemplates) => 
     layer.innerHTML = tiles +
       "<div style='position:absolute;left:18px;top:18px;padding:8px 12px;border-radius:8px;background:rgba(15,23,42,0.62);color:#fff;font-size:14px;font-family:Microsoft YaHei, PingFang SC, sans-serif;'>" +
       escapeHtml(regionName) +
-      "</div>" +
-      "<div style='position:absolute;right:14px;bottom:10px;padding:4px 8px;border-radius:6px;background:rgba(255,255,255,0.78);color:#334155;font-size:11px;font-family:Arial,sans-serif;'>© OpenStreetMap © CARTO</div>";
+      "</div>";
   }
 
   function applyScenarioMapSkin(activeKey) {
@@ -2099,6 +2722,7 @@ const buildInjectionScript = (apiBase, communicationTypes, defaultTemplates) => 
           scenario_name: state.scenarioName,
           env_type: "multimodal",
           evaluation_protocol: evaluationProtocol(),
+          dataset_import_ids: activeDatasetImportIds(),
           custom_base_stations: buildScenarioDeviceBaseStations()
         })
       });
@@ -2255,6 +2879,9 @@ const buildInjectionScript = (apiBase, communicationTypes, defaultTemplates) => 
     state.activeSceneTab = "imported";
     setTabVisual("imported");
     appendTerminalLine("准备启动 " + comboLabel(state.scenarioName, state.algorithm) + " 的策略测试。", "info");
+    if (activeDatasetImportIds().length) {
+      appendTerminalLine("灾害数据来源 import_id=" + activeDatasetImportIds().join(", ") + "。", "info");
+    }
 
     appendTerminalLine("正在按当前设备接入配置同步场景。", "info");
     await importScene();
@@ -2284,6 +2911,7 @@ const buildInjectionScript = (apiBase, communicationTypes, defaultTemplates) => 
           episodes: 1,
           stochastic_eval: true,
           eval_seed: 13,
+          dataset_import_ids: activeDatasetImportIds(),
           custom_devices: buildImportedDevices(),
           custom_base_stations: buildScenarioDeviceBaseStations()
         })
@@ -2379,6 +3007,8 @@ const buildInjectionScript = (apiBase, communicationTypes, defaultTemplates) => 
 
   async function bootstrap() {
     ensureDeviceLibrarySeeded();
+    ensureDatasetImportArea();
+    renderDatasetImportPanel();
     ensureOverlay();
     wireButtons();
     setTabVisual("imported");
@@ -2414,6 +3044,7 @@ const buildInjectionScript = (apiBase, communicationTypes, defaultTemplates) => 
       syncDeviceRowsFromStorage();
       syncCheckpoint();
       await importScene();
+      await loadDisasterCatalogAndImports();
       appendTerminalLine("策略测试页已切换为真实后端驱动模式。", "success");
     } catch (error) {
       appendTerminalLine("初始化失败：" + (error && error.message ? error.message : error), "error");

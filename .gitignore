@@ -24,6 +24,9 @@ env/
 /artifacts/
 /word/
 /meet/
+data/dedicated_devices.db
+data/scenario_devices.db
+data/scenario_state.json
 
 # Large data resources (use external storage)
 data/extreme_disaster_resources.zip

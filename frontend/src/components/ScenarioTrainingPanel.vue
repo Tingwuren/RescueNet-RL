@@ -422,7 +422,7 @@ import axios from "axios";
 import TrainingMonitor from "./TrainingMonitor.vue";
 import { buildRegionMetrics, formatDistance } from "../utils/regionMetrics";
 import { rescueApiBase } from "../utils/runtimeEndpoints";
-import { saveReplaySessionFromSimulation } from "../utils/replaySessions";
+import { saveReplaySessionFromSimulation, setActiveReplaySessionId } from "../utils/replaySessions";
 import { formatScenarioName } from "../utils/scenarioLabels";
 
 const API_BASE = rescueApiBase;
@@ -724,15 +724,25 @@ const generateReplayFromTraining = async (runMeta) => {
       stochastic_eval: true,
       eval_seed: 13,
       episodes: 1,
+      replay_source: "training",
     });
-    const savedReplay = saveReplaySessionFromSimulation({
-      scenarioName: runMeta.scenarioName,
-      algorithm: runMeta.algorithm,
-      result: {
-        ...data,
-        source: "training",
-      },
-    });
+    let replayMessage = "训练完成后已自动生成后端回放，可在回放页刷新列表后查看。";
+    if (data?.replay_session_id) {
+      setActiveReplaySessionId(data.replay_session_id);
+      replayMessage = `训练完成后已自动生成后端回放：${data.replay_session_id}。`;
+    } else {
+      const savedReplay = saveReplaySessionFromSimulation({
+        scenarioName: runMeta.scenarioName,
+        algorithm: runMeta.algorithm,
+        result: {
+          ...data,
+          source: "training",
+        },
+      });
+      replayMessage = savedReplay?.persisted
+        ? "训练完成后已自动生成一条回放，可在回放页刷新列表后查看。"
+        : "训练完成后已生成回放，但浏览器本地存储空间不足，未能持久保存。";
+    }
     eventLog.value = [
       ...eventLog.value.slice(-30),
       {
@@ -742,9 +752,7 @@ const generateReplayFromTraining = async (runMeta) => {
           scenario: runMeta.scenarioName,
           algorithm: runMeta.algorithm,
         },
-        message: savedReplay?.persisted
-          ? "训练完成后已自动生成一条回放，可在回放页刷新列表后查看。"
-          : "训练完成后已生成回放，但浏览器本地存储空间不足，未能持久保存。",
+        message: replayMessage,
       },
     ];
   } catch (error) {

@@ -1,0 +1,23 @@
+# 无残余网络组网模式
+network_mode: no_residual
+mode_name: 无残余网络
+description: 卫星/短波/UAV/便携网关独立建网，快速广覆盖
+
+enable_residual_reuse: false
+enable_load_migration: false
+enable_patch_routing: false
+
+primary_backhaul: Satellite_Ka
+secondary_backhaul: Shortwave_HF
+fallback_backhaul: UAV_relay
+
+deploy_priority:
+  - satellite_backhaul
+  - uav_mesh_coverage
+  - portable_gateway_broadcast
+  - shortwave_fallback
+
+residual_reuse_ratio: 0.0
+emergency_deploy_ratio: 1.0
+
+expected_residual_nodes_ratio: 0.0

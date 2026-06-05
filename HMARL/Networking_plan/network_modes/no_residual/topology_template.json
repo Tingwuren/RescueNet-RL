@@ -1,0 +1,18 @@
+{
+  "network_mode": "no_residual",
+  "description": "纯应急机动节点+卫星/短波回传拓扑模板",
+  "node_types": [
+    {"type": "satellite_terminal", "role": "backhaul", "source": "emergency"},
+    {"type": "comm_uav", "role": "relay", "source": "emergency"},
+    {"type": "emergency_bs", "role": "access", "source": "emergency"},
+    {"type": "portable_gateway", "role": "broadcast", "source": "emergency"},
+    {"type": "mesh_relay", "role": "mesh", "source": "emergency"}
+  ],
+  "link_types": [
+    {"type": "Satellite_Ka", "layer": "backhaul"},
+    {"type": "Shortwave_HF", "layer": "fallback"},
+    {"type": "UAV_relay", "layer": "inter_region"},
+    {"type": "WiFi6_mesh", "layer": "access"}
+  ],
+  "topology_pattern": "mobile_star_mesh"
+}

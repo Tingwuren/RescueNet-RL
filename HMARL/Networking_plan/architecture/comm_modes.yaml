@@ -1,0 +1,35 @@
+# 四类通信制式能力表
+comm_modes:
+  - id: 5G_700MHz
+    name: 5G低频广域接入
+    bandwidth_mbps: [20, 100]
+    coverage_radius_km: [3, 8]
+    latency_ms: [10, 30]
+    energy_cost: medium
+    use_case: [access, residual_reuse]
+
+  - id: Satellite_Ka
+    name: 卫星Ka应急回传
+    bandwidth_mbps: [5, 50]
+    coverage_radius_km: [50, 500]
+    latency_ms: [500, 800]
+    energy_cost: high
+    use_case: [backhaul, no_residual_primary]
+
+  - id: WiFi6
+    name: WiFi6 Mesh接入
+    bandwidth_mbps: [50, 300]
+    coverage_radius_km: [0.3, 1.5]
+    latency_ms: [5, 20]
+    energy_cost: low
+    use_case: [local_mesh, hotspot]
+
+  - id: Shortwave_HF
+    name: 短波保底通信
+    bandwidth_mbps: [0.05, 2]
+    coverage_radius_km: [100, 1000]
+    latency_ms: [100, 500]
+    energy_cost: low
+    use_case: [fallback, no_residual_backup]
+
+minimum_modes_required: 4

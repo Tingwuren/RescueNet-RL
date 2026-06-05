@@ -1,0 +1,15 @@
+# HMARL 统一训练超参
+total_episodes: 500
+batch_size: 64
+learning_rate: 3.0e-4
+optimizer: Adam
+gamma: 0.99
+gae_lambda: 0.95
+clip_epsilon: 0.2
+save_interval: 50
+early_stop_patience: 50
+obs_dim_l3: 51
+action_dim_l3: 72
+n_regions: 5
+n_subregions_per_region: 3
+seed: 42

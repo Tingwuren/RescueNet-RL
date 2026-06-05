@@ -1,0 +1,14 @@
+{
+  "scenario_id": "extreme_rainstorm",
+  "rescuenet_scenario": "extreme_rainstorm__level_4",
+  "total_episodes": 694,
+  "total_timesteps": 50000,
+  "weights": {
+    "L1.pt": "/mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/extreme_rainstorm/weights/L1.pt",
+    "L2.pt": "/mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/extreme_rainstorm/weights/L2.pt",
+    "L3.pt": "/mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/extreme_rainstorm/weights/L3.pt"
+  },
+  "figures_dir": "/mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/extreme_rainstorm/figures",
+  "train_log": "/mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/extreme_rainstorm/train_log.json",
+  "plot_seed": 3863
+}

@@ -1,0 +1,29 @@
+{
+  "algorithm": "hmarl",
+  "env_type": "multimodal",
+  "weights_dir": "/mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/extreme_rainstorm_best/weights",
+  "layer_weights": {
+    "L1": "/mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/extreme_rainstorm_best/weights/L1.pt",
+    "L2": "/mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/extreme_rainstorm_best/weights/L2.pt",
+    "L3": "/mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/extreme_rainstorm_best/weights/L3.pt"
+  },
+  "evaluation_protocol": "standard",
+  "config": {
+    "learning_rate": 0.0003,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_coef": 0.2,
+    "update_epochs": 8,
+    "mini_batch_size": 128,
+    "entropy_coef": 0.015,
+    "value_coef": 0.5,
+    "max_grad_norm": 0.5,
+    "region_rows": 3,
+    "region_cols": 3,
+    "l1_regions": 9,
+    "l2_link_types": 4,
+    "policy_prior_weight": 2.5,
+    "aux_loss_coef": 0.08,
+    "eval_use_planner_action": true
+  }
+}

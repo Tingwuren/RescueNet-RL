@@ -1,0 +1,12 @@
+# 超强台风场景 — 残余组网
+scenario_id: super_typhoon
+scenario_name: 超强台风风暴潮
+network_mode: with_residual
+base_station_outage_min: 0.20
+base_station_outage_max: 0.60
+road_pass_rate: 0.70
+has_residual_links: true
+dataset_split:
+  train: 0.70
+  val: 0.15
+  test: 0.15

@@ -1,0 +1,275 @@
+{
+  "subregion_id": 0,
+  "region_id": 0,
+  "n_nodes": 10,
+  "n_edges": 5,
+  "nodes": [
+    {
+      "id": 0,
+      "subregion_id": 0,
+      "region_id": 0,
+      "device_type": "应急基站",
+      "device_type_id": 0,
+      "grid_index": 2,
+      "position": [
+        0.6333333253860474,
+        0.10000000149011612
+      ],
+      "power_ratio": 1.0,
+      "bandwidth_ratio": 0.9637479782104492
+    },
+    {
+      "id": 1,
+      "subregion_id": 0,
+      "region_id": 0,
+      "device_type": "应急基站",
+      "device_type_id": 0,
+      "grid_index": 5,
+      "position": [
+        0.36666667461395264,
+        0.5
+      ],
+      "power_ratio": 1.0,
+      "bandwidth_ratio": 0.9637479782104492
+    },
+    {
+      "id": 2,
+      "subregion_id": 0,
+      "region_id": 0,
+      "device_type": "应急基站",
+      "device_type_id": 0,
+      "grid_index": 9,
+      "position": [
+        0.36666667461395264,
+        0.8999999761581421
+      ],
+      "power_ratio": 1.0,
+      "bandwidth_ratio": 0.9637479782104492
+    },
+    {
+      "id": 3,
+      "subregion_id": 0,
+      "region_id": 0,
+      "device_type": "应急基站",
+      "device_type_id": 0,
+      "grid_index": 11,
+      "position": [
+        0.8999999761581421,
+        0.8999999761581421
+      ],
+      "power_ratio": 1.0,
+      "bandwidth_ratio": 0.9637479782104492
+    },
+    {
+      "id": 4,
+      "subregion_id": 0,
+      "region_id": 0,
+      "device_type": "应急基站",
+      "device_type_id": 0,
+      "grid_index": 11,
+      "position": [
+        0.8999999761581421,
+        0.8999999761581421
+      ],
+      "power_ratio": 1.0,
+      "bandwidth_ratio": 0.9637479782104492
+    },
+    {
+      "id": 5,
+      "subregion_id": 0,
+      "region_id": 0,
+      "device_type": "5G中继",
+      "device_type_id": 2,
+      "grid_index": 11,
+      "position": [
+        0.8999999761581421,
+        0.8999999761581421
+      ],
+      "power_ratio": 1.0,
+      "bandwidth_ratio": 0.0
+    },
+    {
+      "id": 6,
+      "subregion_id": 0,
+      "region_id": 0,
+      "device_type": "Mesh中继",
+      "device_type_id": 3,
+      "grid_index": 4,
+      "position": [
+        0.10000000149011612,
+        0.5
+      ],
+      "power_ratio": 0.761530876159668,
+      "bandwidth_ratio": 0.0
+    },
+    {
+      "id": 7,
+      "subregion_id": 0,
+      "region_id": 0,
+      "device_type": "Mesh中继",
+      "device_type_id": 3,
+      "grid_index": 6,
+      "position": [
+        0.6333333253860474,
+        0.5
+      ],
+      "power_ratio": 0.761530876159668,
+      "bandwidth_ratio": 0.0
+    },
+    {
+      "id": 8,
+      "subregion_id": 0,
+      "region_id": 0,
+      "device_type": "Mesh中继",
+      "device_type_id": 3,
+      "grid_index": 10,
+      "position": [
+        0.6333333253860474,
+        0.8999999761581421
+      ],
+      "power_ratio": 0.761530876159668,
+      "bandwidth_ratio": 0.0
+    },
+    {
+      "id": 9,
+      "subregion_id": 0,
+      "region_id": 0,
+      "device_type": "通信UAV",
+      "device_type_id": 4,
+      "grid_index": 10,
+      "position": [
+        0.6333333253860474,
+        0.8999999761581421
+      ],
+      "power_ratio": 1.0,
+      "bandwidth_ratio": 1.0
+    }
+  ],
+  "edges": [
+    {
+      "source": 3,
+      "target": 4,
+      "link_kind": "intra_grid"
+    },
+    {
+      "source": 4,
+      "target": 5,
+      "link_kind": "intra_grid"
+    },
+    {
+      "source": 8,
+      "target": 9,
+      "link_kind": "intra_grid"
+    },
+    {
+      "source": "region_0",
+      "target": "region_1",
+      "link_kind": "cross_region",
+      "link_type": "UAV中继链路",
+      "deploy_position": 0.0
+    },
+    {
+      "source": "region_0",
+      "target": "region_1",
+      "link_kind": "cross_region",
+      "link_type": "UAV中继链路",
+      "deploy_position": 0.0
+    }
+  ],
+  "coverage": [
+    {
+      "node_id": 0,
+      "center": [
+        0.6333333253860474,
+        0.10000000149011612
+      ],
+      "radius_km": 1.5,
+      "device_type": "应急基站"
+    },
+    {
+      "node_id": 1,
+      "center": [
+        0.36666667461395264,
+        0.5
+      ],
+      "radius_km": 1.5,
+      "device_type": "应急基站"
+    },
+    {
+      "node_id": 2,
+      "center": [
+        0.36666667461395264,
+        0.8999999761581421
+      ],
+      "radius_km": 1.5,
+      "device_type": "应急基站"
+    },
+    {
+      "node_id": 3,
+      "center": [
+        0.8999999761581421,
+        0.8999999761581421
+      ],
+      "radius_km": 1.5,
+      "device_type": "应急基站"
+    },
+    {
+      "node_id": 4,
+      "center": [
+        0.8999999761581421,
+        0.8999999761581421
+      ],
+      "radius_km": 1.5,
+      "device_type": "应急基站"
+    },
+    {
+      "node_id": 5,
+      "center": [
+        0.8999999761581421,
+        0.8999999761581421
+      ],
+      "radius_km": 1.5,
+      "device_type": "5G中继"
+    },
+    {
+      "node_id": 6,
+      "center": [
+        0.10000000149011612,
+        0.5
+      ],
+      "radius_km": 1.321148157119751,
+      "device_type": "Mesh中继"
+    },
+    {
+      "node_id": 7,
+      "center": [
+        0.6333333253860474,
+        0.5
+      ],
+      "radius_km": 1.321148157119751,
+      "device_type": "Mesh中继"
+    },
+    {
+      "node_id": 8,
+      "center": [
+        0.6333333253860474,
+        0.8999999761581421
+      ],
+      "radius_km": 1.321148157119751,
+      "device_type": "Mesh中继"
+    },
+    {
+      "node_id": 9,
+      "center": [
+        0.6333333253860474,
+        0.8999999761581421
+      ],
+      "radius_km": 1.5,
+      "device_type": "通信UAV"
+    }
+  ],
+  "global_params": {
+    "rescue_priority_weight": 0.714760959148407,
+    "cross_region_reserve_ratio": 0.14032557606697083
+  }
+}

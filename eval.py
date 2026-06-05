@@ -33,6 +33,7 @@ def parse_args() -> argparse.Namespace:
         help="Select evaluation environment variant.",
     )
     parser.add_argument("--scenario-name", type=str, default=None, help="Scenario to load when env-type=multimodal.")
+    parser.add_argument("--dataset-path", type=str, default=None, help="Override multimodal scenario dataset path.")
     parser.add_argument(
         "--eval-protocol",
         type=str,
@@ -59,6 +60,8 @@ def main() -> None:
     env_type = config["experiment"].get("env_type", "baseline")
     if args.scenario_name:
         config["multimodal_env"]["scenario_name"] = args.scenario_name
+    if args.dataset_path:
+        config["multimodal_env"]["dataset_path"] = args.dataset_path
     apply_evaluation_protocol(config, args.eval_protocol)
 
     checkpoint_path = Path(args.checkpoint)

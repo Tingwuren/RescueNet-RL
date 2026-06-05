@@ -1,0 +1,36 @@
+# L2 多制式融合层 — 链路选择与资源协调
+layer: L2
+layer_name: 多制式融合层
+description: 在 5G、卫星、WiFi、短波及残余链路间进行选择与带宽协调，组织广播路径
+
+observation_dim: 42
+output:
+  migrations: true
+  cross_region_links: true
+  link_selection: true
+
+fusion_rules:
+  primary_access: 5G_700MHz
+  backup_access: WiFi6
+  backhaul_with_residual: 5G_residual_link
+  backhaul_no_residual: Satellite_Ka
+  fallback: Shortwave_HF
+
+link_priority_with_residual:
+  - 5G_residual_link
+  - Microwave_relay
+  - Satellite_Ka
+  - Shortwave_HF
+
+link_priority_no_residual:
+  - Satellite_Ka
+  - Shortwave_HF
+  - UAV_relay
+  - WiFi6_mesh
+
+broadcast_path:
+  mode: multi_hop_tree
+  root: command_center
+  leaf_business: [public_alert, rescue_comm, field_backhaul]
+
+update_interval_hours: 6

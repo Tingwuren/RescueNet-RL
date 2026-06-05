@@ -1,0 +1,25 @@
+
+======================================================================
+  指标二：极端暴雨场景验证
+======================================================================
+
+[场景标识] extreme_rainstorm (极端暴雨)
+[残余形态] point_scattered
+[基站退服率] 0.3-0.8
+[道路通行率] 0.5
+[链路断裂率] 0.35
+[核心特征] 以基站断电和光缆冲毁为主，残余网络呈点式分布
+
+[HMARL 交叉引用] configs/scenarios/extreme_rainstorm.yaml
+  HMARL network_mode: no_residual
+  训练日志: 缺失 (/mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/extreme_rainstorm/train_log.json)
+
+[生成组网方案]
+  with_residual: /mnt/data0/root/Projects/RescueNet-RL/HMARL/Networking_plan/outputs/rainstorm_with_residual/network_plan.json
+  no_residual: /mnt/data0/root/Projects/RescueNet-RL/HMARL/Networking_plan/outputs/rainstorm_no_residual/network_plan.json
+
+[方案关键字段]
+  with_residual: residual=32 emergency=16 backhaul=5G_residual_link [OK]
+  no_residual: residual=0 emergency=59 backhaul=Satellite_Ka [OK]
+
+[PASS] 极端暴雨场景 + 双模式组网方案验证通过

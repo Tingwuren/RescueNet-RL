@@ -137,10 +137,24 @@ class MultiModalCommEnv(gym.Env):
         self._latest_bandwidth_cost = 0.0
         self._latest_reward_breakdown: Dict[str, float] = {}
         self.residual_base_summary = []
+        self.custom_user_metadata: List[Dict[str, Any]] = [{} for _ in range(int(self.num_users))]
 
     def _generate_candidate_locations(self) -> np.ndarray:
+        dataset_locations = getattr(self.scenario, "candidate_locations", None) or []
         coords: List[Tuple[int, int]] = []
         seen = set()
+        for row, col in dataset_locations:
+            candidate = (
+                int(np.clip(row, 0, self.grid_rows - 1)),
+                int(np.clip(col, 0, self.grid_cols - 1)),
+            )
+            if candidate in seen:
+                continue
+            seen.add(candidate)
+            coords.append(candidate)
+            if len(coords) >= self.candidate_sites:
+                return np.array(coords, dtype=np.int32)
+
         while len(coords) < self.candidate_sites:
             candidate = (
                 int(self.np_random.integers(0, self.grid_rows)),
@@ -481,22 +495,51 @@ class MultiModalCommEnv(gym.Env):
             if not base_profile:
                 continue
             mode_profile = self.scenario.mode_profiles.get(mode_name, {})
-            coverage_radius = float(mode_profile.get("coverage_radius", 3.0))
+            coverage_radius = float(spec.get("coverage_radius") or mode_profile.get("coverage_radius", 3.0))
             location = np.array([spec["x"], spec["y"]], dtype=np.float32)
-            distances = np.linalg.norm(self.user_positions - location, axis=1)
-            coverage_mask = distances <= coverage_radius
-            covered_users = int(np.count_nonzero(coverage_mask))
+            status = str(spec.get("status") or "active").lower()
+            max_users = int(spec.get("max_users") or spec.get("cell_user_count") or base_profile.max_users)
+            max_throughput = float(
+                spec.get("max_throughput")
+                or spec.get("downlink_bandwidth_mbps")
+                or base_profile.max_throughput
+            )
+            if status == "degraded":
+                coverage_radius *= 0.65
+                max_users = max(1, int(max_users * 0.65))
+                max_throughput *= 0.65
+            if status == "offline":
+                covered_users = 0
+            else:
+                distances = np.linalg.norm(self.user_positions - location, axis=1)
+                coverage_mask = distances <= coverage_radius
+                candidate_idx = np.flatnonzero(coverage_mask)
+                if max_users > 0 and candidate_idx.size > max_users:
+                    nearest_idx = candidate_idx[np.argsort(distances[candidate_idx])[:max_users]]
+                    coverage_mask = np.zeros_like(self.user_connected, dtype=bool)
+                    coverage_mask[nearest_idx] = True
+                covered_users = int(np.count_nonzero(coverage_mask))
             if covered_users > 0:
                 self.user_connected[coverage_mask] = True
             summaries.append(
                 {
+                    "device_uid": spec.get("device_uid"),
+                    "deployment_id": spec.get("deployment_id"),
                     "base_station": base_profile.name,
-                    "label": base_profile.label,
+                    "label": spec.get("device_name") or spec.get("station_label") or base_profile.label,
                     "mode": mode_name,
+                    "status": status,
                     "x": spec["x"],
                     "y": spec["y"],
                     "connected_users": covered_users,
                     "coverage_radius": coverage_radius,
+                    "coverage_radius_km": spec.get("coverage_radius_km"),
+                    "max_users": max_users,
+                    "max_throughput": max_throughput,
+                    "downlink_bandwidth_mbps": spec.get("downlink_bandwidth_mbps") or max_throughput,
+                    "uplink_bandwidth_mbps": spec.get("uplink_bandwidth_mbps"),
+                    "tx_power_watt": spec.get("tx_power_watt"),
+                    "battery_duration_h": spec.get("battery_duration_h"),
                 }
             )
         self.residual_base_summary = summaries
@@ -516,12 +559,37 @@ class MultiModalCommEnv(gym.Env):
             return None
         x = int(np.clip(entry.get("x", 0), 0, self.grid_rows - 1))
         y = int(np.clip(entry.get("y", 0), 0, self.grid_cols - 1))
-        return {
+        status = str(entry.get("status") or "active").strip().lower()
+        if status not in {"active", "degraded", "offline", "planned", "deployed", "unknown"}:
+            status = "active"
+        sanitized = {
             "base_station": base_key,
             "mode": mode_name,
             "x": x,
             "y": y,
+            "status": status,
         }
+        for key in (
+            "device_uid",
+            "deployment_id",
+            "device_name",
+            "device_category",
+            "station_type",
+            "station_label",
+            "cell_user_count",
+            "coverage_radius",
+            "coverage_radius_km",
+            "max_throughput",
+            "max_users",
+            "downlink_bandwidth_mbps",
+            "uplink_bandwidth_mbps",
+            "tx_power_watt",
+            "battery_duration_h",
+            "notes",
+        ):
+            if entry.get(key) not in (None, ""):
+                sanitized[key] = entry.get(key)
+        return sanitized
 
     def set_custom_base_stations(self, base_stations: Optional[List[Dict[str, Any]]]) -> None:
         """Configure custom residual base-station deployments."""
@@ -653,6 +721,7 @@ class MultiModalCommEnv(gym.Env):
         limit = min(len(users), self.num_users)
         self.user_connected[:] = False
         self.broadcast_served[:] = False
+        self.custom_user_metadata = [{} for _ in range(int(self.num_users))]
 
         for idx in range(limit):
             entry = users[idx]
@@ -666,6 +735,13 @@ class MultiModalCommEnv(gym.Env):
             self.user_demands[idx] = np.clip(demand, 0.5, 100.0)
             self.user_connected[idx] = connected
             self.broadcast_served[idx] = broadcast
+            metadata = {
+                key: entry.get(key)
+                for key in ("device_id", "device_name", "device_type", "is_dedicated")
+                if entry.get(key) not in (None, "")
+            }
+            if metadata:
+                self.custom_user_metadata[idx] = metadata
 
         if self.custom_base_station_specs is not None:
             self.user_connected[:] = False

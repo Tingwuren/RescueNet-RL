@@ -1,0 +1,14 @@
+{
+  "scenario_id": "super_typhoon",
+  "rescuenet_scenario": "super_typhoon__level_4",
+  "total_episodes": 15,
+  "total_timesteps": 500,
+  "weights": {
+    "L1.pt": "/mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/super_typhoon/weights/L1.pt",
+    "L2.pt": "/mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/super_typhoon/weights/L2.pt",
+    "L3.pt": "/mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/super_typhoon/weights/L3.pt"
+  },
+  "figures_dir": "/mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/super_typhoon/figures",
+  "train_log": "/mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/super_typhoon/train_log.json",
+  "plot_seed": 4263
+}

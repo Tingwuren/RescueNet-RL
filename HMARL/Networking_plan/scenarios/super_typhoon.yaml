@@ -1,0 +1,26 @@
+# 超强台风灾害场景 — 对齐设计文档表3-2
+scenario_id: super_typhoon
+scenario_name: 超强台风风暴潮
+scenario_name_en: Super Typhoon
+
+# 灾害特征
+disaster_type: typhoon
+residual_pattern: patch_blocked  # 片状残余、局部全阻
+base_station_outage_min: 0.20
+base_station_outage_max: 0.60
+pole_damage_rate_min: 0.10
+pole_damage_rate_max: 0.30
+local_blackout_zones: 4
+road_pass_rate: 0.70
+power_outage_rate: 0.70
+affected_area_km2: [200, 1000]
+population: [100000, 1000000]
+time_window_hours: [-24, 72]
+
+# 组网适配
+default_network_mode: with_residual
+has_residual_links: true
+core_feature: 以基站倒杆和天线损坏为主，残余网络呈片状分布、局部全阻
+
+# HMARL 交叉引用
+hmari_config: ../HMARL/configs/scenarios/super_typhoon.yaml

@@ -1,0 +1,17 @@
+HMARL Parameter Count Report
+Environment type: hierarchical-marl
+
+Scenario               Scale      N           L1           L2           L3          Total Status
+--------------------------------------------------------------------------------------------
+extreme_rainstorm      small      5      800,451      449,686      990,030      2,240,167   PASS
+extreme_rainstorm      medium    10      800,451      899,372    1,980,060      3,679,883   PASS
+extreme_rainstorm      large     20      800,451    1,798,744    3,960,120      6,559,315   PASS
+super_typhoon          small      5      800,451      449,686      990,030      2,240,167   PASS
+super_typhoon          medium    10      800,451      899,372    1,980,060      3,679,883   PASS
+super_typhoon          large     20      800,451    1,798,744    3,960,120      6,559,315   PASS
+
+Per-agent fixed design:
+  L1 (global):   [730, 404, 202] -> ~800k
+  L2 (regional): [564, 282, 141] -> ~450k
+  L3 (local):    [352, 207] -> ~198k
+  Rule: L1 params > L2 params > L3 params

@@ -1,0 +1,33 @@
+HMARL RescueNet 测试验收报告
+========================================================================
+生成时间: 2026-05-28T10:41:31.710981+00:00
+场景别名: extreme_rainstorm (极端暴雨)
+RescueNet 场景: extreme_rainstorm__level_4
+Checkpoint: /mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/extreme_rainstorm_best
+run_seed: 144074217
+
+[指标一] 组网架构设计方案
+  归档: Networking_plan/proofs/architecture_check.txt
+
+[指标二] 极端暴雨场景 + 双模式组网
+  归档: Networking_plan/proofs/scenario_rainstorm.txt
+  方案目录: Networking_plan/outputs/*_rainstorm_*/
+
+[指标三] 双模式矩阵
+  归档: Networking_plan/proofs/dual_mode_matrix.txt
+
+[HMARL 强化学习测试]
+  episodes: 1
+  avg_reward: 21.5326
+  avg_final_coverage: 93.29%
+  demo_mode: True
+
+[交付物清单 — 每种场景×模式各 4 类文件]
+  - network_plan.json
+  - 01_全局设备分配清单.txt
+  - 02_区域资源调度表.txt
+  - 03_子区域设备部署明细表.txt
+  - 04_设备点位与拓扑连接表.txt
+
+[本目录副本] /mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/extreme_rainstorm_best/deliverables/networking/
+[PASS] 测试流程与设计方案归档完成

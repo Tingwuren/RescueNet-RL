@@ -1,0 +1,9 @@
+应急广播网组网架构指标验证汇总
+========================================
+architecture: PASS
+rainstorm: PASS
+typhoon: PASS
+dual_mode: PASS
+deliverables: PASS
+
+总体: ALL PASS (4/4)

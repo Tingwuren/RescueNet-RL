@@ -1,0 +1,38 @@
+# 有残余网络部署规则
+network_mode: with_residual
+
+rules:
+  - id: R1
+    action: scan_residual_bs
+    priority: 1
+    description: 扫描并激活可用残余基站
+
+  - id: R2
+    action: migrate_load
+    priority: 2
+    description: 将高负载区域流量迁移至邻近可用残余节点
+
+  - id: R3
+    action: patch_route
+    priority: 3
+    description: 在链路断裂处部署应急中继补丁路由
+
+  - id: R4
+    action: deploy_emergency_gap
+    priority: 4
+    description: 在残余覆盖盲区补充应急设备
+
+node_source_weights:
+  residual_bs: 0.65
+  emergency_bs: 0.20
+  portable_gateway: 0.10
+  mesh_relay: 0.05
+
+emergency_device_weights:
+  emergency_bs: 0.38
+  portable_gateway: 0.28
+  mesh_relay: 0.18
+  comm_uav: 0.16
+
+residual_node_count_base: 48
+emergency_node_count_base: 24

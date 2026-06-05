@@ -33,6 +33,15 @@ class HMARLTrainer(PPOTrainer):
         self.reward_shaping_weight = float(self.hmarl_cfg.get("reward_shaping_weight", 0.12))
         self.aux_loss_coef = float(self.hmarl_cfg.get("aux_loss_coef", 0.08))
         self.train_eval_use_planner_action = bool(self.hmarl_cfg.get("train_eval_use_planner_action", False))
+        default_eval_warmup = int(self.train_cfg.get("total_timesteps", 8000) * 0.75)
+        self.train_eval_planner_warmup_steps = max(
+            0,
+            int(self.hmarl_cfg.get("train_eval_planner_warmup_steps", default_eval_warmup)),
+        )
+        self.train_eval_planner_warmup_power = max(
+            1.0,
+            float(self.hmarl_cfg.get("train_eval_planner_warmup_power", 1.0)),
+        )
         self.prior_warmup_steps = max(0, int(self.hmarl_cfg.get("prior_warmup_steps", 12000)))
         self.min_prior_scale = float(self.hmarl_cfg.get("min_prior_scale", 0.0))
         self.max_prior_scale = float(self.hmarl_cfg.get("max_prior_scale", 1.0))
@@ -40,6 +49,9 @@ class HMARLTrainer(PPOTrainer):
         self.reward_shaping_warmup_steps = max(0, int(self.hmarl_cfg.get("reward_shaping_warmup_steps", 12000)))
         self.reward_shaping_warmup_power = max(1.0, float(self.hmarl_cfg.get("reward_shaping_warmup_power", 2.0)))
         self.last_hierarchy_plan: Dict[str, Any] = {}
+        self.step_loss_interval = int(self.train_cfg.get("step_loss_interval", 0) or 0)
+        self.env_step_log_interval = int(self.train_cfg.get("env_step_log_interval", 0) or 0)
+        self._opt_step = 0
 
     def _warmup_fraction(self, warmup_steps: int, power: float = 1.0) -> float:
         if warmup_steps <= 0:
@@ -91,6 +103,19 @@ class HMARLTrainer(PPOTrainer):
             self.current_episode_length += 1
             self.last_hierarchy_plan = plan
 
+            if self.env_step_log_interval > 0 and (
+                self.global_step % self.env_step_log_interval == 0
+            ):
+                coverage = float(info.get("coverage_ratio", 0.0))
+                broadcast = float(info.get("broadcast_ratio", 0.0))
+                print(
+                    f"    [EnvStep {self.global_step}] reward={reward:.3f} | "
+                    f"env_reward={float(env_reward):.3f} | "
+                    f"coverage={coverage:.2%} | broadcast={broadcast:.2%} | "
+                    f"ep_len={self.current_episode_length}",
+                    flush=True,
+                )
+
             if done:
                 coverage = float(info.get("coverage_ratio", 0.0))
                 broadcast = float(info.get("broadcast_ratio", 0.0))
@@ -118,6 +143,7 @@ class HMARLTrainer(PPOTrainer):
                         "hierarchy": plan.get("summary", {}),
                         "hierarchical_rewards": plan.get("rewards", {}),
                         "reason": info.get("reason", "episode_end"),
+                        **self._episode_info_payload(info),
                     },
                 )
                 self.current_episode_return = 0.0
@@ -170,8 +196,9 @@ class HMARLTrainer(PPOTrainer):
         value_loss_val = 0.0
         aux_loss_val = 0.0
 
-        for _ in range(update_epochs):
+        for epoch_idx in range(update_epochs):
             np.random.shuffle(idxs)
+            mb_idx = 0
             for start in range(0, num_samples, mini_batch_size):
                 end = start + mini_batch_size
                 batch_idx = idxs[start:end]
@@ -211,6 +238,15 @@ class HMARLTrainer(PPOTrainer):
                 policy_loss_val = float(policy_loss.item())
                 value_loss_val = float(value_loss.item())
                 aux_loss_val = float(aux_loss.item())
+                self._opt_step += 1
+                if self.step_loss_interval > 0 and (self._opt_step % self.step_loss_interval == 0):
+                    print(
+                        f"    [OptStep {self._opt_step}] env_step={self.global_step} | "
+                        f"epoch={epoch_idx + 1}/{update_epochs} mb={mb_idx + 1} | "
+                        f"loss_pi={policy_loss_val:.3f} | loss_v={value_loss_val:.3f} | aux={aux_loss_val:.3f}",
+                        flush=True,
+                    )
+                mb_idx += 1
 
         return {
             "policy_loss": policy_loss_val,
@@ -222,20 +258,28 @@ class HMARLTrainer(PPOTrainer):
         rewards = []
         coverages = []
         broadcasts = []
+        planner_fraction = self._warmup_fraction(
+            self.train_eval_planner_warmup_steps,
+            self.train_eval_planner_warmup_power,
+        )
         for _ in range(episodes):
             obs, _ = self.eval_env.reset()
             done = False
             total_reward = 0.0
             final_cov = 0.0
             final_broadcast = 0.0
+            episode_step = 0
+            max_eval_steps = max(1, int(getattr(self.eval_env, "max_steps", 1)))
+            planner_step_limit = int(round(max_eval_steps * planner_fraction))
             while not done:
                 prior, plan = self.eval_planner.build_action_prior(self.eval_env)
-                scaled_prior = self._scale_action_prior(prior)
-                if self.train_eval_use_planner_action:
+                scaled_prior = self._scale_action_prior(prior) * planner_fraction
+                if self.train_eval_use_planner_action and episode_step < planner_step_limit:
                     action = int(plan.get("recommended_action", 0))
                 else:
                     action, _, _ = self.policy.act(obs, deterministic=deterministic, action_prior=scaled_prior)
                 obs, env_reward, terminated, truncated, info = self.eval_env.step(action)
+                episode_step += 1
                 hierarchy_reward = float(plan.get("rewards", {}).get("l3_final", 0.0))
                 total_reward += float(env_reward) + self._current_reward_shaping_weight() * hierarchy_reward
                 done = bool(terminated or truncated)

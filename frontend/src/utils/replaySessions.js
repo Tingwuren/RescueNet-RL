@@ -8,6 +8,9 @@ const LAST_RESORT_FRAME_LIMIT = 24;
 
 const MAP_WIDTH = 5000;
 const MAP_HEIGHT = 5000;
+const COORDINATE_SOURCE_VERSION = "deterministic_grid_cross_cell_v3";
+const STATION_MIN_SPACING_FLOOR = 180;
+const STATION_MIN_SPACING_CEILING = 260;
 
 const readStorage = () => {
   if (typeof window === "undefined") return [];
@@ -55,6 +58,9 @@ const sampleFrames = (frames, limit) => {
 };
 
 const compactNode = (node) => {
+  const grid = node?.grid && Number.isFinite(Number(node.grid.row)) && Number.isFinite(Number(node.grid.col))
+    ? { row: Number(node.grid.row), col: Number(node.grid.col) }
+    : undefined;
   if (Array.isArray(node)) {
     return {
       id: Number(node[0] ?? 0),
@@ -78,6 +84,8 @@ const compactNode = (node) => {
     siteIndex: node?.siteIndex == null ? undefined : Number(node.siteIndex),
     commMode: node?.commMode || undefined,
     broadcastMode: node?.broadcastMode || undefined,
+    grid,
+    coordinate_source: node?.coordinate_source || node?.coordinateSource || undefined,
   };
 };
 
@@ -197,6 +205,115 @@ const gridToCoords = (row, col, rows, cols) => ({
   y: ((Number(row) + 0.5) / Math.max(1, Number(rows))) * MAP_HEIGHT,
 });
 
+const stableUnit = (seed) => {
+  const text = String(seed ?? "");
+  let hash = 2166136261;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  hash += hash << 13;
+  hash ^= hash >>> 7;
+  hash += hash << 3;
+  hash ^= hash >>> 17;
+  hash += hash << 5;
+  return (hash >>> 0) / 4294967296;
+};
+
+const clampCoords = (point) => ({
+  x: Math.max(0, Math.min(MAP_WIDTH, Number(point.x || 0))),
+  y: Math.max(0, Math.min(MAP_HEIGHT, Number(point.y || 0))),
+});
+
+const gridToScatteredCoords = (row, col, rows, cols, seed, spread = 1.52) => {
+  const center = gridToCoords(row, col, rows, cols);
+  const cellWidth = MAP_WIDTH / Math.max(1, Number(cols));
+  const cellHeight = MAP_HEIGHT / Math.max(1, Number(rows));
+  const effectiveSpread = Math.max(0, Math.min(1.72, Number(spread || 0)));
+  const angle = stableUnit(`${seed}:angle`) * Math.PI * 2;
+  const radius = (0.16 + Math.sqrt(stableUnit(`${seed}:radius`)) * 0.84) * effectiveSpread;
+  const flow = (Number(row) * 1.371 + Number(col) * 0.917 + stableUnit(`${seed}:flow`)) * Math.PI;
+  return clampCoords({
+    x:
+      center.x
+      + Math.cos(angle) * cellWidth * 0.5 * radius
+      + (stableUnit(`${seed}:free-x`) - 0.5) * cellWidth * 0.22 * effectiveSpread
+      + Math.sin(flow) * cellWidth * 0.08 * effectiveSpread,
+    y:
+      center.y
+      + Math.sin(angle) * cellHeight * 0.5 * radius
+      + (stableUnit(`${seed}:free-y`) - 0.5) * cellHeight * 0.22 * effectiveSpread
+      + Math.cos(flow * 0.83) * cellHeight * 0.08 * effectiveSpread,
+  });
+};
+
+const pointDistance = (left, right) => {
+  const dx = Number(left.x || 0) - Number(right.x || 0);
+  const dy = Number(left.y || 0) - Number(right.y || 0);
+  return Math.sqrt(dx * dx + dy * dy);
+};
+
+const nearestPointDistance = (point, points) =>
+  points.reduce((nearest, other) => Math.min(nearest, pointDistance(point, other)), Infinity);
+
+const stationMinimumSpacing = (rows, cols) => {
+  const cellWidth = MAP_WIDTH / Math.max(1, Number(cols));
+  const cellHeight = MAP_HEIGHT / Math.max(1, Number(rows));
+  return Math.max(
+    STATION_MIN_SPACING_FLOOR,
+    Math.min(STATION_MIN_SPACING_CEILING, Math.min(cellWidth, cellHeight) * 0.72)
+  );
+};
+
+const separateStationCoords = (row, col, rows, cols, preferred, occupied, seed) => {
+  const minSpacing = stationMinimumSpacing(rows, cols);
+  const preferredPoint = clampCoords(preferred);
+  if (!occupied.length || nearestPointDistance(preferredPoint, occupied) >= minSpacing) {
+    return preferredPoint;
+  }
+
+  const anchor = gridToCoords(row, col, rows, cols);
+  const cellWidth = MAP_WIDTH / Math.max(1, Number(cols));
+  const cellHeight = MAP_HEIGHT / Math.max(1, Number(rows));
+  const maxRadius = Math.max(minSpacing, Math.min(cellWidth, cellHeight) * 1.18);
+  const baseAngle = stableUnit(`${seed}:station-spacing-angle`) * Math.PI * 2;
+  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+  const candidates = [preferredPoint];
+
+  for (let index = 0; index < 112; index += 1) {
+    const ring = Math.floor(index / 16);
+    const radius = Math.min(maxRadius, minSpacing * (0.82 + ring * 0.18));
+    const angle = baseAngle + index * goldenAngle;
+    candidates.push(
+      clampCoords({
+        x: anchor.x + Math.cos(angle) * radius,
+        y: anchor.y + Math.sin(angle) * radius,
+      })
+    );
+  }
+
+  let bestClear = null;
+  let bestClearCost = Infinity;
+  let fallback = preferredPoint;
+  let fallbackScore = -Infinity;
+
+  for (const candidate of candidates) {
+    const nearest = nearestPointDistance(candidate, occupied);
+    const moveCost = pointDistance(candidate, preferredPoint) + pointDistance(candidate, anchor) * 0.18;
+    if (nearest >= minSpacing && moveCost < bestClearCost) {
+      bestClear = candidate;
+      bestClearCost = moveCost;
+    }
+    const score = nearest - moveCost * 0.018;
+    if (score > fallbackScore) {
+      fallback = candidate;
+      fallbackScore = score;
+    }
+  }
+
+  return bestClear || fallback;
+};
+
 const nodeTypeFromBase = (baseKey) => {
   const normalized = String(baseKey || "").toLowerCase();
   return normalized.includes("macro") ? 1 : 2;
@@ -208,7 +325,7 @@ const normalizeUserNode = (detail, rows, cols, previousNode = null) => {
   const col = hasPosition ? Number(detail.position[1]) : null;
   const coords =
     hasPosition && Number.isFinite(row) && Number.isFinite(col)
-      ? gridToCoords(row, col, rows, cols)
+      ? gridToScatteredCoords(row, col, rows, cols, `user:${detail?.id ?? previousNode?.id ?? 0}:${detail?.region_id || ""}`)
       : {
           x: Number(previousNode?.x || 0),
           y: Number(previousNode?.y || 0),
@@ -221,6 +338,10 @@ const normalizeUserNode = (detail, rows, cols, previousNode = null) => {
     online: Boolean(detail?.connected ?? previousNode?.online ?? false),
     broadcastServed: Boolean(detail?.broadcast_served ?? previousNode?.broadcastServed ?? false),
     kind: "user",
+    grid: hasPosition && Number.isFinite(row) && Number.isFinite(col) ? { row, col } : previousNode?.grid,
+    coordinate_source: hasPosition && Number.isFinite(row) && Number.isFinite(col)
+      ? COORDINATE_SOURCE_VERSION
+      : previousNode?.coordinate_source,
   };
 };
 
@@ -234,20 +355,42 @@ const buildUserNodeMap = (userDetails, rows, cols, previousMap = new Map()) => {
   return nextMap;
 };
 
-const buildResidualNodes = (stations, rows, cols) =>
-  (stations || []).map((station, index) => ({
-    id: 100000 + index,
-    type: nodeTypeFromBase(station.base_station),
-    ...gridToCoords(Number(station.x || 0), Number(station.y || 0), rows, cols),
-    rxBytes: 0,
-    online: true,
-    kind: "residual",
-    coverageRadius: Number(station.coverage_radius || 0),
-  }));
+const buildResidualNodes = (stations, rows, cols) => {
+  const occupied = [];
+  return (stations || []).map((station, index) => {
+    const row = Number(station.x || 0);
+    const col = Number(station.y || 0);
+    const seed = `residual:${station.device_uid || station.deployment_id || index}:${station.base_station || ""}:${row}:${col}`;
+    const coords = separateStationCoords(
+      row,
+      col,
+      rows,
+      cols,
+      gridToScatteredCoords(row, col, rows, cols, seed, 0.42),
+      occupied,
+      seed
+    );
+    occupied.push(coords);
+    return {
+      id: 100000 + index,
+      type: nodeTypeFromBase(station.base_station),
+      ...coords,
+      rxBytes: 0,
+      online: true,
+      kind: "residual",
+      coverageRadius: Number(station.coverage_radius || 0),
+      coordinate_source: COORDINATE_SOURCE_VERSION,
+    };
+  });
+};
 
-const buildDeployedNodes = (steps, rows, cols, upToIndex) => {
+const buildDeployedNodes = (steps, rows, cols, upToIndex, occupiedStations = []) => {
   const seen = new Set();
   const nodes = [];
+  const occupied = occupiedStations.map((station) => ({
+    x: Number(station.x || 0),
+    y: Number(station.y || 0),
+  }));
   let latestDeploymentId = null;
   (steps || []).slice(0, upToIndex).forEach((step, index) => {
     const action = step.action_desc || {};
@@ -259,16 +402,28 @@ const buildDeployedNodes = (steps, rows, cols, upToIndex) => {
     if (seen.has(key)) return;
     seen.add(key);
     const nodeId = 200000 + index;
+    const seed = `deploy:${index + 1}:${action.site_index ?? ""}:${action.comm_mode || ""}:${row}:${col}`;
+    const coords = separateStationCoords(
+      row,
+      col,
+      rows,
+      cols,
+      gridToScatteredCoords(row, col, rows, cols, seed, 0.58),
+      occupied,
+      seed
+    );
+    occupied.push(coords);
     nodes.push({
       id: nodeId,
       type: nodeTypeFromBase(action.comm_mode),
-      ...gridToCoords(row, col, rows, cols),
+      ...coords,
       rxBytes: 0,
       online: true,
       kind: "deployed",
       siteIndex: Number(action.site_index ?? -1),
       commMode: action.comm_mode || null,
       broadcastMode: action.broadcast_mode || null,
+      coordinate_source: COORDINATE_SOURCE_VERSION,
     });
     latestDeploymentId = nodeId;
   });
@@ -334,6 +489,7 @@ const buildFramesFromReport = (report) => {
   const { rows, cols } = inferGridShape(report);
 
   const residualNodes = buildResidualNodes(initialState.residual_base_stations, rows, cols);
+  const residualStationPoints = residualNodes.map((node) => ({ x: node.x, y: node.y }));
   let userNodeMap = buildUserNodeMap(initialState.user_details, rows, cols);
   const initialUsers = Array.from(userNodeMap.values()).sort((left, right) => left.id - right.id);
   const initialStations = residualNodes;
@@ -368,7 +524,13 @@ const buildFramesFromReport = (report) => {
     const postState = step.post_state || {};
     userNodeMap = buildUserNodeMap(postState.user_details, rows, cols, userNodeMap);
     const userNodes = Array.from(userNodeMap.values()).sort((left, right) => left.id - right.id);
-    const { nodes: deployedNodes, latestDeploymentId } = buildDeployedNodes(steps, rows, cols, index + 1);
+    const { nodes: deployedNodes, latestDeploymentId } = buildDeployedNodes(
+      steps,
+      rows,
+      cols,
+      index + 1,
+      residualStationPoints
+    );
     const stationNodes = [...residualNodes, ...deployedNodes];
     frames.push({
       frameIndex: index + 1,

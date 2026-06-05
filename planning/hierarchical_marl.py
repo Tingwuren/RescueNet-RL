@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -81,6 +82,17 @@ class HierarchicalMARLPlanner:
         self.coverage_gain_weight = float(cfg.get("coverage_gain_weight", 3.4))
         self.broadcast_gain_weight = float(cfg.get("broadcast_gain_weight", 1.2))
         self.throughput_gain_weight = float(cfg.get("throughput_gain_weight", 0.8))
+        self.l1_priority_weight = float(cfg.get("l1_priority_weight", 1.8))
+        self.mode_score_weight = float(cfg.get("mode_score_weight", 1.0))
+        self.broadcast_score_weight = float(cfg.get("broadcast_score_weight", 0.7))
+        self.quota_signal_weight = float(cfg.get("quota_signal_weight", 0.6))
+        self.action_gain_weight = float(cfg.get("action_gain_weight", 2.5))
+        self.site_score_weight = float(cfg.get("site_score_weight", 0.4))
+        self.probe_top_k = max(0, int(cfg.get("probe_top_k", 0)))
+        self.probe_score_weight = float(cfg.get("probe_score_weight", 0.0))
+        self.probe_coverage_weight = float(cfg.get("probe_coverage_weight", 4.0))
+        self.probe_broadcast_weight = float(cfg.get("probe_broadcast_weight", 2.0))
+        self.probe_reward_weight = float(cfg.get("probe_reward_weight", 0.25))
 
     @property
     def region_count(self) -> int:
@@ -112,17 +124,21 @@ class HierarchicalMARLPlanner:
             device_idx = self._device_index_for_mode(env.communication_modes[comm_idx])
             quota_signal = 1.0 if quotas[region_id, device_idx] > 0 else 0.0
             scores[action] = (
-                1.8 * priority[min(region_id, len(priority) - 1)]
-                + 1.0 * mode_scores[comm_idx]
-                + 0.7 * broadcast_scores[broadcast_idx]
-                + 0.6 * quota_signal
-                + 2.5 * action_gain_scores[action]
-                + 0.4 * plan["site_scores"][site_idx]
+                self.l1_priority_weight * priority[min(region_id, len(priority) - 1)]
+                + self.mode_score_weight * mode_scores[comm_idx]
+                + self.broadcast_score_weight * broadcast_scores[broadcast_idx]
+                + self.quota_signal_weight * quota_signal
+                + self.action_gain_weight * action_gain_scores[action]
+                + self.site_score_weight * plan["site_scores"][site_idx]
             )
 
         if valid_mask is not None:
             valid_mask = np.asarray(valid_mask, dtype=bool)
             scores = np.where(valid_mask, scores, -1e9).astype(np.float32)
+
+        finite = np.isfinite(scores) & (scores > -1e8)
+        if finite.any() and self.probe_top_k > 0 and self.probe_score_weight > 0.0:
+            scores = self._apply_probe_scores(env, scores, finite)
 
         finite = np.isfinite(scores) & (scores > -1e8)
         if finite.any():
@@ -131,6 +147,36 @@ class HierarchicalMARLPlanner:
             scores[finite] = ((scores[finite] - mean) / std) * self.action_prior_scale
         plan["recommended_action"] = int(np.argmax(scores)) if finite.any() else 0
         return scores, plan
+
+    def _apply_probe_scores(self, env, scores: np.ndarray, finite_mask: np.ndarray) -> np.ndarray:
+        candidate_actions = np.flatnonzero(finite_mask)
+        if candidate_actions.size == 0:
+            return scores
+        top_k = min(self.probe_top_k, int(candidate_actions.size))
+        ranked = candidate_actions[np.argsort(scores[candidate_actions])[-top_k:]]
+        probe_scores = np.zeros_like(scores, dtype=np.float32)
+
+        for action in ranked.tolist():
+            try:
+                probe = deepcopy(env)
+                _, reward, _, _, info = probe.step(int(action))
+            except Exception:  # pragma: no cover - planner must remain usable for any env-like object
+                continue
+            probe_scores[int(action)] = (
+                self.probe_coverage_weight * float(info.get("coverage_ratio", 0.0))
+                + self.probe_broadcast_weight * float(info.get("broadcast_ratio", 0.0))
+                + self.probe_reward_weight * float(reward)
+            )
+
+        active = probe_scores[ranked] > 0
+        if np.any(active):
+            active_scores = probe_scores[ranked][active]
+            min_score = float(active_scores.min())
+            max_score = float(active_scores.max())
+            if max_score > min_score:
+                probe_scores[ranked] = (probe_scores[ranked] - min_score) / (max_score - min_score)
+            scores[ranked] = scores[ranked] + self.probe_score_weight * probe_scores[ranked]
+        return scores.astype(np.float32)
 
     def build_plan(self, env) -> Dict[str, Any]:
         """Build L1 quotas, L2 coordination, and L3 executable plans."""

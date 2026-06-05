@@ -1,0 +1,26 @@
+
+======================================================================
+  指标二：超强台风风暴潮场景验证
+======================================================================
+
+[场景标识] super_typhoon (超强台风风暴潮)
+[残余形态] patch_blocked
+[基站退服率] 0.2-0.6
+[道路通行率] 0.7
+[倒杆率] 0.1-0.3
+[局部全阻区] 4
+[核心特征] 以基站倒杆和天线损坏为主，残余网络呈片状分布、局部全阻
+
+[HMARL 交叉引用] configs/scenarios/super_typhoon.yaml
+  HMARL network_mode: with_residual
+  训练日志: 存在 (/mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/super_typhoon/train_log.json)
+
+[生成组网方案]
+  with_residual: /mnt/data0/root/Projects/RescueNet-RL/HMARL/Networking_plan/outputs/typhoon_with_residual/network_plan.json
+  no_residual: /mnt/data0/root/Projects/RescueNet-RL/HMARL/Networking_plan/outputs/typhoon_no_residual/network_plan.json
+
+[方案关键字段]
+  with_residual: residual=57 emergency=28 backhaul=5G_residual_link [OK]
+  no_residual: residual=0 emergency=105 backhaul=Satellite_Ka [OK]
+
+[PASS] 超强台风风暴潮场景 + 双模式组网方案验证通过

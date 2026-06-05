@@ -1,0 +1,33 @@
+HMARL RescueNet 测试验收报告
+========================================================================
+生成时间: 2026-05-28T07:20:33.401440+00:00
+场景别名: super_typhoon (超强台风风暴潮)
+RescueNet 场景: super_typhoon__level_4
+Checkpoint: /mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/super_typhoon_best
+run_seed: 1638481497
+
+[指标一] 组网架构设计方案
+  归档: Networking_plan/proofs/architecture_check.txt
+
+[指标二] 超强台风风暴潮场景 + 双模式组网
+  归档: Networking_plan/proofs/scenario_typhoon.txt
+  方案目录: Networking_plan/outputs/*_typhoon_*/
+
+[指标三] 双模式矩阵
+  归档: Networking_plan/proofs/dual_mode_matrix.txt
+
+[HMARL 强化学习测试]
+  episodes: 1
+  avg_reward: 22.7514
+  avg_final_coverage: 97.82%
+  demo_mode: True
+
+[交付物清单 — 每种场景×模式各 4 类文件]
+  - network_plan.json
+  - 01_全局设备分配清单.txt
+  - 02_区域资源调度表.txt
+  - 03_子区域设备部署明细表.txt
+  - 04_设备点位与拓扑连接表.txt
+
+[本目录副本] /mnt/data0/root/Projects/RescueNet-RL/HMARL/checkpoints/super_typhoon_best/deliverables/networking/
+[PASS] 测试流程与设计方案归档完成

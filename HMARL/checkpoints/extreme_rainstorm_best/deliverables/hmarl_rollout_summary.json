@@ -1,0 +1,9 @@
+{
+  "episodes": 1,
+  "avg_reward": 21.532590944056167,
+  "avg_final_coverage": 0.9329269642889572,
+  "episode_coverages": [
+    0.9329269642889572
+  ],
+  "demo_mode": true
+}

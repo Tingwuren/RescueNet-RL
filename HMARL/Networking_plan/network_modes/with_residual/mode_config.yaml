@@ -1,0 +1,23 @@
+# 有残余网络组网模式
+network_mode: with_residual
+mode_name: 有残余网络
+description: 复用可用基站/链路，负载迁移，补丁路由
+
+enable_residual_reuse: true
+enable_load_migration: true
+enable_patch_routing: true
+
+primary_backhaul: 5G_residual_link
+secondary_backhaul: Microwave_relay
+fallback_backhaul: Satellite_Ka
+
+deploy_priority:
+  - activate_residual_bs
+  - patch_emergency_devices
+  - cross_region_relay
+  - broadcast_activation
+
+residual_reuse_ratio: 0.55
+emergency_deploy_ratio: 0.45
+
+expected_residual_nodes_ratio: 0.60

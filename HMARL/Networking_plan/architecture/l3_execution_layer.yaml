@@ -1,0 +1,27 @@
+# L3 节点执行层 — 广播/救援/告警/回传
+layer: L3
+layer_name: 节点执行层
+description: 执行具体设备部署、广播激活和局部资源分配
+
+observation_dim: 51
+action_dim: 72
+
+action_structure:
+  deployment: [5, 12]      # 5设备 x 12网格
+  work_params: [5, 2]      # 功率比、带宽比
+  global_params: [2]       # 救援优先级、跨区预留
+
+device_types:
+  - emergency_bs
+  - portable_gateway
+  - relay_5g
+  - mesh_relay
+  - comm_uav
+
+business_tasks:
+  - public_broadcast
+  - rescue_comm
+  - mass_alert
+  - field_backhaul
+
+update_interval_minutes: 15

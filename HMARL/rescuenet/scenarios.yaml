@@ -1,0 +1,4 @@
+# 可选：在此覆盖 HMARL 别名 -> scenario_name（需与当前 dataset 一致）
+# 默认映射见 rescuenet/_scenarios.py：
+#   regions.json  -> super_typhoon__level_4_extreme 等
+#   scenarios.json -> typhoon_residual 等

@@ -1,0 +1,41 @@
+# 无残余网络部署规则
+network_mode: no_residual
+
+rules:
+  - id: N1
+    action: deploy_satellite_hub
+    priority: 1
+    description: 优先部署卫星回传枢纽
+
+  - id: N2
+    action: deploy_uav_mesh
+    priority: 2
+    description: UAV/Mesh 快速广覆盖
+
+  - id: N3
+    action: deploy_portable_gateway
+    priority: 3
+    description: 便携广播网关在热点区域激活
+
+  - id: N4
+    action: activate_shortwave
+    priority: 4
+    description: 短波保底链路启用
+
+node_source_weights:
+  satellite_terminal: 0.14
+  emergency_bs: 0.26
+  portable_gateway: 0.22
+  comm_uav: 0.22
+  mesh_relay: 0.16
+
+# L1 向各应急设备类型配额（合计 1.0，用于 plan_builder 整数拆分）
+emergency_device_weights:
+  satellite_terminal: 0.14
+  emergency_bs: 0.26
+  portable_gateway: 0.22
+  comm_uav: 0.22
+  mesh_relay: 0.16
+
+residual_node_count_base: 0
+emergency_node_count_base: 88

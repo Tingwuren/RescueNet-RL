@@ -124,9 +124,39 @@ class DQNTrainer:
         if not self.progress_callback:
             return
         try:
-            self.progress_callback({"type": event_type, "payload": payload})
+            enriched_payload = dict(payload)
+            enriched_payload.setdefault("step", int(self.global_step))
+            enriched_payload.setdefault("global_step", int(self.global_step))
+            enriched_payload.setdefault("total_timesteps", int(self.train_cfg["total_timesteps"]))
+            enriched_payload.setdefault("algorithm", self.algo_key)
+            self.progress_callback({"type": event_type, "payload": enriched_payload})
         except Exception as exc:  # pragma: no cover - defensive
             print(f"[DQNTrainer] progress callback error: {exc}")
+
+    def _episode_info_payload(self, info: Dict[str, Any]) -> Dict[str, Any]:
+        coverage = float(info.get("coverage_ratio", 0.0))
+        total_users = int(getattr(self.env, "num_users", 0) or 0)
+        payload: Dict[str, Any] = {
+            "total_users": total_users,
+            "connected_users": int(round(coverage * total_users)) if total_users > 0 else 0,
+            "remaining_budget": info.get("remaining_budget"),
+            "avg_user_throughput": info.get("avg_user_throughput"),
+            "recent_throughput": info.get("recent_throughput"),
+            "device_cost": info.get("device_cost"),
+            "bandwidth_cost": info.get("bandwidth_cost"),
+            "reward_mode": info.get("reward_mode"),
+            "reward_label": info.get("reward_label"),
+            "evaluation_protocol": info.get("evaluation_protocol"),
+            "has_residual_network": info.get("has_residual_network"),
+        }
+        reward_breakdown = info.get("reward_breakdown")
+        if isinstance(reward_breakdown, dict):
+            payload["reward_breakdown"] = {
+                key: float(value)
+                for key, value in reward_breakdown.items()
+                if isinstance(value, (int, float))
+            }
+        return {key: value for key, value in payload.items() if value is not None}
 
     def _epsilon(self) -> float:
         fraction = min(1.0, self.global_step / max(1, self.epsilon_decay_steps))
@@ -263,6 +293,7 @@ class DQNTrainer:
                 "coverage": coverage,
                 "broadcast": broadcast,
                 "reason": info.get("reason", "episode_end"),
+                **self._episode_info_payload(info),
             },
         )
         self.current_episode_return = 0.0
@@ -417,6 +448,9 @@ class DQNTrainer:
                     "env_type": self.config.get("experiment", {}).get("env_type", "baseline"),
                     "policy_path": str(policy_path),
                     "evaluation_protocol": self.config.get("evaluation", {}).get("protocol", "standard"),
+                    "algorithm_profile": self.config.get("evaluation", {}).get("algorithm_profile"),
+                    "level4_benchmark": self.config.get("evaluation", {}).get("level4_benchmark", False),
+                    "scenario_name": self.config.get("multimodal_env", {}).get("scenario_name"),
                     "config": self.config.get("dqn", {}),
                 },
                 fp,

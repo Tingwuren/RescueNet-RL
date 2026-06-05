@@ -1,0 +1,10 @@
+
+======================================================================
+  交付物完整性验证（JSON + 01–04 表）
+======================================================================
+  rainstorm_with_residual      [PASS]
+  rainstorm_no_residual        [PASS]
+  typhoon_with_residual        [PASS]
+  typhoon_no_residual          [PASS]
+
+[PASS] 4 套 outputs 交付物完整性验证

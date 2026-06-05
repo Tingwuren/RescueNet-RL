@@ -1,0 +1,16 @@
+{
+  "network_mode": "with_residual",
+  "description": "残余基站+应急设备混合拓扑模板",
+  "node_types": [
+    {"type": "residual_bs", "role": "access", "source": "residual"},
+    {"type": "emergency_bs", "role": "patch", "source": "emergency"},
+    {"type": "portable_gateway", "role": "broadcast", "source": "emergency"},
+    {"type": "mesh_relay", "role": "relay", "source": "emergency"}
+  ],
+  "link_types": [
+    {"type": "5G_residual_link", "layer": "backhaul"},
+    {"type": "Microwave_relay", "layer": "inter_region"},
+    {"type": "WiFi6_mesh", "layer": "access"}
+  ],
+  "topology_pattern": "residual_plus_patch"
+}

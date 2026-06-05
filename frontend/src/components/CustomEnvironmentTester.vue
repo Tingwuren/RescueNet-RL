@@ -139,7 +139,7 @@
 
     <div class="tester__section tester__section--terminal">
       <StreamingTerminal
-        title="实时输出终端"
+        title="实时终端输出"
         subtitle="状态、动作和恢复指标会持续写入这里。"
         :lines="terminalLines"
         :status="terminalStatus"
@@ -157,12 +157,13 @@
         <h4>场景导出</h4>
         <p>受灾场景文件：{{ sceneExport.disaster_scene_path }}</p>
         <p>部署后场景文件：{{ sceneExport.deployment_scene_path }}</p>
+        <p>部署方案文件：{{ sceneExport.deployment_plan_path || "--" }}</p>
         <div class="export-actions">
           <button type="button" @click="downloadExport(sceneExport.disaster_scene, exportFilename('disaster'))">
             下载受灾场景 JSON
           </button>
-          <button type="button" @click="downloadExport(sceneExport.deployment_scene, exportFilename('deployment'))">
-            下载部署后场景 JSON
+          <button type="button" :disabled="!sceneExport.deployment_plan" @click="downloadExport(sceneExport.deployment_plan, exportFilename('deployment_plan'))">
+            下载部署方案 JSON
           </button>
         </div>
       </div>
@@ -219,7 +220,7 @@ import SceneGraphPreview from "./SceneGraphPreview.vue";
 import StreamingTerminal from "./StreamingTerminal.vue";
 import { buildRegionMetrics, formatDistance } from "../utils/regionMetrics";
 import { rescueApiBase } from "../utils/runtimeEndpoints";
-import { saveReplaySessionFromSimulation } from "../utils/replaySessions";
+import { saveReplaySessionFromSimulation, setActiveReplaySessionId } from "../utils/replaySessions";
 import { formatScenarioName } from "../utils/scenarioLabels";
 
 const API_BASE = rescueApiBase;
@@ -428,7 +429,7 @@ const removeBaseStation = (index) => {
 
 const exportFilename = (suffix) => {
   const scenario = scenarioName.value || "scenario";
-  return `${scenario}_${suffix}_scene.json`;
+  return suffix === "deployment_plan" ? `${scenario}_deployment_plan.json` : `${scenario}_${suffix}_scene.json`;
 };
 
 const downloadExport = (payload, filename) => {
@@ -564,16 +565,21 @@ const handleSimulationEvent = (event) => {
 
   if (event.type === "result") {
     simulationResult.value = payload;
-    const savedReplay = saveReplaySessionFromSimulation({
-      scenarioName: scenarioName.value,
-      algorithm: selectedAlgorithm.value,
-      result: payload,
-    });
-    appendTerminalLine(
-      savedReplay?.persisted
-        ? "测试结果已保存，可在回放页直接选择本次测试进行回放。"
-        : "测试结果已生成回放，但浏览器本地存储空间不足，未能持久保存。"
-    );
+    if (payload?.replay_session_id) {
+      setActiveReplaySessionId(payload.replay_session_id);
+      appendTerminalLine(`测试结果已写入后端回放会话：${payload.replay_session_id}。`);
+    } else {
+      const savedReplay = saveReplaySessionFromSimulation({
+        scenarioName: scenarioName.value,
+        algorithm: selectedAlgorithm.value,
+        result: payload,
+      });
+      appendTerminalLine(
+        savedReplay?.persisted
+          ? "测试结果已保存，可在回放页直接选择本次测试进行回放。"
+          : "测试结果已生成回放，但浏览器本地存储空间不足，未能持久保存。"
+      );
+    }
     sceneGraphTab.value = payload?.scene_export?.deployment_scene ? "deployment" : "imported";
     return;
   }

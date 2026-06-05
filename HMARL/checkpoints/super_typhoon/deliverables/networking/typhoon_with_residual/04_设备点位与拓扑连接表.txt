@@ -1,0 +1,299 @@
+《设备点位与拓扑连接表》
+========================================================================
+场景: super_typhoon | 模式: with_residual | 拓扑模式: residual_plus_patch
+子区域: 20 | L2管辖区: 4 | 主回传: 5G_residual_link
+
+[一、点位坐标约定]
+  每个子区域划分为 3×4 共12个网格，G00–G11 按行优先编号。
+  position 使用子区域内归一化坐标 (x,y)∈[0,1]，用于先确定设备点位，再生成拓扑连接。
+
+[二、拓扑生成原则]
+  Hub选举: emergency_bs > residual_bs > satellite_terminal > comm_uav > mesh_relay > portable_gateway
+  区域内: 子区域 hub 连接残余基站、应急基站、Mesh中继、广播网关和UAV/卫星上行节点。
+  区域间: 每个L2管辖区选核心子区域 hub，其余子区域 hub 星型接入，再由L1骨干连接相邻L2核心 hub。
+
+[三、设备点位明细]
+  节点ID | 子区域 | 网格 | 坐标 | 设备类型 | 制式 | 拓扑角色
+  ----------------------------------------------------------------------------
+  N000 | 子区域00-核心指挥镇          |  G00 |  r0,c0 (0.10,0.11) | 残余基站       | 5G_700MHz    | access
+  N020 | 子区域00-核心指挥镇          |  G01 |  r0,c1 (0.40,0.10) | 残余基站       | 5G_700MHz    | access
+  N040 | 子区域00-核心指挥镇          |  G02 |  r0,c2 (0.66,0.09) | 残余基站       | 5G_700MHz    | access
+  N058 | 子区域00-核心指挥镇          |  G04 |  r1,c0 (0.07,0.52) | 应急基站       | 5G_700MHz    | region_hub
+  N001 | 子区域01-重灾避难镇A         |  G00 |  r0,c0 (0.12,0.10) | 残余基站       | 5G_700MHz    | access
+  N021 | 子区域01-重灾避难镇A         |  G01 |  r0,c1 (0.40,0.11) | 残余基站       | 5G_700MHz    | access
+  N041 | 子区域01-重灾避难镇A         |  G02 |  r0,c2 (0.66,0.12) | 残余基站       | 5G_700MHz    | access
+  N065 | 子区域01-重灾避难镇A         |  G09 |  r2,c1 (0.37,0.88) | 应急基站       | 5G_700MHz    | region_hub
+  N068 | 子区域01-重灾避难镇A         |  G09 |  r2,c1 (0.37,0.90) | 便携广播网关     | WiFi6        | broadcast_root
+  N084 | 子区域01-重灾避难镇A         |  G09 |  r2,c1 (0.37,0.91) | 通信UAV      | Satellite_Ka | uplink
+  N002 | 子区域02-重灾避难镇B         |  G00 |  r0,c0 (0.09,0.10) | 残余基站       | 5G_700MHz    | region_hub
+  N022 | 子区域02-重灾避难镇B         |  G01 |  r0,c1 (0.37,0.10) | 残余基站       | 5G_700MHz    | access
+  N042 | 子区域02-重灾避难镇B         |  G02 |  r0,c2 (0.62,0.12) | 残余基站       | 5G_700MHz    | access
+  N075 | 子区域02-重灾避难镇B         |  G04 |  r1,c0 (0.10,0.53) | 便携广播网关     | WiFi6        | broadcast_root
+  N003 | 子区域03-沿海/河谷重灾镇       |  G00 |  r0,c0 (0.10,0.10) | 残余基站       | 5G_700MHz    | access
+  N023 | 子区域03-沿海/河谷重灾镇       |  G01 |  r0,c1 (0.37,0.10) | 残余基站       | 5G_700MHz    | access
+  N043 | 子区域03-沿海/河谷重灾镇       |  G02 |  r0,c2 (0.60,0.10) | 残余基站       | 5G_700MHz    | access
+  N059 | 子区域03-沿海/河谷重灾镇       |  G09 |  r2,c1 (0.36,0.93) | 应急基站       | 5G_700MHz    | region_hub
+  N004 | 子区域04-核心周边镇          |  G00 |  r0,c0 (0.10,0.10) | 残余基站       | 5G_700MHz    | access
+  N024 | 子区域04-核心周边镇          |  G01 |  r0,c1 (0.40,0.10) | 残余基站       | 5G_700MHz    | access
+  N044 | 子区域04-核心周边镇          |  G02 |  r0,c2 (0.62,0.10) | 残余基站       | 5G_700MHz    | access
+  N066 | 子区域04-核心周边镇          |  G05 |  r1,c1 (0.38,0.50) | 应急基站       | 5G_700MHz    | region_hub
+  N069 | 子区域04-核心周边镇          |  G05 |  r1,c1 (0.37,0.48) | 便携广播网关     | WiFi6        | broadcast_root
+  N005 | 子区域05-次重灾镇A          |  G00 |  r0,c0 (0.13,0.11) | 残余基站       | 5G_700MHz    | region_hub
+  N025 | 子区域05-次重灾镇A          |  G01 |  r0,c1 (0.35,0.11) | 残余基站       | 5G_700MHz    | access
+  N045 | 子区域05-次重灾镇A          |  G02 |  r0,c2 (0.62,0.09) | 残余基站       | 5G_700MHz    | access
+  N076 | 子区域05-次重灾镇A          |  G04 |  r1,c0 (0.11,0.52) | Mesh中继     | WiFi6        | relay
+  N006 | 子区域06-次重灾镇B          |  G00 |  r0,c0 (0.13,0.10) | 残余基站       | 5G_700MHz    | access
+  N026 | 子区域06-次重灾镇B          |  G01 |  r0,c1 (0.34,0.13) | 残余基站       | 5G_700MHz    | access
+  N046 | 子区域06-次重灾镇B          |  G02 |  r0,c2 (0.61,0.11) | 残余基站       | 5G_700MHz    | access
+  N060 | 子区域06-次重灾镇B          |  G10 |  r2,c2 (0.64,0.88) | 应急基站       | 5G_700MHz    | region_hub
+  N007 | 子区域07-次重灾镇C          |  G00 |  r0,c0 (0.10,0.11) | 残余基站       | 5G_700MHz    | access
+  N027 | 子区域07-次重灾镇C          |  G01 |  r0,c1 (0.35,0.07) | 残余基站       | 5G_700MHz    | access
+  N047 | 子区域07-次重灾镇C          |  G02 |  r0,c2 (0.60,0.09) | 残余基站       | 5G_700MHz    | access
+  N067 | 子区域07-次重灾镇C          |  G10 |  r2,c2 (0.60,0.89) | 应急基站       | 5G_700MHz    | region_hub
+  N070 | 子区域07-次重灾镇C          |  G10 |  r2,c2 (0.62,0.93) | 便携广播网关     | WiFi6        | broadcast_root
+  N008 | 子区域08-过渡镇A           |  G00 |  r0,c0 (0.07,0.12) | 残余基站       | 5G_700MHz    | region_hub
+  N028 | 子区域08-过渡镇A           |  G01 |  r0,c1 (0.36,0.10) | 残余基站       | 5G_700MHz    | access
+  N048 | 子区域08-过渡镇A           |  G02 |  r0,c2 (0.64,0.14) | 残余基站       | 5G_700MHz    | access
+  N077 | 子区域08-过渡镇A           |  G10 |  r2,c2 (0.66,0.92) | Mesh中继     | WiFi6        | relay
+  N009 | 子区域09-过渡镇B           |  G00 |  r0,c0 (0.07,0.09) | 残余基站       | 5G_700MHz    | access
+  N029 | 子区域09-过渡镇B           |  G01 |  r0,c1 (0.37,0.11) | 残余基站       | 5G_700MHz    | access
+  N049 | 子区域09-过渡镇B           |  G02 |  r0,c2 (0.60,0.10) | 残余基站       | 5G_700MHz    | access
+  N061 | 子区域09-过渡镇B           |  G05 |  r1,c1 (0.40,0.47) | 应急基站       | 5G_700MHz    | region_hub
+  N010 | 子区域10-一般受灾镇A         |  G00 |  r0,c0 (0.11,0.10) | 残余基站       | 5G_700MHz    | region_hub
+  N030 | 子区域10-一般受灾镇A         |  G01 |  r0,c1 (0.38,0.10) | 残余基站       | 5G_700MHz    | access
+  N050 | 子区域10-一般受灾镇A         |  G02 |  r0,c2 (0.65,0.09) | 残余基站       | 5G_700MHz    | access
+  N071 | 子区域10-一般受灾镇A         |  G03 |  r0,c3 (0.93,0.11) | 便携广播网关     | WiFi6        | broadcast_root
+  N011 | 子区域11-一般受灾镇B         |  G00 |  r0,c0 (0.09,0.10) | 残余基站       | 5G_700MHz    | region_hub
+  N031 | 子区域11-一般受灾镇B         |  G01 |  r0,c1 (0.36,0.09) | 残余基站       | 5G_700MHz    | access
+  N051 | 子区域11-一般受灾镇B         |  G02 |  r0,c2 (0.60,0.10) | 残余基站       | 5G_700MHz    | access
+  N078 | 子区域11-一般受灾镇B         |  G05 |  r1,c1 (0.35,0.48) | Mesh中继     | WiFi6        | relay
+  N012 | 子区域12-一般受灾镇C         |  G00 |  r0,c0 (0.13,0.13) | 残余基站       | 5G_700MHz    | access
+  N032 | 子区域12-一般受灾镇C         |  G01 |  r0,c1 (0.40,0.11) | 残余基站       | 5G_700MHz    | access
+  N052 | 子区域12-一般受灾镇C         |  G02 |  r0,c2 (0.61,0.08) | 残余基站       | 5G_700MHz    | access
+  N062 | 子区域12-一般受灾镇C         |  G10 |  r2,c2 (0.61,0.92) | 应急基站       | 5G_700MHz    | region_hub
+  N081 | 子区域12-一般受灾镇C         |  G10 |  r2,c2 (0.63,0.91) | 通信UAV      | Satellite_Ka | uplink
+  N013 | 子区域13-一般受灾镇D         |  G00 |  r0,c0 (0.09,0.07) | 残余基站       | 5G_700MHz    | region_hub
+  N033 | 子区域13-一般受灾镇D         |  G01 |  r0,c1 (0.37,0.09) | 残余基站       | 5G_700MHz    | access
+  N053 | 子区域13-一般受灾镇D         |  G02 |  r0,c2 (0.65,0.13) | 残余基站       | 5G_700MHz    | access
+  N072 | 子区域13-一般受灾镇D         |  G11 |  r2,c3 (0.89,0.90) | 便携广播网关     | WiFi6        | broadcast_root
+  N014 | 子区域14-一般受灾镇E         |  G00 |  r0,c0 (0.11,0.06) | 残余基站       | 5G_700MHz    | region_hub
+  N034 | 子区域14-一般受灾镇E         |  G01 |  r0,c1 (0.37,0.10) | 残余基站       | 5G_700MHz    | access
+  N054 | 子区域14-一般受灾镇E         |  G02 |  r0,c2 (0.67,0.09) | 残余基站       | 5G_700MHz    | access
+  N079 | 子区域14-一般受灾镇E         |  G03 |  r0,c3 (0.90,0.12) | Mesh中继     | WiFi6        | relay
+  N015 | 子区域15-边缘恢复镇A         |  G00 |  r0,c0 (0.08,0.11) | 残余基站       | 5G_700MHz    | access
+  N035 | 子区域15-边缘恢复镇A         |  G01 |  r0,c1 (0.33,0.09) | 残余基站       | 5G_700MHz    | access
+  N055 | 子区域15-边缘恢复镇A         |  G02 |  r0,c2 (0.63,0.10) | 残余基站       | 5G_700MHz    | access
+  N063 | 子区域15-边缘恢复镇A         |  G03 |  r0,c3 (0.91,0.13) | 应急基站       | 5G_700MHz    | region_hub
+  N082 | 子区域15-边缘恢复镇A         |  G03 |  r0,c3 (0.88,0.12) | 通信UAV      | Satellite_Ka | uplink
+  N016 | 子区域16-边缘恢复镇B         |  G00 |  r0,c0 (0.13,0.12) | 残余基站       | 5G_700MHz    | region_hub
+  N036 | 子区域16-边缘恢复镇B         |  G01 |  r0,c1 (0.38,0.11) | 残余基站       | 5G_700MHz    | access
+  N056 | 子区域16-边缘恢复镇B         |  G02 |  r0,c2 (0.60,0.11) | 残余基站       | 5G_700MHz    | access
+  N073 | 子区域16-边缘恢复镇B         |  G11 |  r2,c3 (0.91,0.93) | 便携广播网关     | WiFi6        | broadcast_root
+  N017 | 子区域17-边缘恢复镇C         |  G00 |  r0,c0 (0.14,0.09) | 残余基站       | 5G_700MHz    | access
+  N037 | 子区域17-边缘恢复镇C         |  G01 |  r0,c1 (0.35,0.08) | 残余基站       | 5G_700MHz    | access
+  N057 | 子区域17-边缘恢复镇C         |  G03 |  r0,c3 (0.89,0.10) | 应急基站       | 5G_700MHz    | region_hub
+  N080 | 子区域17-边缘恢复镇C         |  G03 |  r0,c3 (0.90,0.12) | Mesh中继     | WiFi6        | relay
+  N018 | 子区域18-低优先级镇A         |  G00 |  r0,c0 (0.10,0.10) | 残余基站       | 5G_700MHz    | access
+  N038 | 子区域18-低优先级镇A         |  G01 |  r0,c1 (0.38,0.10) | 残余基站       | 5G_700MHz    | access
+  N064 | 子区域18-低优先级镇A         |  G06 |  r1,c2 (0.64,0.52) | 应急基站       | 5G_700MHz    | region_hub
+  N083 | 子区域18-低优先级镇A         |  G06 |  r1,c2 (0.65,0.47) | 通信UAV      | Satellite_Ka | uplink
+  N019 | 子区域19-低优先级镇B         |  G00 |  r0,c0 (0.11,0.06) | 残余基站       | 5G_700MHz    | region_hub
+  N039 | 子区域19-低优先级镇B         |  G01 |  r0,c1 (0.38,0.11) | 残余基站       | 5G_700MHz    | access
+  N074 | 子区域19-低优先级镇B         |  G11 |  r2,c3 (0.91,0.92) | 便携广播网关     | WiFi6        | broadcast_root
+
+[四、区域Hub映射]
+  子区域00-核心指挥镇 -> N058/子区域00-核心指挥镇/G04 (region_hub)
+  子区域01-重灾避难镇A -> N065/子区域01-重灾避难镇A/G09 (region_hub)
+  子区域02-重灾避难镇B -> N002/子区域02-重灾避难镇B/G00 (region_hub)
+  子区域03-沿海/河谷重灾镇 -> N059/子区域03-沿海/河谷重灾镇/G09 (region_hub)
+  子区域04-核心周边镇 -> N066/子区域04-核心周边镇/G05 (region_hub)
+  子区域05-次重灾镇A -> N005/子区域05-次重灾镇A/G00 (region_hub)
+  子区域06-次重灾镇B -> N060/子区域06-次重灾镇B/G10 (region_hub)
+  子区域07-次重灾镇C -> N067/子区域07-次重灾镇C/G10 (region_hub)
+  子区域08-过渡镇A -> N008/子区域08-过渡镇A/G00 (region_hub)
+  子区域09-过渡镇B -> N061/子区域09-过渡镇B/G05 (region_hub)
+  子区域10-一般受灾镇A -> N010/子区域10-一般受灾镇A/G00 (region_hub)
+  子区域11-一般受灾镇B -> N011/子区域11-一般受灾镇B/G00 (region_hub)
+  子区域12-一般受灾镇C -> N062/子区域12-一般受灾镇C/G10 (region_hub)
+  子区域13-一般受灾镇D -> N013/子区域13-一般受灾镇D/G00 (region_hub)
+  子区域14-一般受灾镇E -> N014/子区域14-一般受灾镇E/G00 (region_hub)
+  子区域15-边缘恢复镇A -> N063/子区域15-边缘恢复镇A/G03 (region_hub)
+  子区域16-边缘恢复镇B -> N016/子区域16-边缘恢复镇B/G00 (region_hub)
+  子区域17-边缘恢复镇C -> N057/子区域17-边缘恢复镇C/G03 (region_hub)
+  子区域18-低优先级镇A -> N064/子区域18-低优先级镇A/G06 (region_hub)
+  子区域19-低优先级镇B -> N019/子区域19-低优先级镇B/G00 (region_hub)
+
+[五、区域内拓扑连接]
+  子区域00-核心指挥镇
+    N000/子区域00-核心指挥镇/G00 --[5G_residual_link/access/50Mbps]--> N020/子区域00-核心指挥镇/G01  (residual_bs_chain)
+    N020/子区域00-核心指挥镇/G01 --[5G_residual_link/access/50Mbps]--> N040/子区域00-核心指挥镇/G02  (residual_bs_chain)
+    N058/子区域00-核心指挥镇/G04 --[5G_residual_link/access/50Mbps]--> N000/子区域00-核心指挥镇/G00  (region_hub_access)
+    N058/子区域00-核心指挥镇/G04 --[5G_residual_link/access/50Mbps]--> N020/子区域00-核心指挥镇/G01  (region_hub_access)
+    N058/子区域00-核心指挥镇/G04 --[5G_residual_link/access/50Mbps]--> N040/子区域00-核心指挥镇/G02  (region_hub_access)
+  子区域01-重灾避难镇A
+    N001/子区域01-重灾避难镇A/G00 --[5G_residual_link/access/50Mbps]--> N021/子区域01-重灾避难镇A/G01  (residual_bs_chain)
+    N021/子区域01-重灾避难镇A/G01 --[5G_residual_link/access/50Mbps]--> N041/子区域01-重灾避难镇A/G02  (residual_bs_chain)
+    N065/子区域01-重灾避难镇A/G09 --[5G_residual_link/access/50Mbps]--> N001/子区域01-重灾避难镇A/G00  (region_hub_access)
+    N065/子区域01-重灾避难镇A/G09 --[5G_residual_link/access/50Mbps]--> N021/子区域01-重灾避难镇A/G01  (region_hub_access)
+    N065/子区域01-重灾避难镇A/G09 --[5G_residual_link/access/50Mbps]--> N041/子区域01-重灾避难镇A/G02  (region_hub_access)
+    N065/子区域01-重灾避难镇A/G09 --[WiFi6_mesh/access/20Mbps]--> N068/子区域01-重灾避难镇A/G09  (region_hub_access)
+    N065/子区域01-重灾避难镇A/G09 --[Satellite_Ka/uplink/30Mbps]--> N084/子区域01-重灾避难镇A/G09  (region_hub_access)
+    N068/子区域01-重灾避难镇A/G09 --[WiFi6/broadcast/10Mbps]--> N001/子区域01-重灾避难镇A/G00  (broadcast_fanout)
+    N068/子区域01-重灾避难镇A/G09 --[WiFi6/broadcast/10Mbps]--> N021/子区域01-重灾避难镇A/G01  (broadcast_fanout)
+    N068/子区域01-重灾避难镇A/G09 --[WiFi6/broadcast/10Mbps]--> N041/子区域01-重灾避难镇A/G02  (broadcast_fanout)
+  子区域02-重灾避难镇B
+    N002/子区域02-重灾避难镇B/G00 --[5G_residual_link/access/50Mbps]--> N022/子区域02-重灾避难镇B/G01  (residual_bs_chain)
+    N022/子区域02-重灾避难镇B/G01 --[5G_residual_link/access/50Mbps]--> N042/子区域02-重灾避难镇B/G02  (residual_bs_chain)
+    N002/子区域02-重灾避难镇B/G00 --[5G_residual_link/access/50Mbps]--> N042/子区域02-重灾避难镇B/G02  (region_hub_access)
+    N002/子区域02-重灾避难镇B/G00 --[WiFi6_mesh/access/20Mbps]--> N075/子区域02-重灾避难镇B/G04  (region_hub_access)
+    N075/子区域02-重灾避难镇B/G04 --[WiFi6/broadcast/10Mbps]--> N002/子区域02-重灾避难镇B/G00  (broadcast_fanout)
+    N075/子区域02-重灾避难镇B/G04 --[WiFi6/broadcast/10Mbps]--> N022/子区域02-重灾避难镇B/G01  (broadcast_fanout)
+    N075/子区域02-重灾避难镇B/G04 --[WiFi6/broadcast/10Mbps]--> N042/子区域02-重灾避难镇B/G02  (broadcast_fanout)
+  子区域03-沿海/河谷重灾镇
+    N003/子区域03-沿海/河谷重灾镇/G00 --[5G_residual_link/access/50Mbps]--> N023/子区域03-沿海/河谷重灾镇/G01  (residual_bs_chain)
+    N023/子区域03-沿海/河谷重灾镇/G01 --[5G_residual_link/access/50Mbps]--> N043/子区域03-沿海/河谷重灾镇/G02  (residual_bs_chain)
+    N059/子区域03-沿海/河谷重灾镇/G09 --[5G_residual_link/access/50Mbps]--> N003/子区域03-沿海/河谷重灾镇/G00  (region_hub_access)
+    N059/子区域03-沿海/河谷重灾镇/G09 --[5G_residual_link/access/50Mbps]--> N023/子区域03-沿海/河谷重灾镇/G01  (region_hub_access)
+    N059/子区域03-沿海/河谷重灾镇/G09 --[5G_residual_link/access/50Mbps]--> N043/子区域03-沿海/河谷重灾镇/G02  (region_hub_access)
+  子区域04-核心周边镇
+    N004/子区域04-核心周边镇/G00 --[5G_residual_link/access/50Mbps]--> N024/子区域04-核心周边镇/G01  (residual_bs_chain)
+    N024/子区域04-核心周边镇/G01 --[5G_residual_link/access/50Mbps]--> N044/子区域04-核心周边镇/G02  (residual_bs_chain)
+    N066/子区域04-核心周边镇/G05 --[5G_residual_link/access/50Mbps]--> N004/子区域04-核心周边镇/G00  (region_hub_access)
+    N066/子区域04-核心周边镇/G05 --[5G_residual_link/access/50Mbps]--> N024/子区域04-核心周边镇/G01  (region_hub_access)
+    N066/子区域04-核心周边镇/G05 --[5G_residual_link/access/50Mbps]--> N044/子区域04-核心周边镇/G02  (region_hub_access)
+    N066/子区域04-核心周边镇/G05 --[WiFi6_mesh/access/20Mbps]--> N069/子区域04-核心周边镇/G05  (region_hub_access)
+    N069/子区域04-核心周边镇/G05 --[WiFi6/broadcast/10Mbps]--> N004/子区域04-核心周边镇/G00  (broadcast_fanout)
+    N069/子区域04-核心周边镇/G05 --[WiFi6/broadcast/10Mbps]--> N024/子区域04-核心周边镇/G01  (broadcast_fanout)
+    N069/子区域04-核心周边镇/G05 --[WiFi6/broadcast/10Mbps]--> N044/子区域04-核心周边镇/G02  (broadcast_fanout)
+  子区域05-次重灾镇A
+    N005/子区域05-次重灾镇A/G00 --[5G_residual_link/access/50Mbps]--> N025/子区域05-次重灾镇A/G01  (residual_bs_chain)
+    N025/子区域05-次重灾镇A/G01 --[5G_residual_link/access/50Mbps]--> N045/子区域05-次重灾镇A/G02  (residual_bs_chain)
+    N005/子区域05-次重灾镇A/G00 --[5G_residual_link/access/50Mbps]--> N045/子区域05-次重灾镇A/G02  (region_hub_access)
+    N005/子区域05-次重灾镇A/G00 --[WiFi6_mesh/access/20Mbps]--> N076/子区域05-次重灾镇A/G04  (region_hub_access)
+  子区域06-次重灾镇B
+    N006/子区域06-次重灾镇B/G00 --[5G_residual_link/access/50Mbps]--> N026/子区域06-次重灾镇B/G01  (residual_bs_chain)
+    N026/子区域06-次重灾镇B/G01 --[5G_residual_link/access/50Mbps]--> N046/子区域06-次重灾镇B/G02  (residual_bs_chain)
+    N060/子区域06-次重灾镇B/G10 --[5G_residual_link/access/50Mbps]--> N006/子区域06-次重灾镇B/G00  (region_hub_access)
+    N060/子区域06-次重灾镇B/G10 --[5G_residual_link/access/50Mbps]--> N026/子区域06-次重灾镇B/G01  (region_hub_access)
+    N060/子区域06-次重灾镇B/G10 --[5G_residual_link/access/50Mbps]--> N046/子区域06-次重灾镇B/G02  (region_hub_access)
+  子区域07-次重灾镇C
+    N007/子区域07-次重灾镇C/G00 --[5G_residual_link/access/50Mbps]--> N027/子区域07-次重灾镇C/G01  (residual_bs_chain)
+    N027/子区域07-次重灾镇C/G01 --[5G_residual_link/access/50Mbps]--> N047/子区域07-次重灾镇C/G02  (residual_bs_chain)
+    N067/子区域07-次重灾镇C/G10 --[5G_residual_link/access/50Mbps]--> N007/子区域07-次重灾镇C/G00  (region_hub_access)
+    N067/子区域07-次重灾镇C/G10 --[5G_residual_link/access/50Mbps]--> N027/子区域07-次重灾镇C/G01  (region_hub_access)
+    N067/子区域07-次重灾镇C/G10 --[5G_residual_link/access/50Mbps]--> N047/子区域07-次重灾镇C/G02  (region_hub_access)
+    N067/子区域07-次重灾镇C/G10 --[WiFi6_mesh/access/20Mbps]--> N070/子区域07-次重灾镇C/G10  (region_hub_access)
+    N070/子区域07-次重灾镇C/G10 --[WiFi6/broadcast/10Mbps]--> N007/子区域07-次重灾镇C/G00  (broadcast_fanout)
+    N070/子区域07-次重灾镇C/G10 --[WiFi6/broadcast/10Mbps]--> N027/子区域07-次重灾镇C/G01  (broadcast_fanout)
+    N070/子区域07-次重灾镇C/G10 --[WiFi6/broadcast/10Mbps]--> N047/子区域07-次重灾镇C/G02  (broadcast_fanout)
+  子区域08-过渡镇A
+    N008/子区域08-过渡镇A/G00 --[5G_residual_link/access/50Mbps]--> N028/子区域08-过渡镇A/G01  (residual_bs_chain)
+    N028/子区域08-过渡镇A/G01 --[5G_residual_link/access/50Mbps]--> N048/子区域08-过渡镇A/G02  (residual_bs_chain)
+    N008/子区域08-过渡镇A/G00 --[5G_residual_link/access/50Mbps]--> N048/子区域08-过渡镇A/G02  (region_hub_access)
+    N008/子区域08-过渡镇A/G00 --[WiFi6_mesh/access/20Mbps]--> N077/子区域08-过渡镇A/G10  (region_hub_access)
+  子区域09-过渡镇B
+    N009/子区域09-过渡镇B/G00 --[5G_residual_link/access/50Mbps]--> N029/子区域09-过渡镇B/G01  (residual_bs_chain)
+    N029/子区域09-过渡镇B/G01 --[5G_residual_link/access/50Mbps]--> N049/子区域09-过渡镇B/G02  (residual_bs_chain)
+    N061/子区域09-过渡镇B/G05 --[5G_residual_link/access/50Mbps]--> N009/子区域09-过渡镇B/G00  (region_hub_access)
+    N061/子区域09-过渡镇B/G05 --[5G_residual_link/access/50Mbps]--> N029/子区域09-过渡镇B/G01  (region_hub_access)
+    N061/子区域09-过渡镇B/G05 --[5G_residual_link/access/50Mbps]--> N049/子区域09-过渡镇B/G02  (region_hub_access)
+  子区域10-一般受灾镇A
+    N010/子区域10-一般受灾镇A/G00 --[5G_residual_link/access/50Mbps]--> N030/子区域10-一般受灾镇A/G01  (residual_bs_chain)
+    N030/子区域10-一般受灾镇A/G01 --[5G_residual_link/access/50Mbps]--> N050/子区域10-一般受灾镇A/G02  (residual_bs_chain)
+    N010/子区域10-一般受灾镇A/G00 --[5G_residual_link/access/50Mbps]--> N050/子区域10-一般受灾镇A/G02  (region_hub_access)
+    N010/子区域10-一般受灾镇A/G00 --[WiFi6_mesh/access/20Mbps]--> N071/子区域10-一般受灾镇A/G03  (region_hub_access)
+    N071/子区域10-一般受灾镇A/G03 --[WiFi6/broadcast/10Mbps]--> N010/子区域10-一般受灾镇A/G00  (broadcast_fanout)
+    N071/子区域10-一般受灾镇A/G03 --[WiFi6/broadcast/10Mbps]--> N030/子区域10-一般受灾镇A/G01  (broadcast_fanout)
+    N071/子区域10-一般受灾镇A/G03 --[WiFi6/broadcast/10Mbps]--> N050/子区域10-一般受灾镇A/G02  (broadcast_fanout)
+  子区域11-一般受灾镇B
+    N011/子区域11-一般受灾镇B/G00 --[5G_residual_link/access/50Mbps]--> N031/子区域11-一般受灾镇B/G01  (residual_bs_chain)
+    N031/子区域11-一般受灾镇B/G01 --[5G_residual_link/access/50Mbps]--> N051/子区域11-一般受灾镇B/G02  (residual_bs_chain)
+    N011/子区域11-一般受灾镇B/G00 --[5G_residual_link/access/50Mbps]--> N051/子区域11-一般受灾镇B/G02  (region_hub_access)
+    N011/子区域11-一般受灾镇B/G00 --[WiFi6_mesh/access/20Mbps]--> N078/子区域11-一般受灾镇B/G05  (region_hub_access)
+  子区域12-一般受灾镇C
+    N012/子区域12-一般受灾镇C/G00 --[5G_residual_link/access/50Mbps]--> N032/子区域12-一般受灾镇C/G01  (residual_bs_chain)
+    N032/子区域12-一般受灾镇C/G01 --[5G_residual_link/access/50Mbps]--> N052/子区域12-一般受灾镇C/G02  (residual_bs_chain)
+    N062/子区域12-一般受灾镇C/G10 --[5G_residual_link/access/50Mbps]--> N012/子区域12-一般受灾镇C/G00  (region_hub_access)
+    N062/子区域12-一般受灾镇C/G10 --[5G_residual_link/access/50Mbps]--> N032/子区域12-一般受灾镇C/G01  (region_hub_access)
+    N062/子区域12-一般受灾镇C/G10 --[5G_residual_link/access/50Mbps]--> N052/子区域12-一般受灾镇C/G02  (region_hub_access)
+    N062/子区域12-一般受灾镇C/G10 --[Satellite_Ka/uplink/30Mbps]--> N081/子区域12-一般受灾镇C/G10  (region_hub_access)
+  子区域13-一般受灾镇D
+    N013/子区域13-一般受灾镇D/G00 --[5G_residual_link/access/50Mbps]--> N033/子区域13-一般受灾镇D/G01  (residual_bs_chain)
+    N033/子区域13-一般受灾镇D/G01 --[5G_residual_link/access/50Mbps]--> N053/子区域13-一般受灾镇D/G02  (residual_bs_chain)
+    N013/子区域13-一般受灾镇D/G00 --[5G_residual_link/access/50Mbps]--> N053/子区域13-一般受灾镇D/G02  (region_hub_access)
+    N013/子区域13-一般受灾镇D/G00 --[WiFi6_mesh/access/20Mbps]--> N072/子区域13-一般受灾镇D/G11  (region_hub_access)
+    N072/子区域13-一般受灾镇D/G11 --[WiFi6/broadcast/10Mbps]--> N013/子区域13-一般受灾镇D/G00  (broadcast_fanout)
+    N072/子区域13-一般受灾镇D/G11 --[WiFi6/broadcast/10Mbps]--> N033/子区域13-一般受灾镇D/G01  (broadcast_fanout)
+    N072/子区域13-一般受灾镇D/G11 --[WiFi6/broadcast/10Mbps]--> N053/子区域13-一般受灾镇D/G02  (broadcast_fanout)
+  子区域14-一般受灾镇E
+    N014/子区域14-一般受灾镇E/G00 --[5G_residual_link/access/50Mbps]--> N034/子区域14-一般受灾镇E/G01  (residual_bs_chain)
+    N034/子区域14-一般受灾镇E/G01 --[5G_residual_link/access/50Mbps]--> N054/子区域14-一般受灾镇E/G02  (residual_bs_chain)
+    N014/子区域14-一般受灾镇E/G00 --[5G_residual_link/access/50Mbps]--> N054/子区域14-一般受灾镇E/G02  (region_hub_access)
+    N014/子区域14-一般受灾镇E/G00 --[WiFi6_mesh/access/20Mbps]--> N079/子区域14-一般受灾镇E/G03  (region_hub_access)
+  子区域15-边缘恢复镇A
+    N015/子区域15-边缘恢复镇A/G00 --[5G_residual_link/access/50Mbps]--> N035/子区域15-边缘恢复镇A/G01  (residual_bs_chain)
+    N035/子区域15-边缘恢复镇A/G01 --[5G_residual_link/access/50Mbps]--> N055/子区域15-边缘恢复镇A/G02  (residual_bs_chain)
+    N063/子区域15-边缘恢复镇A/G03 --[5G_residual_link/access/50Mbps]--> N015/子区域15-边缘恢复镇A/G00  (region_hub_access)
+    N063/子区域15-边缘恢复镇A/G03 --[5G_residual_link/access/50Mbps]--> N035/子区域15-边缘恢复镇A/G01  (region_hub_access)
+    N063/子区域15-边缘恢复镇A/G03 --[5G_residual_link/access/50Mbps]--> N055/子区域15-边缘恢复镇A/G02  (region_hub_access)
+    N063/子区域15-边缘恢复镇A/G03 --[Satellite_Ka/uplink/30Mbps]--> N082/子区域15-边缘恢复镇A/G03  (region_hub_access)
+  子区域16-边缘恢复镇B
+    N016/子区域16-边缘恢复镇B/G00 --[5G_residual_link/access/50Mbps]--> N036/子区域16-边缘恢复镇B/G01  (residual_bs_chain)
+    N036/子区域16-边缘恢复镇B/G01 --[5G_residual_link/access/50Mbps]--> N056/子区域16-边缘恢复镇B/G02  (residual_bs_chain)
+    N016/子区域16-边缘恢复镇B/G00 --[5G_residual_link/access/50Mbps]--> N056/子区域16-边缘恢复镇B/G02  (region_hub_access)
+    N016/子区域16-边缘恢复镇B/G00 --[WiFi6_mesh/access/20Mbps]--> N073/子区域16-边缘恢复镇B/G11  (region_hub_access)
+    N073/子区域16-边缘恢复镇B/G11 --[WiFi6/broadcast/10Mbps]--> N016/子区域16-边缘恢复镇B/G00  (broadcast_fanout)
+    N073/子区域16-边缘恢复镇B/G11 --[WiFi6/broadcast/10Mbps]--> N036/子区域16-边缘恢复镇B/G01  (broadcast_fanout)
+    N073/子区域16-边缘恢复镇B/G11 --[WiFi6/broadcast/10Mbps]--> N056/子区域16-边缘恢复镇B/G02  (broadcast_fanout)
+  子区域17-边缘恢复镇C
+    N017/子区域17-边缘恢复镇C/G00 --[5G_residual_link/access/50Mbps]--> N037/子区域17-边缘恢复镇C/G01  (residual_bs_chain)
+    N057/子区域17-边缘恢复镇C/G03 --[5G_residual_link/access/50Mbps]--> N017/子区域17-边缘恢复镇C/G00  (region_hub_access)
+    N057/子区域17-边缘恢复镇C/G03 --[5G_residual_link/access/50Mbps]--> N037/子区域17-边缘恢复镇C/G01  (region_hub_access)
+    N057/子区域17-边缘恢复镇C/G03 --[WiFi6_mesh/access/20Mbps]--> N080/子区域17-边缘恢复镇C/G03  (region_hub_access)
+  子区域18-低优先级镇A
+    N018/子区域18-低优先级镇A/G00 --[5G_residual_link/access/50Mbps]--> N038/子区域18-低优先级镇A/G01  (residual_bs_chain)
+    N064/子区域18-低优先级镇A/G06 --[5G_residual_link/access/50Mbps]--> N018/子区域18-低优先级镇A/G00  (region_hub_access)
+    N064/子区域18-低优先级镇A/G06 --[5G_residual_link/access/50Mbps]--> N038/子区域18-低优先级镇A/G01  (region_hub_access)
+    N064/子区域18-低优先级镇A/G06 --[Satellite_Ka/uplink/30Mbps]--> N083/子区域18-低优先级镇A/G06  (region_hub_access)
+  子区域19-低优先级镇B
+    N019/子区域19-低优先级镇B/G00 --[5G_residual_link/access/50Mbps]--> N039/子区域19-低优先级镇B/G01  (residual_bs_chain)
+    N019/子区域19-低优先级镇B/G00 --[WiFi6_mesh/access/20Mbps]--> N074/子区域19-低优先级镇B/G11  (region_hub_access)
+    N074/子区域19-低优先级镇B/G11 --[WiFi6/broadcast/10Mbps]--> N019/子区域19-低优先级镇B/G00  (broadcast_fanout)
+    N074/子区域19-低优先级镇B/G11 --[WiFi6/broadcast/10Mbps]--> N039/子区域19-低优先级镇B/G01  (broadcast_fanout)
+
+[六、区域间拓扑连接]
+  L2-0 重灾核心管辖区 (子区域00–04)
+    N058/子区域00-核心指挥镇/G04 --[Microwave_relay/inter_region/25Mbps]--> N065/子区域01-重灾避难镇A/G09  (L2-0_hub_spoke) | L2-0 core hub connects subordinate subregion hub
+    N058/子区域00-核心指挥镇/G04 --[Microwave_relay/inter_region/25Mbps]--> N002/子区域02-重灾避难镇B/G00  (L2-0_hub_spoke) | L2-0 core hub connects subordinate subregion hub
+    N058/子区域00-核心指挥镇/G04 --[Microwave_relay/inter_region/25Mbps]--> N059/子区域03-沿海/河谷重灾镇/G09  (L2-0_hub_spoke) | L2-0 core hub connects subordinate subregion hub
+    N058/子区域00-核心指挥镇/G04 --[Microwave_relay/inter_region/25Mbps]--> N066/子区域04-核心周边镇/G05  (L2-0_hub_spoke) | L2-0 core hub connects subordinate subregion hub
+  L2-1 次重灾管辖区 (子区域05–09)
+    N005/子区域05-次重灾镇A/G00 --[Microwave_relay/inter_region/25Mbps]--> N060/子区域06-次重灾镇B/G10  (L2-1_hub_spoke) | L2-1 core hub connects subordinate subregion hub
+    N005/子区域05-次重灾镇A/G00 --[Microwave_relay/inter_region/25Mbps]--> N067/子区域07-次重灾镇C/G10  (L2-1_hub_spoke) | L2-1 core hub connects subordinate subregion hub
+    N005/子区域05-次重灾镇A/G00 --[Microwave_relay/inter_region/25Mbps]--> N008/子区域08-过渡镇A/G00  (L2-1_hub_spoke) | L2-1 core hub connects subordinate subregion hub
+    N005/子区域05-次重灾镇A/G00 --[Microwave_relay/inter_region/25Mbps]--> N061/子区域09-过渡镇B/G05  (L2-1_hub_spoke) | L2-1 core hub connects subordinate subregion hub
+  L2-2 一般受灾管辖区 (子区域10–14)
+    N010/子区域10-一般受灾镇A/G00 --[Microwave_relay/inter_region/25Mbps]--> N011/子区域11-一般受灾镇B/G00  (L2-2_hub_spoke) | L2-2 core hub connects subordinate subregion hub
+    N010/子区域10-一般受灾镇A/G00 --[Microwave_relay/inter_region/25Mbps]--> N062/子区域12-一般受灾镇C/G10  (L2-2_hub_spoke) | L2-2 core hub connects subordinate subregion hub
+    N010/子区域10-一般受灾镇A/G00 --[Microwave_relay/inter_region/25Mbps]--> N013/子区域13-一般受灾镇D/G00  (L2-2_hub_spoke) | L2-2 core hub connects subordinate subregion hub
+    N010/子区域10-一般受灾镇A/G00 --[Microwave_relay/inter_region/25Mbps]--> N014/子区域14-一般受灾镇E/G00  (L2-2_hub_spoke) | L2-2 core hub connects subordinate subregion hub
+  L2-3 边缘恢复管辖区 (子区域15–19)
+    N063/子区域15-边缘恢复镇A/G03 --[Microwave_relay/inter_region/25Mbps]--> N016/子区域16-边缘恢复镇B/G00  (L2-3_hub_spoke) | L2-3 core hub connects subordinate subregion hub
+    N063/子区域15-边缘恢复镇A/G03 --[Microwave_relay/inter_region/25Mbps]--> N057/子区域17-边缘恢复镇C/G03  (L2-3_hub_spoke) | L2-3 core hub connects subordinate subregion hub
+    N063/子区域15-边缘恢复镇A/G03 --[Microwave_relay/inter_region/25Mbps]--> N064/子区域18-低优先级镇A/G06  (L2-3_hub_spoke) | L2-3 core hub connects subordinate subregion hub
+    N063/子区域15-边缘恢复镇A/G03 --[Microwave_relay/inter_region/25Mbps]--> N019/子区域19-低优先级镇B/G00  (L2-3_hub_spoke) | L2-3 core hub connects subordinate subregion hub
+
+[七、L1骨干与场景补丁]
+  L1骨干链路
+    N058/子区域00-核心指挥镇/G04 --[5G_residual_link/backhaul/50Mbps]--> N005/子区域05-次重灾镇A/G00  (L1_backbone_chain) | L1 backbone connects adjacent L2 core hubs
+    N005/子区域05-次重灾镇A/G00 --[5G_residual_link/backhaul/50Mbps]--> N010/子区域10-一般受灾镇A/G00  (L1_backbone_chain) | L1 backbone connects adjacent L2 core hubs
+    N010/子区域10-一般受灾镇A/G00 --[5G_residual_link/backhaul/50Mbps]--> N063/子区域15-边缘恢复镇A/G03  (L1_backbone_chain) | L1 backbone connects adjacent L2 core hubs
+  场景补丁链路
+    local_blackout_bridge (typhoon_blackout_bridge) | 台风场景局部全阻桥接
+
+[八、拓扑统计]
+  区域内链路: 116
+  区域间链路: 16
+  L1骨干链路: 3
+  场景补丁链路: 1
+  链路合计: 136

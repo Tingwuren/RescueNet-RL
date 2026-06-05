@@ -1,0 +1,54 @@
+# 组网方案生成步骤 — 对应设计文档 8.3.1 表8.2（5 步）
+# 从宏观到微观：全局统筹 → 区域调度 → 点位落地 → 拓扑构建 → 交付导出
+phases:
+  - phase_id: 1
+    phase_name: 阶段 1
+    steps:
+      - step: 1
+        action: 全局设备清单生成
+        layer: L1
+        output: L2 级设备配额、全局统计
+        core_rule: 按退服率缩放、优先级分配
+        description: 聚焦全局资源统筹，解决「总量多少、怎么分」的顶层问题
+
+  - phase_id: 2
+    phase_name: 阶段 2
+    steps:
+      - step: 2
+        action: 区域资源调度
+        layer: L2
+        output: L3 子区域配额、任务 / 制式
+        core_rule: L2→L3 拆解、业务匹配
+        description: 完成区域级资源拆解，打通 L2→L3 资源流转通道
+
+  - phase_id: 3
+    phase_name: 阶段 3
+    steps:
+      - step: 3
+        action: 设备点位生成
+        layer: L3
+        output: 网格 + 坐标点位数据
+        core_rule: 12 网格分配、双模式差异化
+        description: 实现设备点位精准落地，解决「设备放哪、坐标多少」
+
+  - phase_id: 4
+    phase_name: 阶段 4
+    steps:
+      - step: 4
+        action: 三级拓扑构建
+        layer: L2
+        output: 区域内 / 间 / 骨干拓扑
+        core_rule: Hub 选举、星型 / 网状混合
+        description: 构建三级通信拓扑，实现「设备怎么连、区域怎么通」
+
+  - phase_id: 5
+    phase_name: 阶段 5
+    steps:
+      - step: 5
+        action: 交付物导出
+        layer: L1
+        output: JSON 蓝图 + 01–04 标准化表格
+        core_rule: 标准化格式、字段固化
+        description: 固化可交付、可核验的标准化组网方案，完成最终闭环
+
+total_steps: 5

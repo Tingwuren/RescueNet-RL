@@ -1,0 +1,13 @@
+# 极端暴雨场景 — 无残余独立建网（对齐 Networking_plan / flood_no_residual）
+scenario_id: extreme_rainstorm
+scenario_name: 极端暴雨
+network_mode: no_residual
+base_station_outage_min: 0.30
+base_station_outage_max: 0.80
+link_breakage_rate: 0.35
+road_pass_rate: 0.50
+has_residual_links: false
+dataset_split:
+  train: 0.70
+  val: 0.15
+  test: 0.15

@@ -1,0 +1,207 @@
+《子区域设备部署明细表》
+========================================================================
+场景: super_typhoon | 模式: with_residual
+子区域总数: 20 | 每子区域网格: 12 | 总网格: 240
+说明: 子网格 G00–G11 对应 L3 部署矩阵列 (5设备×12网格)。
+坐标: grid_cell 为 3×4 行列 (r0–r2,c0–c3); position 为子区域内归一化坐标 (x,y)∈[0,1]。
+
+落点决策: seed=1223907964 progress=0.92 mode=with_residual
+
+════════════════════════════════════════════════════════════════════════
+  L2-0 重灾核心管辖区  (子区域 00–04)
+════════════════════════════════════════════════════════════════════════
+  ┌─ 子区域00-核心指挥镇  (4 节点)
+  │   节点ID |   网格 |                 坐标 | 设备类型       | 来源           | 制式           | 状态       | 角色
+  │ --------------------------------------------------------------------------------------
+  │      0 |  G00 |  r0,c0 (0.10,0.11) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     20 |  G01 |  r0,c1 (0.40,0.10) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     40 |  G02 |  r0,c2 (0.66,0.09) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     58 |  G04 |  r1,c0 (0.07,0.52) | 应急基站       | emergency_emergency_bs | 5G_700MHz    | deployed | region_hub
+  └─ 小计: 4 节点
+
+  ┌─ 子区域01-重灾避难镇A  (6 节点)
+  │   节点ID |   网格 |                 坐标 | 设备类型       | 来源           | 制式           | 状态       | 角色
+  │ --------------------------------------------------------------------------------------
+  │      1 |  G00 |  r0,c0 (0.12,0.10) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     21 |  G01 |  r0,c1 (0.40,0.11) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     41 |  G02 |  r0,c2 (0.66,0.12) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     65 |  G09 |  r2,c1 (0.37,0.88) | 应急基站       | emergency_emergency_bs | 5G_700MHz    | deployed | region_hub
+  │     68 |  G09 |  r2,c1 (0.37,0.90) | 便携广播网关     | emergency_portable | WiFi6        | deployed | broadcast_root
+  │     84 |  G09 |  r2,c1 (0.37,0.91) | 通信UAV      | emergency_comm | Satellite_Ka | deployed | uplink
+  └─ 小计: 6 节点
+
+  ┌─ 子区域02-重灾避难镇B  (4 节点)
+  │   节点ID |   网格 |                 坐标 | 设备类型       | 来源           | 制式           | 状态       | 角色
+  │ --------------------------------------------------------------------------------------
+  │      2 |  G00 |  r0,c0 (0.09,0.10) | 残余基站       | residual_bs  | 5G_700MHz    | active   | region_hub
+  │     22 |  G01 |  r0,c1 (0.37,0.10) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     42 |  G02 |  r0,c2 (0.62,0.12) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     75 |  G04 |  r1,c0 (0.10,0.53) | 便携广播网关     | emergency_portable | WiFi6        | deployed | broadcast_root
+  └─ 小计: 4 节点
+
+  ┌─ 子区域03-沿海/河谷重灾镇  (4 节点)
+  │   节点ID |   网格 |                 坐标 | 设备类型       | 来源           | 制式           | 状态       | 角色
+  │ --------------------------------------------------------------------------------------
+  │      3 |  G00 |  r0,c0 (0.10,0.10) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     23 |  G01 |  r0,c1 (0.37,0.10) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     43 |  G02 |  r0,c2 (0.60,0.10) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     59 |  G09 |  r2,c1 (0.36,0.93) | 应急基站       | emergency_emergency_bs | 5G_700MHz    | deployed | region_hub
+  └─ 小计: 4 节点
+
+  ┌─ 子区域04-核心周边镇  (5 节点)
+  │   节点ID |   网格 |                 坐标 | 设备类型       | 来源           | 制式           | 状态       | 角色
+  │ --------------------------------------------------------------------------------------
+  │      4 |  G00 |  r0,c0 (0.10,0.10) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     24 |  G01 |  r0,c1 (0.40,0.10) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     44 |  G02 |  r0,c2 (0.62,0.10) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     66 |  G05 |  r1,c1 (0.38,0.50) | 应急基站       | emergency_emergency_bs | 5G_700MHz    | deployed | region_hub
+  │     69 |  G05 |  r1,c1 (0.37,0.48) | 便携广播网关     | emergency_portable | WiFi6        | deployed | broadcast_root
+  └─ 小计: 5 节点
+
+════════════════════════════════════════════════════════════════════════
+  L2-1 次重灾管辖区  (子区域 05–09)
+════════════════════════════════════════════════════════════════════════
+  ┌─ 子区域05-次重灾镇A  (4 节点)
+  │   节点ID |   网格 |                 坐标 | 设备类型       | 来源           | 制式           | 状态       | 角色
+  │ --------------------------------------------------------------------------------------
+  │      5 |  G00 |  r0,c0 (0.13,0.11) | 残余基站       | residual_bs  | 5G_700MHz    | active   | region_hub
+  │     25 |  G01 |  r0,c1 (0.35,0.11) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     45 |  G02 |  r0,c2 (0.62,0.09) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     76 |  G04 |  r1,c0 (0.11,0.52) | Mesh中继     | emergency_mesh | WiFi6        | deployed | relay
+  └─ 小计: 4 节点
+
+  ┌─ 子区域06-次重灾镇B  (4 节点)
+  │   节点ID |   网格 |                 坐标 | 设备类型       | 来源           | 制式           | 状态       | 角色
+  │ --------------------------------------------------------------------------------------
+  │      6 |  G00 |  r0,c0 (0.13,0.10) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     26 |  G01 |  r0,c1 (0.34,0.13) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     46 |  G02 |  r0,c2 (0.61,0.11) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     60 |  G10 |  r2,c2 (0.64,0.88) | 应急基站       | emergency_emergency_bs | 5G_700MHz    | deployed | region_hub
+  └─ 小计: 4 节点
+
+  ┌─ 子区域07-次重灾镇C  (5 节点)
+  │   节点ID |   网格 |                 坐标 | 设备类型       | 来源           | 制式           | 状态       | 角色
+  │ --------------------------------------------------------------------------------------
+  │      7 |  G00 |  r0,c0 (0.10,0.11) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     27 |  G01 |  r0,c1 (0.35,0.07) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     47 |  G02 |  r0,c2 (0.60,0.09) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     67 |  G10 |  r2,c2 (0.60,0.89) | 应急基站       | emergency_emergency_bs | 5G_700MHz    | deployed | region_hub
+  │     70 |  G10 |  r2,c2 (0.62,0.93) | 便携广播网关     | emergency_portable | WiFi6        | deployed | broadcast_root
+  └─ 小计: 5 节点
+
+  ┌─ 子区域08-过渡镇A  (4 节点)
+  │   节点ID |   网格 |                 坐标 | 设备类型       | 来源           | 制式           | 状态       | 角色
+  │ --------------------------------------------------------------------------------------
+  │      8 |  G00 |  r0,c0 (0.07,0.12) | 残余基站       | residual_bs  | 5G_700MHz    | active   | region_hub
+  │     28 |  G01 |  r0,c1 (0.36,0.10) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     48 |  G02 |  r0,c2 (0.64,0.14) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     77 |  G10 |  r2,c2 (0.66,0.92) | Mesh中继     | emergency_mesh | WiFi6        | deployed | relay
+  └─ 小计: 4 节点
+
+  ┌─ 子区域09-过渡镇B  (4 节点)
+  │   节点ID |   网格 |                 坐标 | 设备类型       | 来源           | 制式           | 状态       | 角色
+  │ --------------------------------------------------------------------------------------
+  │      9 |  G00 |  r0,c0 (0.07,0.09) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     29 |  G01 |  r0,c1 (0.37,0.11) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     49 |  G02 |  r0,c2 (0.60,0.10) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     61 |  G05 |  r1,c1 (0.40,0.47) | 应急基站       | emergency_emergency_bs | 5G_700MHz    | deployed | region_hub
+  └─ 小计: 4 节点
+
+════════════════════════════════════════════════════════════════════════
+  L2-2 一般受灾管辖区  (子区域 10–14)
+════════════════════════════════════════════════════════════════════════
+  ┌─ 子区域10-一般受灾镇A  (4 节点)
+  │   节点ID |   网格 |                 坐标 | 设备类型       | 来源           | 制式           | 状态       | 角色
+  │ --------------------------------------------------------------------------------------
+  │     10 |  G00 |  r0,c0 (0.11,0.10) | 残余基站       | residual_bs  | 5G_700MHz    | active   | region_hub
+  │     30 |  G01 |  r0,c1 (0.38,0.10) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     50 |  G02 |  r0,c2 (0.65,0.09) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     71 |  G03 |  r0,c3 (0.93,0.11) | 便携广播网关     | emergency_portable | WiFi6        | deployed | broadcast_root
+  └─ 小计: 4 节点
+
+  ┌─ 子区域11-一般受灾镇B  (4 节点)
+  │   节点ID |   网格 |                 坐标 | 设备类型       | 来源           | 制式           | 状态       | 角色
+  │ --------------------------------------------------------------------------------------
+  │     11 |  G00 |  r0,c0 (0.09,0.10) | 残余基站       | residual_bs  | 5G_700MHz    | active   | region_hub
+  │     31 |  G01 |  r0,c1 (0.36,0.09) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     51 |  G02 |  r0,c2 (0.60,0.10) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     78 |  G05 |  r1,c1 (0.35,0.48) | Mesh中继     | emergency_mesh | WiFi6        | deployed | relay
+  └─ 小计: 4 节点
+
+  ┌─ 子区域12-一般受灾镇C  (5 节点)
+  │   节点ID |   网格 |                 坐标 | 设备类型       | 来源           | 制式           | 状态       | 角色
+  │ --------------------------------------------------------------------------------------
+  │     12 |  G00 |  r0,c0 (0.13,0.13) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     32 |  G01 |  r0,c1 (0.40,0.11) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     52 |  G02 |  r0,c2 (0.61,0.08) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     62 |  G10 |  r2,c2 (0.61,0.92) | 应急基站       | emergency_emergency_bs | 5G_700MHz    | deployed | region_hub
+  │     81 |  G10 |  r2,c2 (0.63,0.91) | 通信UAV      | emergency_comm | Satellite_Ka | deployed | uplink
+  └─ 小计: 5 节点
+
+  ┌─ 子区域13-一般受灾镇D  (4 节点)
+  │   节点ID |   网格 |                 坐标 | 设备类型       | 来源           | 制式           | 状态       | 角色
+  │ --------------------------------------------------------------------------------------
+  │     13 |  G00 |  r0,c0 (0.09,0.07) | 残余基站       | residual_bs  | 5G_700MHz    | active   | region_hub
+  │     33 |  G01 |  r0,c1 (0.37,0.09) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     53 |  G02 |  r0,c2 (0.65,0.13) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     72 |  G11 |  r2,c3 (0.89,0.90) | 便携广播网关     | emergency_portable | WiFi6        | deployed | broadcast_root
+  └─ 小计: 4 节点
+
+  ┌─ 子区域14-一般受灾镇E  (4 节点)
+  │   节点ID |   网格 |                 坐标 | 设备类型       | 来源           | 制式           | 状态       | 角色
+  │ --------------------------------------------------------------------------------------
+  │     14 |  G00 |  r0,c0 (0.11,0.06) | 残余基站       | residual_bs  | 5G_700MHz    | active   | region_hub
+  │     34 |  G01 |  r0,c1 (0.37,0.10) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     54 |  G02 |  r0,c2 (0.67,0.09) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     79 |  G03 |  r0,c3 (0.90,0.12) | Mesh中继     | emergency_mesh | WiFi6        | deployed | relay
+  └─ 小计: 4 节点
+
+════════════════════════════════════════════════════════════════════════
+  L2-3 边缘恢复管辖区  (子区域 15–19)
+════════════════════════════════════════════════════════════════════════
+  ┌─ 子区域15-边缘恢复镇A  (5 节点)
+  │   节点ID |   网格 |                 坐标 | 设备类型       | 来源           | 制式           | 状态       | 角色
+  │ --------------------------------------------------------------------------------------
+  │     15 |  G00 |  r0,c0 (0.08,0.11) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     35 |  G01 |  r0,c1 (0.33,0.09) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     55 |  G02 |  r0,c2 (0.63,0.10) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     63 |  G03 |  r0,c3 (0.91,0.13) | 应急基站       | emergency_emergency_bs | 5G_700MHz    | deployed | region_hub
+  │     82 |  G03 |  r0,c3 (0.88,0.12) | 通信UAV      | emergency_comm | Satellite_Ka | deployed | uplink
+  └─ 小计: 5 节点
+
+  ┌─ 子区域16-边缘恢复镇B  (4 节点)
+  │   节点ID |   网格 |                 坐标 | 设备类型       | 来源           | 制式           | 状态       | 角色
+  │ --------------------------------------------------------------------------------------
+  │     16 |  G00 |  r0,c0 (0.13,0.12) | 残余基站       | residual_bs  | 5G_700MHz    | active   | region_hub
+  │     36 |  G01 |  r0,c1 (0.38,0.11) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     56 |  G02 |  r0,c2 (0.60,0.11) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     73 |  G11 |  r2,c3 (0.91,0.93) | 便携广播网关     | emergency_portable | WiFi6        | deployed | broadcast_root
+  └─ 小计: 4 节点
+
+  ┌─ 子区域17-边缘恢复镇C  (4 节点)
+  │   节点ID |   网格 |                 坐标 | 设备类型       | 来源           | 制式           | 状态       | 角色
+  │ --------------------------------------------------------------------------------------
+  │     17 |  G00 |  r0,c0 (0.14,0.09) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     37 |  G01 |  r0,c1 (0.35,0.08) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     57 |  G03 |  r0,c3 (0.89,0.10) | 应急基站       | emergency_emergency_bs | 5G_700MHz    | deployed | region_hub
+  │     80 |  G03 |  r0,c3 (0.90,0.12) | Mesh中继     | emergency_mesh | WiFi6        | deployed | relay
+  └─ 小计: 4 节点
+
+  ┌─ 子区域18-低优先级镇A  (4 节点)
+  │   节点ID |   网格 |                 坐标 | 设备类型       | 来源           | 制式           | 状态       | 角色
+  │ --------------------------------------------------------------------------------------
+  │     18 |  G00 |  r0,c0 (0.10,0.10) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     38 |  G01 |  r0,c1 (0.38,0.10) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     64 |  G06 |  r1,c2 (0.64,0.52) | 应急基站       | emergency_emergency_bs | 5G_700MHz    | deployed | region_hub
+  │     83 |  G06 |  r1,c2 (0.65,0.47) | 通信UAV      | emergency_comm | Satellite_Ka | deployed | uplink
+  └─ 小计: 4 节点
+
+  ┌─ 子区域19-低优先级镇B  (3 节点)
+  │   节点ID |   网格 |                 坐标 | 设备类型       | 来源           | 制式           | 状态       | 角色
+  │ --------------------------------------------------------------------------------------
+  │     19 |  G00 |  r0,c0 (0.11,0.06) | 残余基站       | residual_bs  | 5G_700MHz    | active   | region_hub
+  │     39 |  G01 |  r0,c1 (0.38,0.11) | 残余基站       | residual_bs  | 5G_700MHz    | active   | access
+  │     74 |  G11 |  r2,c3 (0.91,0.92) | 便携广播网关     | emergency_portable | WiFi6        | deployed | broadcast_root
+  └─ 小计: 3 节点
+
+[合计] 部署节点 85 个, 覆盖 20 子区域 × 12 网格
