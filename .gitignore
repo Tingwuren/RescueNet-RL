@@ -41,6 +41,7 @@ frontend/.env.*
 
 # FastAPI/server artifacts
 /.uvicorn.log
+/.uvicorn.pid
 
 # NS-3 / SUMO generated artifacts
 ns-3.46.1/cmake-cache/

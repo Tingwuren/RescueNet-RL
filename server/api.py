@@ -80,6 +80,9 @@ scenario_device_manager = ScenarioDeviceManager(
 )
 scenario_state_path = Path(os.environ.get("RESCUENET_SCENARIO_STATE", "data/scenario_state.json"))
 scenario_state_lock = threading.Lock()
+scenarios_cache_lock = threading.RLock()
+scenarios_response_cache: Optional[bytes] = None
+candidate_site_preview_cache: Dict[str, List[Dict[str, object]]] = {}
 
 DEVICE_CONFIG_FIELDS = (
     "device_name",
@@ -844,6 +847,7 @@ def _persist_scenario_device_state(
         type_overrides=merged_type_overrides,
         operation=operation,
     )
+    _invalidate_scenarios_cache()
     return _scenario_device_state_payload(scenario_name)
 
 
@@ -961,6 +965,7 @@ def _sync_scenario_devices_from_strategy_result(
         specs,
         operation="strategy_result_sync",
     )
+    _invalidate_scenarios_cache()
     return {
         "updated": True,
         "changed_count": len(changed),
@@ -1045,6 +1050,22 @@ def _build_candidate_site_preview(scenario_name: str) -> List[Dict[str, object]]
         return preview
     finally:
         env.close()
+
+
+def _cached_candidate_site_preview(scenario_name: str) -> List[Dict[str, object]]:
+    with scenarios_cache_lock:
+        cached = candidate_site_preview_cache.get(scenario_name)
+        if cached is not None:
+            return cached
+        preview = _build_candidate_site_preview(scenario_name)
+        candidate_site_preview_cache[scenario_name] = preview
+        return preview
+
+
+def _invalidate_scenarios_cache() -> None:
+    global scenarios_response_cache
+    with scenarios_cache_lock:
+        scenarios_response_cache = None
 
 
 @app.get("/api/health")
@@ -1360,12 +1381,11 @@ def training_artifact_detail(run_dir: str) -> Dict[str, object]:
     }
 
 
-@app.get("/api/scenarios")
-def list_scenarios() -> Dict[str, List[Dict[str, object]]]:
+def _build_scenarios_payload() -> Dict[str, List[Dict[str, object]]]:
     scenarios = []
     for name in dataset.list_scenarios():
         record = dataset.get(name)
-        candidate_site_preview = _build_candidate_site_preview(name)
+        candidate_site_preview = _cached_candidate_site_preview(name)
         region_grid = record.region_grid.to_public_dict() if getattr(record, "region_grid", None) else None
         reward_profiles = [
             {
@@ -1438,6 +1458,26 @@ def list_scenarios() -> Dict[str, List[Dict[str, object]]]:
             }
         )
     return {"scenarios": scenarios}
+
+
+def _cached_scenarios_response_body() -> bytes:
+    global scenarios_response_cache
+    with scenarios_cache_lock:
+        if scenarios_response_cache is None:
+            scenarios_response_cache = json.dumps(
+                _build_scenarios_payload(),
+                ensure_ascii=False,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        return scenarios_response_cache
+
+
+@app.get("/api/scenarios")
+def list_scenarios() -> Response:
+    return Response(
+        content=_cached_scenarios_response_body(),
+        media_type="application/json",
+    )
 
 
 @app.get("/api/devices", response_model=DedicatedDeviceListResponse)
@@ -1541,6 +1581,7 @@ def reset_scenario_base_stations(scenario_name: str) -> ScenarioBaseStationRespo
         ),
         operation="reset_base_stations",
     )
+    _invalidate_scenarios_cache()
 
     return _scenario_base_station_response(scenario_name)
 
