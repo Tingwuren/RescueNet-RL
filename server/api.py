@@ -5,9 +5,11 @@ from __future__ import annotations
 import asyncio
 import json
 import queue
+import re
 import threading
 import os
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
@@ -78,6 +80,8 @@ device_manager = DeviceManager(Path(os.environ.get("RESCUENET_DEVICE_DB", "data/
 scenario_device_manager = ScenarioDeviceManager(
     Path(os.environ.get("RESCUENET_SCENARIO_DEVICE_DB", "data/scenario_devices.db"))
 )
+TRAINING_RUN_DIR_RE = re.compile(r"^(?P<date>\d{8})_(?P<time>\d{6})_")
+SCENE_EXPORT_DIR_RE = re.compile(r"^(?P<date>\d{8})_(?P<time>\d{6})_")
 scenario_state_path = Path(os.environ.get("RESCUENET_SCENARIO_STATE", "data/scenario_state.json"))
 scenario_state_lock = threading.Lock()
 scenarios_cache_lock = threading.RLock()
@@ -995,6 +999,114 @@ def _artifact_protocol(meta: Dict[str, object], config: Dict[str, object]) -> st
     return str(meta.get("evaluation_protocol") or evaluation_cfg.get("protocol") or "standard")
 
 
+def _artifact_created_at(meta: Dict[str, object], run_dir: Path) -> float:
+    match = TRAINING_RUN_DIR_RE.match(run_dir.name)
+    if match:
+        try:
+            return datetime.strptime(match.group("date") + match.group("time"), "%Y%m%d%H%M%S").timestamp()
+        except ValueError:
+            pass
+
+    value = _finite_float(meta.get("created_at") if isinstance(meta, dict) else None)
+    if value is not None and value > 0:
+        return value
+
+    try:
+        return run_dir.stat().st_ctime
+    except OSError:
+        return 0.0
+
+
+def _artifact_run_dir_from_policy_path(meta: Dict[str, object], fallback_dir: Path) -> Path:
+    policy_path = meta.get("policy_path") if isinstance(meta, dict) else None
+    if isinstance(policy_path, str) and policy_path:
+        candidate = Path(policy_path).expanduser().parent
+        if TRAINING_RUN_DIR_RE.match(candidate.name):
+            return candidate
+    return fallback_dir
+
+
+def _artifact_modified_at(meta_path: Path, metrics_path: Path) -> float:
+    return max(
+        meta_path.stat().st_mtime if meta_path.exists() else 0.0,
+        metrics_path.stat().st_mtime if metrics_path.exists() else 0.0,
+    )
+
+
+def _timestamp_from_dir_name(path: Path, pattern: re.Pattern[str]) -> Optional[float]:
+    match = pattern.match(path.name)
+    if not match:
+        return None
+    try:
+        return datetime.strptime(match.group("date") + match.group("time"), "%Y%m%d%H%M%S").timestamp()
+    except ValueError:
+        return None
+
+
+def _scene_export_created_at(meta: Dict[str, object], export_dir: Path, metadata_path: Path) -> float:
+    value = _finite_float(meta.get("created_at") if isinstance(meta, dict) else None)
+    if value is not None and value > 0:
+        return value
+
+    parsed = _timestamp_from_dir_name(export_dir, SCENE_EXPORT_DIR_RE)
+    if parsed is not None:
+        return parsed
+
+    try:
+        return metadata_path.stat().st_mtime
+    except OSError:
+        return 0.0
+
+
+def _scenario_display_label(value: object) -> str:
+    text = str(value or "").strip()
+    lower = text.lower()
+    if "typhoon" in lower or "台风" in text:
+        return "台风灾后残余网络"
+    if "earthquake" in lower or "地震" in text:
+        return "地震灾后断链恢复"
+    if (
+        "rainstorm" in lower
+        or "flood" in lower
+        or "water_disaster" in lower
+        or "water disaster" in lower
+        or "暴雨" in text
+        or "洪水" in text
+        or "水灾" in text
+    ):
+        return "洪水孤岛通信恢复"
+    return text or "未选择场景"
+
+
+def _scene_export_record(metadata_path: Path) -> Optional[Dict[str, object]]:
+    try:
+        with metadata_path.open("r", encoding="utf-8") as handle:
+            meta = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(meta, dict):
+        return None
+
+    export_dir = metadata_path.parent
+    created_at = _scene_export_created_at(meta, export_dir, metadata_path)
+    return {
+        "id": export_dir.name,
+        "source": meta.get("source") or "test",
+        "created_at": created_at,
+        "created_at_iso": meta.get("created_at_iso")
+        or (datetime.fromtimestamp(created_at).isoformat(timespec="seconds") if created_at > 0 else ""),
+        "modified_at": metadata_path.stat().st_mtime if metadata_path.exists() else 0.0,
+        "scenario_name": meta.get("scenario_name"),
+        "scenario_label": meta.get("scenario_label") or _scenario_display_label(meta.get("scenario_name")),
+        "episode": meta.get("episode"),
+        "export_dir": str(export_dir),
+        "metadata_path": str(metadata_path),
+        "disaster_scene_path": meta.get("disaster_scene_path"),
+        "deployment_scene_path": meta.get("deployment_scene_path"),
+        "deployment_plan_path": meta.get("deployment_plan_path"),
+    }
+
+
 def _default_protocol_for_scenario(scenario_name: object) -> str:
     return "earthquake_stress" if _scenario_disaster_type(scenario_name) == "earthquake" else "standard"
 
@@ -1092,10 +1204,9 @@ def latest_training_artifact() -> Dict[str, object]:
     config = metrics.get("config", {}) if isinstance(metrics, dict) else {}
     experiment_cfg = config.get("experiment", {}) if isinstance(config, dict) else {}
     multimodal_cfg = config.get("multimodal_env", {}) if isinstance(config, dict) else {}
-    updated_at = max(
-        meta_path.stat().st_mtime if meta_path.exists() else 0.0,
-        metrics_path.stat().st_mtime if metrics_path.exists() else 0.0,
-    )
+    run_dir = _artifact_run_dir_from_policy_path(meta, artifact_dir)
+    created_at = _artifact_created_at(meta, run_dir)
+    modified_at = _artifact_modified_at(meta_path, metrics_path)
     scenario_name = multimodal_cfg.get("scenario_name")
     evaluation_protocol = _artifact_protocol(meta, config)
     return {
@@ -1106,7 +1217,9 @@ def latest_training_artifact() -> Dict[str, object]:
         "disaster_type": _scenario_disaster_type(scenario_name),
         "reward_mode": multimodal_cfg.get("reward_mode"),
         "evaluation_protocol": evaluation_protocol,
-        "updated_at": updated_at,
+        "created_at": created_at,
+        "updated_at": created_at,
+        "modified_at": modified_at,
         "status": "completed",
     }
 
@@ -1146,10 +1259,8 @@ def list_training_artifacts() -> Dict[str, List[Dict[str, object]]]:
             if not policy_path:
                 continue
 
-            updated_at = max(
-                meta_path.stat().st_mtime if meta_path.exists() else 0.0,
-                metrics_path.stat().st_mtime if metrics_path.exists() else 0.0,
-            )
+            created_at = _artifact_created_at(meta, meta_path.parent)
+            modified_at = _artifact_modified_at(meta_path, metrics_path)
             scenario_name = multimodal_cfg.get("scenario_name")
             evaluation_protocol = _artifact_protocol(meta, config)
             artifacts.append(
@@ -1161,15 +1272,16 @@ def list_training_artifacts() -> Dict[str, List[Dict[str, object]]]:
                     "disaster_type": _scenario_disaster_type(scenario_name),
                     "reward_mode": multimodal_cfg.get("reward_mode"),
                     "evaluation_protocol": evaluation_protocol,
-                    "updated_at": updated_at,
-                    "created_at": meta_path.parent.stat().st_ctime,
+                    "updated_at": created_at,
+                    "created_at": created_at,
+                    "modified_at": modified_at,
                     "status": "completed",
                     "operator": "系统",
                     "run_dir": str(meta_path.parent),
                 }
             )
 
-    artifacts.sort(key=lambda item: float(item.get("updated_at") or 0), reverse=True)
+    artifacts.sort(key=lambda item: float(item.get("created_at") or item.get("updated_at") or 0), reverse=True)
     return {"artifacts": artifacts}
 
 
@@ -1338,10 +1450,8 @@ def training_artifact_detail(run_dir: str) -> Dict[str, object]:
         episode_broadcasts,
         episode_timesteps,
     )
-    updated_at = max(
-        meta_path.stat().st_mtime if meta_path.exists() else 0.0,
-        metrics_path.stat().st_mtime if metrics_path.exists() else 0.0,
-    )
+    created_at = _artifact_created_at(meta, requested_dir)
+    modified_at = _artifact_modified_at(meta_path, metrics_path)
 
     scenario_name = multimodal_cfg.get("scenario_name")
     evaluation_protocol = _artifact_protocol(meta, config)
@@ -1353,8 +1463,9 @@ def training_artifact_detail(run_dir: str) -> Dict[str, object]:
         "disaster_type": _scenario_disaster_type(scenario_name),
         "reward_mode": multimodal_cfg.get("reward_mode"),
         "evaluation_protocol": evaluation_protocol,
-        "updated_at": updated_at,
-        "created_at": requested_dir.stat().st_ctime,
+        "updated_at": created_at,
+        "created_at": created_at,
+        "modified_at": modified_at,
         "status": "completed",
         "operator": "系统",
         "run_dir": str(requested_dir),
@@ -2049,6 +2160,20 @@ def stream_simulation(request: SimulationRequest):
 # ---------------------------------------------------------------------------
 # Scene replay endpoints
 # ---------------------------------------------------------------------------
+
+@app.get("/api/test/outputs")
+def list_test_outputs(limit: int = Query(50, ge=1, le=200)) -> Dict[str, object]:
+    scene_export_root = Path(default_config["logging"]["artifact_dir"]) / "scene_exports"
+    outputs: List[Dict[str, object]] = []
+    if scene_export_root.exists():
+        for metadata_path in scene_export_root.glob("*/metadata.json"):
+            record = _scene_export_record(metadata_path)
+            if record is not None:
+                outputs.append(record)
+
+    outputs.sort(key=lambda item: float(item.get("created_at") or 0), reverse=True)
+    return {"outputs": outputs[:limit], "total": len(outputs)}
+
 
 @app.get("/api/replay/sessions")
 def list_replay_sessions(

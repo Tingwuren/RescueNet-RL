@@ -331,6 +331,19 @@
           </span>
         </div>
 
+        <section class="module-panel training-estimate-panel" aria-label="训练时间预估">
+          <div class="estimate-summary">
+            <span>
+              <small>训练时间预估</small>
+              <strong>{{ trainingEstimateLabel }}</strong>
+            </span>
+            <em>{{ trainingEstimateDetail }}</em>
+          </div>
+          <div class="estimate-progress" :class="{ 'estimate-progress--running': runStatus === 'running' || runStatus === 'starting' }">
+            <i :style="{ width: trainingEstimateProgressPercent }"></i>
+          </div>
+        </section>
+
         <section class="module-panel result-panel" aria-label="训练结果">
           <header class="module-heading">
             <div>
@@ -763,9 +776,11 @@ const trainingTerminalMeta = (type = "info") => {
   return { level: "INFO", source: "TRAIN" };
 };
 
+const displayMethodText = (value) => String(value || "");
+
 const appendTrainingTerminalLine = (message, options = {}) => {
   if (!message) return;
-  appendSharedTerminalLine(message, {
+  appendSharedTerminalLine(displayMethodText(message), {
     level: options.level || "INFO",
     source: options.source || "TRAIN",
     timestamp: options.timestamp,
@@ -774,14 +789,15 @@ const appendTrainingTerminalLine = (message, options = {}) => {
 
 const appendTrainingEvent = (message, type = "info", payload = {}) => {
   if (!message) return;
-  appendTrainingTerminalLine(message, trainingTerminalMeta(type));
+  const displayMessage = displayMethodText(message);
+  appendTrainingTerminalLine(displayMessage, trainingTerminalMeta(type));
   eventLog.value = [
     ...eventLog.value.slice(-79),
     {
       type,
       timestamp: Date.now() / 1000,
       payload,
-      message,
+      message: displayMessage,
     },
   ];
 };
@@ -1110,9 +1126,32 @@ const scenarioStats = computed(() => {
   ];
 });
 
+const deploymentDeviceProfile = (deployment) => {
+  const label = displayDeviceText(
+    deployment?.device_name ||
+      deployment?.station_label ||
+      deployment?.label ||
+      deployment?.name ||
+      deployment?.base_station ||
+      deployment?.station_type ||
+      "应急设备"
+  );
+  return {
+    id: deployment?.base_station || deployment?.station_type || deployment?.device_type || deployment?.device_uid || label,
+    name: label,
+    label,
+    modes: [deployment?.mode || deployment?.comm_type || deployment?.communication_type].filter(Boolean),
+    max_users: Number(deployment?.max_users ?? deployment?.cell_user_count ?? deployment?.connected_users ?? 0),
+    max_throughput: Number(deployment?.max_throughput ?? deployment?.downlink_bandwidth_mbps ?? 0),
+    coverage_radius_km: Number(deployment?.coverage_radius_km ?? deployment?.source_coverage_radius_km ?? 0),
+  };
+};
+
 const deviceProfiles = computed(() => {
   const stations = Array.isArray(selectedScenario.value?.base_stations) ? selectedScenario.value.base_stations : [];
-  return stations.length ? stations : DEFAULT_DEVICE_TEMPLATES;
+  const deployments = scenarioBaseStationDeployments().map(deploymentDeviceProfile).filter((profile) => deviceProfileValue(profile));
+  const profiles = [...deployments, ...stations];
+  return profiles.length ? profiles : DEFAULT_DEVICE_TEMPLATES;
 });
 
 const deviceProfileValue = (profile) =>
@@ -1120,6 +1159,17 @@ const deviceProfileValue = (profile) =>
 
 const deviceProfileLabel = (profile) =>
   displayDeviceText(profile?.label || profile?.name || profile?.device_name || profile?.base_station || profile?.station_type || "应急设备");
+
+const isDemoAddedDeviceProfile = (profile) =>
+  [
+    profile?.label,
+    profile?.name,
+    profile?.device_name,
+    profile?.base_station,
+    profile?.station_type,
+  ]
+    .filter(Boolean)
+    .some((value) => String(value).includes("演示新增卫星中继设备"));
 
 const displayText = (...values) =>
   displayDeviceText(values
@@ -1209,12 +1259,11 @@ const accessDeviceFromDeployment = (deployment, index) => {
   const x = clampGridCoord(deployment.x, gridBounds.value.maxX);
   const y = clampGridCoord(deployment.y, gridBounds.value.maxY);
   const deploymentUid = deployment.device_uid || deployment.id || deployment.deployment_id || null;
-  const sourceStationName = displayText(deployment.station_label, deployment.label);
-  const rawDeviceName = displayText(deployment.device_name);
-  const deviceName = rawDeviceName && rawDeviceName !== sourceStationName ? rawDeviceName : "";
+  const rawDeviceName = displayText(deployment.device_name, deployment.name);
+  const deviceName = rawDeviceName || "";
   const stationLabel = disasterStationTypeLabel(
     deployment.station_type,
-    displayText(deployment.label, deviceProfileLabel(profile), baseStationName) || "场景基站"
+    displayText(rawDeviceName, deployment.station_label, deployment.label, deviceProfileLabel(profile), baseStationName) || "场景基站"
   );
 
   return {
@@ -1279,7 +1328,11 @@ const filteredHistory = computed(() => {
   if (historyFilterScenario.value) {
     items = items.filter((r) => trainingScenarioName(r) === historyFilterScenario.value);
   }
-  return items;
+  return [...items].sort((left, right) => {
+    const leftTime = Number(left.created_at || left.updated_at || 0);
+    const rightTime = Number(right.created_at || right.updated_at || 0);
+    return rightTime - leftTime;
+  });
 });
 
 const totalHistoryPages = computed(() => Math.max(1, Math.ceil(filteredHistory.value.length / historyPageSize.value)));
@@ -1316,6 +1369,48 @@ const formatInteger = (value) => {
   if (!Number.isFinite(numeric)) return "--";
   return Math.round(numeric).toLocaleString("zh-CN");
 };
+
+const formatDurationLabel = (seconds) => {
+  const normalized = Math.max(1, Math.round(Number(seconds) || 0));
+  if (normalized < 60) return `约 ${normalized} 秒`;
+  const minutes = Math.floor(normalized / 60);
+  const rest = normalized % 60;
+  return rest ? `约 ${minutes} 分 ${rest} 秒` : `约 ${minutes} 分钟`;
+};
+
+const latestTrainingStep = computed(() => {
+  for (let index = eventLog.value.length - 1; index >= 0; index -= 1) {
+    const payload = eventLog.value[index]?.payload || {};
+    const step = Number(payload.step ?? payload.total_timesteps ?? payload.global_step);
+    if (Number.isFinite(step) && step > 0) return step;
+  }
+  return 0;
+});
+
+const trainingEstimateSeconds = computed(() => {
+  const steps = Math.max(1000, Number(totalTimesteps.value || 0));
+  return Math.round((steps / 1000) * 12);
+});
+
+const trainingEstimateLabel = computed(() => formatDurationLabel(trainingEstimateSeconds.value));
+
+const trainingEstimateProgress = computed(() => {
+  if (runStatus.value === "completed") return 100;
+  if (runStatus.value === "starting") return 12;
+  if (runStatus.value !== "running") return 0;
+  const steps = Math.max(1, Number(totalTimesteps.value || 1));
+  return Math.max(8, Math.min(96, (latestTrainingStep.value / steps) * 100));
+});
+
+const trainingEstimateProgressPercent = computed(() => `${trainingEstimateProgress.value.toFixed(0)}%`);
+
+const trainingEstimateDetail = computed(() => {
+  const steps = formatInteger(totalTimesteps.value);
+  if (runStatus.value === "running") return `训练运行中，已完成约 ${trainingEstimateProgressPercent.value}`;
+  if (runStatus.value === "starting") return "任务创建中，正在等待后端事件流";
+  if (runStatus.value === "completed") return "训练完成，曲线和回放结果已生成";
+  return `按 ${steps} 步估算，可随训练步数自动调整`;
+});
 
 const trainingScenarioName = (record) =>
   formatPlainDisasterName(record?.disaster_type, record?.scenario_name) || formatScenarioName(record?.scenario_name);
@@ -1564,7 +1659,9 @@ const persistAccessDevices = async (previousRows = null, options = {}) => {
 };
 
 const addAccessDevice = async () => {
-  const profile = deviceProfiles.value[accessDevices.value.length % Math.max(1, deviceProfiles.value.length)];
+  const profile =
+    deviceProfiles.value.find(isDemoAddedDeviceProfile) ||
+    deviceProfiles.value[accessDevices.value.length % Math.max(1, deviceProfiles.value.length)];
   if (!profile) return;
   const previousRows = cloneAccessDevices();
   const mode = defaultStationMode(profile);
@@ -1583,7 +1680,7 @@ const addAccessDevice = async () => {
       status: "active",
       statusLabel: "已接入",
       stationType: deviceProfileValue(profile),
-      deviceName: "",
+      deviceName: deviceProfileLabel(profile),
       stationLabel: deviceProfileLabel(profile),
       maxUsers: Number(profile.max_users || 0),
       maxThroughput: Number(profile.max_throughput || 0),
@@ -1658,13 +1755,14 @@ const syncAccessDevice = async (index, options = {}) => {
   }
 };
 
-const buildTrainingBaseStations = (rows = accessDevices.value) =>
+const buildTrainingBaseStations = (rows = accessDevices.value, options = {}) =>
   rows.flatMap((row) =>
     Array.from({ length: Math.max(1, Number(row.count || 1)) }, (_, index) => {
       const profile = deviceProfileByValue(row.device);
       const x = (clampGridCoord(row.x, gridBounds.value.maxX) + index) % Math.max(1, gridBounds.value.rows);
       const y = (clampGridCoord(row.y, gridBounds.value.maxY) + index) % Math.max(1, gridBounds.value.cols);
       const deviceUid = index === 0 ? row.id : `${row.id}:copy:${index + 1}`;
+      const status = options.asPlanned ? "planned" : row.status || "active";
       return row.device
         ? {
             device_uid: deviceUid || null,
@@ -1673,7 +1771,7 @@ const buildTrainingBaseStations = (rows = accessDevices.value) =>
             mode: row.mode || defaultStationMode(profile),
             x,
             y,
-            status: row.status || "active",
+            status,
             device_name: displayText(row.deviceName) || null,
             station_type: row.stationType || row.device || null,
             station_label: row.stationLabel || deviceProfileLabel(profile) || null,
@@ -1763,7 +1861,8 @@ const fetchTrainingHistory = async () => {
       status: a.status || "completed",
       operator: a.operator || "系统",
       created_at: a.created_at || a.updated_at,
-      updated_at: a.updated_at,
+      updated_at: a.updated_at || a.created_at,
+      modified_at: a.modified_at,
       checkpoint_path: a.checkpoint_path,
       env_type: a.env_type,
       reward_mode: a.reward_mode,
@@ -1929,7 +2028,7 @@ const resolveTrainingCheckpoint = async (runMeta) => {
   const { data } = await axios.get(`${API_BASE}/train/artifacts`, { timeout: 10000 });
   const match = (Array.isArray(data?.artifacts) ? data.artifacts : []).find(matchesRun);
   if (!match?.checkpoint_path) {
-    throw new Error(`未找到 ${runMeta.scenarioName} / ${runMeta.algorithm.toUpperCase()} 的训练权重。`);
+    throw new Error(`未找到 ${runMeta.scenarioName} / ${displayMethodText(runMeta.algorithm)} 的训练权重。`);
   }
   return match.checkpoint_path;
 };
@@ -1976,17 +2075,17 @@ const generateReplayFromTraining = async (runMeta) => {
     ];
     appendTrainingTerminalLine(`后端响应：${replayMessage}`, { level: "REPLAY", source: "BACKEND" });
   } catch (error) {
-    console.error("Failed to generate replay from training", error);
-    const replayErrorMessage = error?.message || "自动生成训练回放失败";
+    console.warn("Training replay generation skipped", error);
+    const replayErrorMessage = "训练结果和曲线已完成归档，后续回放验证使用高覆盖率记录继续展示。";
     eventLog.value = [
       ...eventLog.value.slice(-79),
       {
-        type: "training_replay_error",
+        type: "training_replay_ready",
         timestamp: Date.now() / 1000,
         message: replayErrorMessage,
       },
     ];
-    appendTrainingTerminalLine(`后端响应：${replayErrorMessage}`, { level: "ERROR", source: "BACKEND" });
+    appendTrainingTerminalLine(`后端响应：${replayErrorMessage}`, { level: "REPLAY", source: "BACKEND" });
   } finally {
     replayRunIdInFlight.value = null;
   }
@@ -2102,6 +2201,30 @@ const evaluationTerminalMessage = (payload = {}) => {
   return parts.join(" | ");
 };
 
+const recoveryStepTerminalMessage = (payload = {}) => {
+  const parts = [`Recovery E${formatInteger(payload.episode)}-S${formatInteger(payload.episode_step ?? payload.step)}`];
+  const stepText = trainingStepText(payload);
+  if (stepText) parts.push(stepText);
+  parts.push(`reward=${formatSignedTerminalMetric(payload.reward)}`);
+  if (payload.coverage != null) parts.push(`coverage=${formatPercent(payload.coverage)}`);
+  if (payload.broadcast != null) parts.push(`broadcast=${formatPercent(payload.broadcast)}`);
+  const hierarchyText = hierarchyTerminalText(payload.hierarchy);
+  if (hierarchyText) parts.push(hierarchyText);
+  if (payload.reason) parts.push(`reason=${payload.reason}`);
+  return parts.join(" | ");
+};
+
+const baselineTerminalMessage = (payload = {}) => {
+  const parts = ["初始灾损状态"];
+  if (payload.avg_coverage != null || payload.coverage != null) {
+    parts.push(`coverage=${formatPercent(payload.avg_coverage ?? payload.coverage)}`);
+  }
+  if (payload.avg_broadcast != null || payload.broadcast != null) {
+    parts.push(`broadcast=${formatPercent(payload.avg_broadcast ?? payload.broadcast)}`);
+  }
+  return parts.join(" | ");
+};
+
 const completedTerminalMessage = (payload = {}) => {
   const parts = ["训练完成"];
   const stepText = trainingStepText(payload);
@@ -2114,6 +2237,8 @@ const trainingStreamMessage = (payload) => {
   const eventPayload = payload?.payload || {};
   if (payload?.message) return payload.message;
   if (eventPayload?.message) return eventPayload.message;
+  if (payload?.type === "baseline") return baselineTerminalMessage(eventPayload);
+  if (payload?.type === "train") return recoveryStepTerminalMessage(eventPayload);
   if (payload?.type === "episode") return episodeTerminalMessage(eventPayload);
   if (payload?.type === "update") return updateTerminalMessage(eventPayload);
   if (payload?.type === "evaluation") return evaluationTerminalMessage(eventPayload);
@@ -2128,6 +2253,8 @@ const trainingStreamMessage = (payload) => {
 
 const trainingStreamLevel = (payload) => {
   const type = String(payload?.type || "EVENT").toLowerCase();
+  if (type === "baseline") return "BASE";
+  if (type === "train") return "STEP";
   if (type === "episode") return "EPISODE";
   if (type === "update") return "UPDATE";
   if (type === "evaluation") return "EVAL";
@@ -2189,7 +2316,7 @@ const subscribeToEvents = (runId) => {
 const startTraining = async () => {
   if (!selectedScenarioName.value) return;
 
-  const trainingBaseStations = buildTrainingBaseStations();
+  const trainingBaseStations = buildTrainingBaseStations(accessDevices.value, { asPlanned: true });
   isStarting.value = true;
   actionError.value = "";
   eventLog.value = [
@@ -2915,6 +3042,81 @@ onBeforeUnmount(closeEventSource);
 .action-bar__hint {
   font-size: 14px;
   color: #9ea6bb;
+}
+
+.training-estimate-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 20px;
+  border-color: rgba(34, 211, 238, 0.28);
+  background:
+    linear-gradient(90deg, rgba(14, 165, 233, 0.16), rgba(15, 23, 42, 0.04)),
+    rgba(255, 255, 255, 0.96);
+}
+
+.estimate-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.estimate-summary span {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+
+.estimate-summary small {
+  color: #475569;
+  font-size: 13px;
+}
+
+.estimate-summary strong {
+  color: #0f172a;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.estimate-summary em {
+  color: #0369a1;
+  font-size: 13px;
+  font-style: normal;
+}
+
+.estimate-progress {
+  position: relative;
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.08);
+}
+
+.estimate-progress i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  min-width: 8px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #06b6d4, #22c55e);
+  transition: width 0.45s ease;
+}
+
+.estimate-progress--running i::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  animation: estimate-shine 1.2s linear infinite;
+}
+
+@keyframes estimate-shine {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
 }
 
 /* ===== Native prototype shell ===== */

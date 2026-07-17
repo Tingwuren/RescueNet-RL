@@ -2,6 +2,22 @@ const scenarioNameMap = {
   typhoon_residual: "台风灾后残余网络",
   flood_no_residual: "洪水孤岛通信恢复",
   earthquake_residual: "地震灾后断链恢复",
+  super_typhoon__level_1: "台风灾后残余网络",
+  super_typhoon__level_2: "台风灾后残余网络",
+  super_typhoon__level_3: "台风灾后残余网络",
+  super_typhoon__level_4: "台风灾后残余网络",
+  extreme_rainstorm__level_1: "洪水孤岛通信恢复",
+  extreme_rainstorm__level_2: "洪水孤岛通信恢复",
+  extreme_rainstorm__level_3: "洪水孤岛通信恢复",
+  extreme_rainstorm__level_4: "洪水孤岛通信恢复",
+  water_disaster__level_1: "洪水孤岛通信恢复",
+  water_disaster__level_2: "洪水孤岛通信恢复",
+  water_disaster__level_3: "洪水孤岛通信恢复",
+  water_disaster__level_4: "洪水孤岛通信恢复",
+  destructive_earthquake__level_1: "地震灾后断链恢复",
+  destructive_earthquake__level_2: "地震灾后断链恢复",
+  destructive_earthquake__level_3: "地震灾后断链恢复",
+  destructive_earthquake__level_4: "地震灾后断链恢复",
 };
 
 const disasterTypeMap = {
@@ -31,7 +47,23 @@ export const normalizeDisasterDisplayText = (value) =>
 
 export const formatScenarioName = (name) => {
   if (!name) return "未选择场景";
-  return normalizeDisasterDisplayText(scenarioNameMap[name] || String(name).replace(/_/g, " "));
+  const text = String(name || "").trim();
+  const lower = text.toLowerCase();
+  if (scenarioNameMap[lower]) return scenarioNameMap[lower];
+  if (lower.includes("typhoon") || text.includes("台风")) return "台风灾后残余网络";
+  if (lower.includes("earthquake") || text.includes("地震")) return "地震灾后断链恢复";
+  if (
+    lower.includes("rainstorm") ||
+    lower.includes("flood") ||
+    lower.includes("water_disaster") ||
+    lower.includes("water disaster") ||
+    text.includes("暴雨") ||
+    text.includes("洪水") ||
+    text.includes("水灾")
+  ) {
+    return "洪水孤岛通信恢复";
+  }
+  return normalizeDisasterDisplayText(scenarioNameMap[text] || text.replace(/_/g, " "));
 };
 
 export const formatDisasterType = (type) => {

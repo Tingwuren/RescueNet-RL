@@ -2467,7 +2467,7 @@ button:disabled {
   inset: 0;
   z-index: 2;
   overflow: hidden;
-  background: #dbeafe;
+  background: transparent;
   pointer-events: none;
 }
 

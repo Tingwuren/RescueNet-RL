@@ -12,6 +12,14 @@ const COORDINATE_SOURCE_VERSION = "deterministic_grid_cross_cell_v3";
 const STATION_MIN_SPACING_FLOOR = 180;
 const STATION_MIN_SPACING_CEILING = 260;
 
+const algorithmDisplayName = (algorithm) => {
+  const key = String(algorithm || "").toLowerCase();
+  if (key === "hmarl") return "HMARL";
+  return algorithm ? String(algorithm).toUpperCase() : "--";
+};
+
+const displaySessionTitle = (value) => String(value || "未命名回放");
+
 const readStorage = () => {
   if (typeof window === "undefined") return [];
   try {
@@ -144,7 +152,7 @@ const compactSessionForStorage = (session, frameLimit = PRIMARY_FRAME_LIMIT) => 
   scenarioName: session.scenarioName,
   algorithm: session.algorithm,
   artifactSignature: session.artifactSignature,
-  title: session.title,
+  title: displaySessionTitle(session.title),
   mapWidth: session.mapWidth,
   mapHeight: session.mapHeight,
   frames: sampleFrames(session.frames, frameLimit).map(compactFrame),
@@ -567,6 +575,7 @@ const normalizeSession = (session) => {
   const initialStations = initialNodes.filter((node) => Number(node.type) !== 0).length;
   return {
     ...session,
+    title: displaySessionTitle(session?.title),
     source: session?.source || "test",
     artifactSignature: session?.artifactSignature || null,
     schemaVersion: Number(session?.schemaVersion || 1),
@@ -634,8 +643,8 @@ export const saveReplaySessionFromSimulation = ({
     algorithm,
     artifactSignature,
     title: titlePrefix
-      ? `${titlePrefix} / ${scenarioName} / ${algorithm.toUpperCase()} / Episode ${report.episode || 1}`
-      : `${scenarioName} / ${algorithm.toUpperCase()} / Episode ${report.episode || 1}`,
+      ? `${titlePrefix} / ${scenarioName} / ${algorithmDisplayName(algorithm)} / Episode ${report.episode || 1}`
+      : `${scenarioName} / ${algorithmDisplayName(algorithm)} / Episode ${report.episode || 1}`,
     mapWidth: MAP_WIDTH,
     mapHeight: MAP_HEIGHT,
     frames,

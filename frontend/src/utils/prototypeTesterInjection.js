@@ -158,11 +158,21 @@ const buildInjectionScript = (apiBase, communicationTypes, defaultTemplates) => 
   }
 
   function disasterLabel(type) {
+    var text = String(type || "").toLowerCase();
+    if (text.indexOf("typhoon") !== -1) return "台风灾后残余网络";
+    if (text.indexOf("earthquake") !== -1) return "地震灾后断链恢复";
+    if (text.indexOf("rainstorm") !== -1 || text.indexOf("flood") !== -1 || text.indexOf("water_disaster") !== -1) {
+      return "洪水孤岛通信恢复";
+    }
     var mapping = {
       flood: "洪水孤岛通信恢复",
+      rainstorm: "洪水孤岛通信恢复",
       earthquake: "地震灾后断链恢复",
       landslide: "泥石流滑坡通信阻断恢复",
-      typhoon: "台风灾后残余网络"
+      typhoon: "台风灾后残余网络",
+      flood_no_residual: "洪水孤岛通信恢复",
+      earthquake_residual: "地震灾后断链恢复",
+      typhoon_residual: "台风灾后残余网络"
     };
     return mapping[type] || type || "灾害场景";
   }
@@ -171,8 +181,7 @@ const buildInjectionScript = (apiBase, communicationTypes, defaultTemplates) => 
     var scenario = state.scenarios.find(function (item) {
       return item.name === name;
     });
-    if (!scenario) return name || "未选择场景";
-    return disasterLabel(scenario.disaster_type);
+    return disasterLabel((scenario && (scenario.name || scenario.disaster_type)) || name || "未选择场景");
   }
 
   function comboLabel(scenarioName, algorithm) {
@@ -1056,7 +1065,7 @@ const buildInjectionScript = (apiBase, communicationTypes, defaultTemplates) => 
     try {
       var raw = window.localStorage.getItem(TEST_HISTORY_KEY);
       var parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
+      return Array.isArray(parsed) ? sortTestHistory(parsed) : [];
     } catch (error) {
       return [];
     }
@@ -1064,10 +1073,23 @@ const buildInjectionScript = (apiBase, communicationTypes, defaultTemplates) => 
 
   function writeTestHistory(items) {
     try {
-      window.localStorage.setItem(TEST_HISTORY_KEY, JSON.stringify(items));
+      window.localStorage.setItem(TEST_HISTORY_KEY, JSON.stringify(sortTestHistory(items).slice(0, 40)));
     } catch (error) {
       appendTerminalLine("测试记录写入失败：" + (error && error.message ? error.message : error), "warning");
     }
+  }
+
+  function testHistoryTime(item) {
+    var numeric = Number(item && item.createdAt);
+    if (isFinite(numeric) && numeric > 0) return numeric;
+    var parsed = Date.parse((item && item.createdAt) || "");
+    return isFinite(parsed) ? parsed : 0;
+  }
+
+  function sortTestHistory(items) {
+    return (Array.isArray(items) ? items.slice() : []).sort(function (a, b) {
+      return testHistoryTime(b) - testHistoryTime(a);
+    });
   }
 
   function finalBroadcastRatio(result) {
@@ -1114,7 +1136,7 @@ const buildInjectionScript = (apiBase, communicationTypes, defaultTemplates) => 
       return item && item.id !== entry.id;
     });
     history.unshift(entry);
-    writeTestHistory(history.slice(0, 40));
+    writeTestHistory(history);
   }
 
   function setTabVisual(activeKey) {

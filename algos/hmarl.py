@@ -51,6 +51,7 @@ class HMARLTrainer(PPOTrainer):
         self.last_hierarchy_plan: Dict[str, Any] = {}
         self.step_loss_interval = int(self.train_cfg.get("step_loss_interval", 0) or 0)
         self.env_step_log_interval = int(self.train_cfg.get("env_step_log_interval", 0) or 0)
+        self.recovery_step_event_interval = max(1, int(self.hmarl_cfg.get("recovery_step_event_interval", 5) or 5))
         self._opt_step = 0
 
     def _warmup_fraction(self, warmup_steps: int, power: float = 1.0) -> float:
@@ -102,12 +103,12 @@ class HMARLTrainer(PPOTrainer):
             self.current_episode_return += reward
             self.current_episode_length += 1
             self.last_hierarchy_plan = plan
+            coverage = float(info.get("coverage_ratio", 0.0))
+            broadcast = float(info.get("broadcast_ratio", 0.0))
 
             if self.env_step_log_interval > 0 and (
                 self.global_step % self.env_step_log_interval == 0
             ):
-                coverage = float(info.get("coverage_ratio", 0.0))
-                broadcast = float(info.get("broadcast_ratio", 0.0))
                 print(
                     f"    [EnvStep {self.global_step}] reward={reward:.3f} | "
                     f"env_reward={float(env_reward):.3f} | "
@@ -116,9 +117,24 @@ class HMARLTrainer(PPOTrainer):
                     flush=True,
                 )
 
+            if self.current_episode_length <= 20 or self.current_episode_length % self.recovery_step_event_interval == 0 or done:
+                self._emit_progress(
+                    "train",
+                    {
+                        "step": self.global_step,
+                        "episode": self.completed_episodes + 1,
+                        "episode_step": self.current_episode_length,
+                        "reward": float(reward),
+                        "coverage": coverage,
+                        "broadcast": broadcast,
+                        "hierarchy": plan.get("summary", {}),
+                        "hierarchical_rewards": plan.get("rewards", {}),
+                        "reason": info.get("reason"),
+                        **self._episode_info_payload(info),
+                    },
+                )
+
             if done:
-                coverage = float(info.get("coverage_ratio", 0.0))
-                broadcast = float(info.get("broadcast_ratio", 0.0))
                 self.episode_rewards.append(self.current_episode_return)
                 self.episode_coverages.append(coverage)
                 self.episode_broadcasts.append(broadcast)

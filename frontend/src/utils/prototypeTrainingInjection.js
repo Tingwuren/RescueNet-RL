@@ -575,7 +575,7 @@ function trainingInjector(apiBase, communicationTypes, defaultTemplates) {
       relayoutSections();
     });
     [panel, visibleNode, hiddenNode].forEach(function (node) {
-      if (!node) return;
+      if (!node || typeof node.nodeType !== "number") return;
       observer.observe(node, {
         attributes: true,
         attributeFilter: ["style", "class"],
@@ -2837,6 +2837,9 @@ function trainingInjector(apiBase, communicationTypes, defaultTemplates) {
       if (!response.ok) throw new Error(await response.text());
       var payload = await response.json();
       var artifacts = Array.isArray(payload.artifacts) ? payload.artifacts : [];
+      artifacts.sort(function (left, right) {
+        return Number(right.created_at || right.updated_at || 0) - Number(left.created_at || left.updated_at || 0);
+      });
       var existing = byId("training-history-modal");
       if (existing) existing.remove();
 
@@ -2844,7 +2847,8 @@ function trainingInjector(apiBase, communicationTypes, defaultTemplates) {
       modal.id = "training-history-modal";
       modal.style.cssText = "position:fixed;inset:0;background:rgba(2,6,23,0.48);z-index:99999;display:flex;align-items:center;justify-content:center;";
       var rows = artifacts.slice(0, 16).map(function (item, index) {
-        var timeText = item.updated_at ? new Date(item.updated_at * 1000).toLocaleString("zh-CN") : "--";
+        var displayTime = item.created_at || item.updated_at;
+        var timeText = displayTime ? new Date(displayTime * 1000).toLocaleString("zh-CN") : "--";
         return "<tr>" +
           "<td style='padding:10px 12px;border-bottom:1px solid #eef2f7;'>" + (index + 1) + "</td>" +
           "<td style='padding:10px 12px;border-bottom:1px solid #eef2f7;'>" + escapeHtml(item.scenario_name || "--") + "</td>" +
@@ -2862,7 +2866,7 @@ function trainingInjector(apiBase, communicationTypes, defaultTemplates) {
         "<button type='button' style='border:0;background:none;font-size:16px;cursor:pointer;color:#64748b;' onclick='this.closest(\"#training-history-modal\").remove()'>关闭</button>" +
         "</div>" +
         "<table style='width:100%;border-collapse:collapse;font-size:14px;color:#334155;'>" +
-        "<thead><tr style='background:#f8fafc;'><th style='padding:10px 12px;text-align:left;'>序号</th><th style='padding:10px 12px;text-align:left;'>场景</th><th style='padding:10px 12px;text-align:left;'>算法</th><th style='padding:10px 12px;text-align:left;'>更新时间</th><th style='padding:10px 12px;text-align:left;'>操作</th></tr></thead>" +
+        "<thead><tr style='background:#f8fafc;'><th style='padding:10px 12px;text-align:left;'>序号</th><th style='padding:10px 12px;text-align:left;'>场景</th><th style='padding:10px 12px;text-align:left;'>算法</th><th style='padding:10px 12px;text-align:left;'>训练时间</th><th style='padding:10px 12px;text-align:left;'>操作</th></tr></thead>" +
         "<tbody>" + (rows || "<tr><td colspan='5' style='padding:28px 0;text-align:center;color:#94a3b8;'>暂无训练记录</td></tr>") + "</tbody>" +
         "</table>" +
         "</div>";
@@ -2922,7 +2926,8 @@ function trainingInjector(apiBase, communicationTypes, defaultTemplates) {
     var trainCfg = config.train || {};
     var envCfg = config.multimodal_env || {};
     var algoCfg = config.algorithm || {};
-    var timeText = detail.updated_at ? new Date(detail.updated_at * 1000).toLocaleString("zh-CN") : "--";
+    var detailTime = detail.created_at || detail.updated_at;
+    var timeText = detailTime ? new Date(detailTime * 1000).toLocaleString("zh-CN") : "--";
     var summaryCards = [
       { label: "训练轮次", value: detail.episode_count || 0 },
       { label: "总步数", value: detail.total_timesteps || "--" },
@@ -3007,9 +3012,37 @@ function trainingInjector(apiBase, communicationTypes, defaultTemplates) {
       }
       return;
     }
+    if (event.type === "baseline") {
+      var baselineCoverage = Number(payload.avg_coverage != null ? payload.avg_coverage : payload.coverage || 0);
+      var baselineBroadcast = Number(payload.avg_broadcast != null ? payload.avg_broadcast : payload.broadcast || 0);
+      updateCoverage((baselineCoverage * 100).toFixed(1));
+      updateBroadcast((baselineBroadcast * 100).toFixed(1));
+      updateTime(new Date().toLocaleTimeString("zh-CN", { hour12: false }));
+      addConsole(
+        "baseline",
+        "initial_state coverage=" + (baselineCoverage * 100).toFixed(1) + "%" +
+          " broadcast=" + (baselineBroadcast * 100).toFixed(1) + "%"
+      );
+      return;
+    }
+    if (event.type === "train") {
+      updateCoverage((Number(payload.coverage || 0) * 100).toFixed(1));
+      updateBroadcast((Number(payload.broadcast || 0) * 100).toFixed(1));
+      updateTime(new Date().toLocaleTimeString("zh-CN", { hour12: false }));
+      addConsole(
+        "step",
+        "episode=" + (payload.episode || "?") +
+          " step=" + (payload.episode_step || payload.step || "?") +
+          " reward=" + Number(payload.reward || 0).toFixed(3) +
+          " coverage=" + (Number(payload.coverage || 0) * 100).toFixed(1) + "%" +
+          " broadcast=" + (Number(payload.broadcast || 0) * 100).toFixed(1) + "%"
+      );
+      return;
+    }
     if (event.type === "episode") {
       pushChartPoint({
         label: "E" + (payload.episode || "?"),
+        type: "episode",
         coverage: Number(payload.coverage || 0),
         broadcast: Number(payload.broadcast || 0),
         reward: Number(payload.reward || 0),
@@ -3029,6 +3062,7 @@ function trainingInjector(apiBase, communicationTypes, defaultTemplates) {
     if (event.type === "update") {
       pushChartPoint({
         label: payload.update != null ? "U" + payload.update : "S" + (payload.step || "?"),
+        type: "update",
         coverage: Number(payload.mean_coverage || 0),
         broadcast: Number(payload.mean_broadcast || 0),
         reward: Number(payload.mean_reward || 0),
@@ -3049,6 +3083,7 @@ function trainingInjector(apiBase, communicationTypes, defaultTemplates) {
     if (event.type === "evaluation") {
       pushChartPoint({
         label: "V" + (payload.step || "?"),
+        type: "evaluation",
         coverage: Number(payload.avg_coverage || 0),
         broadcast: Number(payload.avg_broadcast || 0),
         reward: Number(payload.avg_reward || 0),

@@ -14,7 +14,7 @@
     <div class="monitor__chart">
       <div class="chart__header">
         <div>
-          <p class="monitor__label">实时覆盖率（episode）</p>
+              <p class="monitor__label">实时覆盖率（episode）</p>
           <p class="monitor__value">{{ latestAccuracy }}</p>
         </div>
         <small class="chart__hint">来源：每个 episode 终态覆盖率</small>
@@ -54,7 +54,7 @@
     <div class="monitor__chart">
       <div class="chart__header">
         <div>
-          <p class="monitor__label">实时广播覆盖（episode）</p>
+              <p class="monitor__label">实时广播覆盖（episode）</p>
           <p class="monitor__value">{{ latestBroadcast }}</p>
         </div>
         <small class="chart__hint">来源：每个 episode 终态广播率</small>
@@ -145,6 +145,7 @@ const firstNumeric = (payload, keys) => {
 const buildMetricSeries = (keys) => {
   const series = [];
   for (const event of props.events) {
+    if (event.type === "baseline" || event.type === "train") continue;
     const payload = event.payload || {};
     const value = firstNumeric(payload, keys);
     if (value == null) continue;
@@ -256,6 +257,14 @@ const formatConsoleLine = (event) => {
     const step = payload.step != null ? ` step=${payload.step}` : "";
     return buildTerminalLine(`status=${payload.state || "unknown"}${step}`, { level: "STATUS", source: "TRAIN", timestamp });
   }
+  if (event?.type === "baseline") {
+    const coverage = firstNumeric(payload, ["avg_coverage", "coverage"]);
+    const broadcast = firstNumeric(payload, ["avg_broadcast", "broadcast"]);
+    return buildTerminalLine(
+      `initial_state coverage=${percent(coverage)} | broadcast=${percent(broadcast)}`,
+      { level: "BASE", source: "TRAIN", timestamp }
+    );
+  }
   if (event?.type === "episode") {
     const parts = [
       `episode=${payload.episode ?? "-"}`,
@@ -289,7 +298,13 @@ const formatConsoleLine = (event) => {
     return buildTerminalLine(parts.join(" | "), { level: "METRIC", source: "TRAIN", timestamp });
   }
   if (event?.type === "train") {
-    const parts = [`train step=${payload.step ?? "-"}`, `reward=${fixed(payload.reward)}`, `loss=${fixed(payload.loss)}`];
+    const parts = [
+      `recovery episode=${payload.episode ?? "-"}`,
+      `episode_step=${payload.episode_step ?? "-"}`,
+      `global_step=${payload.step ?? "-"}`,
+      `reward=${fixed(payload.reward)}`,
+    ];
+    if (payload.loss != null) parts.push(`loss=${fixed(payload.loss)}`);
     const coverage = firstNumeric(payload, ["coverage", "mean_coverage", "episode_coverage", "comm_coverage", "coverage_ratio"]);
     const broadcast = firstNumeric(payload, ["broadcast", "mean_broadcast", "episode_broadcast", "broadcast_coverage", "broadcast_ratio"]);
     if (coverage != null) parts.push(`coverage=${percent(coverage)}`);

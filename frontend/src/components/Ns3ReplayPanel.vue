@@ -407,6 +407,10 @@ const displayDeviceText = (value) => {
   );
 };
 
+const displayAlgorithmText = (value) => String(value || "--");
+
+const displaySessionTitle = (value) => displayAlgorithmText(value || "未命名回放");
+
 const hashQueryReplayId = () => {
   if (typeof window === "undefined") return null;
   const queryText = window.location.hash.includes("?") ? window.location.hash.split("?").slice(1).join("?") : "";
@@ -418,7 +422,7 @@ const normalizeSession = (session) => {
   return {
     ...session,
     id: session?.replay_id || session?.id,
-    title: session?.title || session?.replay_id || "未命名回放",
+    title: displaySessionTitle(session?.title || session?.replay_id || "未命名回放"),
     source: session?.source || "test",
     createdAt: Number(session?.created_at || session?.createdAt || 0),
     scenarioName: session?.scenario_name || session?.scenarioName || "",
@@ -707,7 +711,7 @@ const phaseDotClass = computed(() => {
 const sessionSubtitle = computed(() => {
   if (loadingSessions.value) return "正在连接后端回放会话";
   if (!activeSession.value) return replayError.value || "连接后端回放会话后显示真实策略测试数据";
-  return `${sourceLabel(activeSession.value.source)} / ${String(activeSession.value.algorithm).toUpperCase()} / ${formatNumber(activeSession.value.nodeCountTotal)} 节点 / ${activeSession.value.frameCount} 帧`;
+  return `${sourceLabel(activeSession.value.source)} / ${displayAlgorithmText(activeSession.value.algorithm)} / ${formatNumber(activeSession.value.nodeCountTotal)} 节点 / ${activeSession.value.frameCount} 帧`;
 });
 
 const terminalSubtitle = computed(() => {
@@ -907,7 +911,7 @@ const sharedTerminalEntries = computed(() =>
     const level = String(line).match(/\[([A-Z_]+)\]/)?.[1] || "INFO";
     return {
       level: displayTerminalLevel(level),
-      text: displayDeviceText(line),
+      text: displayAlgorithmText(displayDeviceText(line)),
     };
   })
 );
@@ -1137,7 +1141,7 @@ function replayTerminalKey(text) {
 function appendReplayTerminalLine(message, options = {}) {
   if (!message) return;
   replayTerminalCleared.value = false;
-  appendSharedTerminalLine(displayDeviceText(message), {
+  appendSharedTerminalLine(displayAlgorithmText(displayDeviceText(message)), {
     level: options.level || "INFO",
     source: options.source || "REPLAY",
     timestamp: options.timestamp,
@@ -1154,7 +1158,7 @@ function appendReplayUserNodeCount(prefix, ...sources) {
 function syncReplayTerminalEntries(entries = []) {
   const pendingEntries = [];
   entries.forEach((entry) => {
-    const text = displayDeviceText(entry?.text);
+    const text = displayAlgorithmText(displayDeviceText(entry?.text));
     if (!text || text === "> SYSTEM INTIALIZED...") return;
     const key = replayTerminalKey(text);
     if (syncedReplayTerminalKeys.has(key)) return;
@@ -2361,7 +2365,9 @@ async function refreshReplaySessions() {
   appendReplayTerminalLine("前端操作：刷新场景回放会话列表。", { level: "ACTION" });
   try {
     const payload = await fetchJson(`${API_BASE}/replay/sessions?limit=30`);
-    sessions.value = (payload?.sessions || []).map(normalizeSession);
+    sessions.value = (payload?.sessions || [])
+      .map(normalizeSession)
+      .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
     appendReplayTerminalLine(`后端响应：场景回放会话 ${sessions.value.length} 条。`, {
       level: "BACKEND",
       source: "BACKEND",
@@ -2623,7 +2629,7 @@ function jumpToEnd() {
   if (!activeSession.value) return;
   hasReplayStarted.value = true;
   stopPlayback({ refreshDetail: false });
-  appendReplayTerminalLine("前端操作：跳转到场景回放末帧。", { level: "ACTION" });
+  appendReplayTerminalLine("前端操作：跳转到场景回放最终恢复状态。", { level: "ACTION" });
   appendClientLog("SYSTEM", "SYS_FINISH", "进程自然结束，网络已收敛至恢复态。");
   frameIndex.value = maxFrameIndex.value;
 }

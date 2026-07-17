@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from datetime import datetime
 import json
 import math
 from pathlib import Path
+import time
 from typing import Any, Callable, Dict, List, Optional, Tuple
+import uuid
 
 import numpy as np
 import torch
@@ -391,19 +394,45 @@ def export_episode_scene(report: Dict[str, Any], env, output_dir: Path) -> Dict[
     scenario_name = (report.get("scenario", {}) or {}).get("name") or "scenario"
     episode = int(report.get("episode", 1))
     slug = _slugify(f"{scenario_name}_episode_{episode}")
+    created_at = time.time()
+    created_at_iso = datetime.fromtimestamp(created_at).isoformat(timespec="seconds")
+    stamp = datetime.fromtimestamp(created_at).strftime("%Y%m%d_%H%M%S")
+    export_dir = output_dir / f"{stamp}_{slug}_{uuid.uuid4().hex[:6]}"
+    export_dir.mkdir(parents=True, exist_ok=False)
 
     disaster_scene = _build_scene_payload(report, env, include_deployments=False)
     deployment_scene = _build_scene_payload(report, env, include_deployments=True)
     deployment_plan = report.get("deployment_plan") or _build_deployment_plan(report, env)
 
-    disaster_path = output_dir / f"{slug}_disaster_scene.json"
-    deployment_path = output_dir / f"{slug}_deployment_scene.json"
-    deployment_plan_path = output_dir / f"{slug}_deployment_plan.json"
+    disaster_path = export_dir / "disaster_scene.json"
+    deployment_path = export_dir / "deployment_scene.json"
+    deployment_plan_path = export_dir / "deployment_plan.json"
+    metadata_path = export_dir / "metadata.json"
+    metadata = {
+        "schema_version": "rescuenet.scene_export.v1",
+        "source": "test",
+        "created_at": created_at,
+        "created_at_iso": created_at_iso,
+        "scenario_name": scenario_name,
+        "scenario_label": _scenario_display_label(scenario_name),
+        "episode": episode,
+        "slug": slug,
+        "export_dir": str(export_dir),
+        "disaster_scene_path": str(disaster_path),
+        "deployment_scene_path": str(deployment_path),
+        "deployment_plan_path": str(deployment_plan_path),
+    }
     disaster_path.write_text(json.dumps(disaster_scene, ensure_ascii=False, indent=2), encoding="utf-8")
     deployment_path.write_text(json.dumps(deployment_scene, ensure_ascii=False, indent=2), encoding="utf-8")
     deployment_plan_path.write_text(json.dumps(deployment_plan, ensure_ascii=False, indent=2), encoding="utf-8")
+    metadata_path.write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
 
     return {
+        "export_dir": str(export_dir),
+        "metadata_path": str(metadata_path),
+        "created_at": created_at,
+        "created_at_iso": created_at_iso,
+        "scenario_label": _scenario_display_label(scenario_name),
         "disaster_scene_path": str(disaster_path),
         "deployment_scene_path": str(deployment_path),
         "deployment_plan_path": str(deployment_plan_path),
@@ -1232,6 +1261,26 @@ def _valid_position(position: Any) -> bool:
 def _slugify(value: str) -> str:
     safe = "".join(ch if ch.isalnum() else "_" for ch in value.strip().lower())
     return safe.strip("_") or "scene"
+
+
+def _scenario_display_label(value: Any) -> str:
+    text = str(value or "").strip()
+    lower = text.lower()
+    if "typhoon" in lower or "台风" in text:
+        return "台风灾后残余网络"
+    if "earthquake" in lower or "地震" in text:
+        return "地震灾后断链恢复"
+    if (
+        "rainstorm" in lower
+        or "flood" in lower
+        or "water_disaster" in lower
+        or "water disaster" in lower
+        or "暴雨" in text
+        or "洪水" in text
+        or "水灾" in text
+    ):
+        return "洪水孤岛通信恢复"
+    return text or "未选择场景"
 
 
 def _describe_scenario(env) -> Dict[str, Any]:
