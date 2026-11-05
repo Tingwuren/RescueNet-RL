@@ -64,8 +64,30 @@ class PPOTrainer:
         eval_interval: int = max(1, self.train_cfg["eval_interval"])
         eval_episodes: int = self.train_cfg["eval_episodes"]
 
-        obs, _ = self.env.reset(seed=self.train_cfg.get("seed"))
+        obs, reset_info = self.env.reset(seed=self.train_cfg.get("seed"))
         update_idx = 0
+        initial_coverage = float(reset_info.get("coverage_ratio", 0.0)) if isinstance(reset_info, dict) else 0.0
+        initial_broadcast = float(reset_info.get("broadcast_ratio", 0.0)) if isinstance(reset_info, dict) else 0.0
+        self.eval_history.append(
+            {
+                "step": 0.0,
+                "avg_reward": 0.0,
+                "avg_coverage": initial_coverage,
+                "avg_broadcast": initial_broadcast,
+                "phase": "initial_state",
+            }
+        )
+        self._emit_progress(
+            "baseline",
+            {
+                "step": 0,
+                "avg_reward": 0.0,
+                "avg_coverage": initial_coverage,
+                "avg_broadcast": initial_broadcast,
+                "coverage": initial_coverage,
+                "broadcast": initial_broadcast,
+            },
+        )
 
         while self.global_step < total_timesteps:
             steps_remaining = total_timesteps - self.global_step

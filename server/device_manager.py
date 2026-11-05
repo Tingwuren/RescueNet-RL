@@ -30,13 +30,16 @@ class DeviceManager:
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.Lock()
-        self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
-        self._conn.row_factory = sqlite3.Row
         self._init_db()
 
+    def _connect(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        return conn
+
     def _init_db(self) -> None:
-        with self._conn:
-            self._conn.execute(
+        with self._connect() as conn:
+            conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS dedicated_devices (
                     device_id TEXT PRIMARY KEY,
@@ -60,7 +63,7 @@ class DeviceManager:
                 )
                 """
             )
-            self._conn.execute(
+            conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS dedicated_device_logs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -81,8 +84,8 @@ class DeviceManager:
         for _ in range(8):
             device_id = generate_device_id()
             try:
-                with self._lock, self._conn:
-                    self._conn.execute(
+                with self._lock, self._connect() as conn:
+                    conn.execute(
                         """
                         INSERT INTO dedicated_devices (
                             device_id, device_name, device_type, device_category, is_dedicated,
@@ -109,10 +112,11 @@ class DeviceManager:
                             data.get("bound_scenario"),
                         ),
                     )
-                    device = self.get(device_id)
+                    row = conn.execute("SELECT * FROM dedicated_devices WHERE device_id = ?", (device_id,)).fetchone()
+                    device = self._row_to_device(row) if row else None
                     if device is None:
                         raise RuntimeError(f"Created device disappeared: {device_id}")
-                    self._append_log("create", device)
+                    self._append_log(conn, "create", device)
                     return device
             except sqlite3.IntegrityError:
                 continue
@@ -128,18 +132,19 @@ class DeviceManager:
             clauses.append("device_type = ?")
             params.append(device_type)
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
-        rows = self._conn.execute(
-            f"SELECT * FROM dedicated_devices {where} ORDER BY created_at DESC, device_id DESC",
-            params,
-        ).fetchall()
-        devices = [self._row_to_device(row) for row in rows]
-        active_count = int(
-            self._conn.execute("SELECT COUNT(*) FROM dedicated_devices WHERE status = 'active'").fetchone()[0]
-        )
+        with self._connect() as conn:
+            rows = conn.execute(
+                f"SELECT * FROM dedicated_devices {where} ORDER BY created_at DESC, device_id DESC",
+                params,
+            ).fetchall()
+            devices = [self._row_to_device(row) for row in rows]
+            active_row = conn.execute("SELECT COUNT(*) FROM dedicated_devices WHERE status = 'active'").fetchone()
+            active_count = int(active_row[0] if active_row and active_row[0] is not None else 0)
         return DedicatedDeviceListResponse(devices=devices, total=len(devices), active_count=active_count)
 
     def get(self, device_id: str) -> Optional[DedicatedDevice]:
-        row = self._conn.execute("SELECT * FROM dedicated_devices WHERE device_id = ?", (device_id,)).fetchone()
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM dedicated_devices WHERE device_id = ?", (device_id,)).fetchone()
         return self._row_to_device(row) if row else None
 
     def update(self, device_id: str, payload: DedicatedDeviceUpdate) -> Optional[DedicatedDevice]:
@@ -158,44 +163,52 @@ class DeviceManager:
                 params.append(value)
         params.append(device_id)
 
-        with self._lock, self._conn:
-            cursor = self._conn.execute(
+        with self._lock, self._connect() as conn:
+            cursor = conn.execute(
                 f"UPDATE dedicated_devices SET {', '.join(columns)} WHERE device_id = ?",
                 params,
             )
             if cursor.rowcount <= 0:
                 return None
-            device = self.get(device_id)
+            row = conn.execute("SELECT * FROM dedicated_devices WHERE device_id = ?", (device_id,)).fetchone()
+            device = self._row_to_device(row) if row else None
             if device:
-                self._append_log("update", device)
+                self._append_log(conn, "update", device)
             return device
 
     def update_status(self, device_id: str, status: str) -> Optional[DedicatedDevice]:
-        with self._lock, self._conn:
-            cursor = self._conn.execute(
+        with self._lock, self._connect() as conn:
+            cursor = conn.execute(
                 "UPDATE dedicated_devices SET status = ?, updated_at = ? WHERE device_id = ?",
                 (status, _utc_now(), device_id),
             )
             if cursor.rowcount <= 0:
                 return None
-            device = self.get(device_id)
+            row = conn.execute("SELECT * FROM dedicated_devices WHERE device_id = ?", (device_id,)).fetchone()
+            device = self._row_to_device(row) if row else None
             if device:
-                self._append_log("enable" if status == "active" else "disable", device)
+                self._append_log(conn, "enable" if status == "active" else "disable", device)
             return device
 
     def delete(self, device_id: str) -> bool:
         device = self.get(device_id)
         if device is None:
             return False
-        with self._lock, self._conn:
-            cursor = self._conn.execute("DELETE FROM dedicated_devices WHERE device_id = ?", (device_id,))
+        with self._lock, self._connect() as conn:
+            cursor = conn.execute("DELETE FROM dedicated_devices WHERE device_id = ?", (device_id,))
             if cursor.rowcount <= 0:
                 return False
-            self._append_log("delete", device, result_status="deleted")
+            self._append_log(conn, "delete", device, result_status="deleted")
             return True
 
-    def _append_log(self, operation: str, device: DedicatedDevice, result_status: Optional[str] = None) -> None:
-        self._conn.execute(
+    def _append_log(
+        self,
+        conn: sqlite3.Connection,
+        operation: str,
+        device: DedicatedDevice,
+        result_status: Optional[str] = None,
+    ) -> None:
+        conn.execute(
             """
             INSERT INTO dedicated_device_logs (
                 timestamp, operation, device_id, device_name, device_type, device_category, result_status

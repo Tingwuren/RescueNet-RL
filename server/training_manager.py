@@ -10,6 +10,7 @@ import threading
 import time
 import uuid
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -20,6 +21,14 @@ from planning.broadcast_architecture import export_architecture
 
 def _update_interval_from_step_interval(step_interval: int, rollout_steps: int) -> int:
     return max(1, (max(1, int(step_interval)) + max(1, int(rollout_steps)) - 1) // max(1, int(rollout_steps)))
+
+
+def _run_timestamp(started_at: float) -> str:
+    return datetime.fromtimestamp(float(started_at)).strftime("%Y%m%d_%H%M%S")
+
+
+def _run_dir_name(run: "TrainingRun") -> str:
+    return f"{_run_timestamp(run.started_at)}_{run.algorithm}_{run.scenario_name}_{run.run_id}"
 
 
 @dataclass
@@ -124,13 +133,61 @@ class TrainingManager:
                 continue
             shutil.copy2(src, latest_artifact_dir / name)
 
+    def _write_run_metadata(
+        self,
+        *,
+        run: TrainingRun,
+        run_artifact_dir: Path,
+        policy_path: Optional[Path] = None,
+        extra: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        meta_path = run_artifact_dir / "policy_meta.json"
+        metadata: Dict[str, Any] = {}
+        if meta_path.exists():
+            try:
+                metadata = json.loads(meta_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                metadata = {}
+
+        if policy_path is None:
+            existing_policy = metadata.get("policy_path")
+            policy_path = Path(existing_policy) if existing_policy else None
+
+        metadata.update(
+            {
+                "run_id": run.run_id,
+                "run_name": run_artifact_dir.name,
+                "algorithm": run.algorithm,
+                "env_type": run.env_type,
+                "scenario_name": run.scenario_name,
+                "reward_mode": run.reward_mode,
+                "evaluation_protocol": run.evaluation_protocol,
+                "artifact_dir": str(run_artifact_dir),
+                "created_at": run.started_at,
+                "created_at_iso": datetime.fromtimestamp(run.started_at).isoformat(timespec="seconds"),
+            }
+        )
+        if policy_path is not None:
+            metadata["policy_path"] = str(policy_path)
+        if extra:
+            metadata.update(extra)
+
+        meta_path.write_text(
+            json.dumps(metadata, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
     def _resolve_demo_policy_path(self, algorithm: str, scenario_name: str) -> Optional[Path]:
         policy_name = "dqn_policy.pt" if algorithm == "dqn" else f"{algorithm}_policy.pt"
         preferred = Path("artifacts/runs") / f"{algorithm}_{scenario_name}_demo_level4" / policy_name
         if preferred.exists():
             return preferred
+        candidate_paths = [
+            *Path("artifacts/runs").glob(f"{algorithm}_*/{policy_name}"),
+            *Path("artifacts/runs").glob(f"*_{algorithm}_*/{policy_name}"),
+        ]
         candidates = sorted(
-            Path("artifacts/runs").glob(f"{algorithm}_*/{policy_name}"),
+            {path.resolve(): path for path in candidate_paths}.values(),
             key=lambda path: path.stat().st_mtime,
             reverse=True,
         )
@@ -199,7 +256,7 @@ class TrainingManager:
         run.evaluation_protocol = config.get("evaluation", {}).get("protocol", "standard")
 
         latest_artifact_dir = Path(config["logging"]["artifact_dir"])
-        run_artifact_dir = latest_artifact_dir / "runs" / f"{algorithm}_{scenario_name}_{run.run_id}"
+        run_artifact_dir = latest_artifact_dir / "runs" / _run_dir_name(run)
         run_artifact_dir.mkdir(parents=True, exist_ok=True)
         config["logging"]["artifact_dir"] = str(run_artifact_dir)
 
@@ -238,7 +295,7 @@ class TrainingManager:
                 run,
                 {
                     "type": "log",
-                    "payload": {"message": f"已加载场景设备配置：{device_count} 个基站进入训练环境。"},
+                    "payload": {"message": f"已加载场景设备配置：{device_count} 个基站作为待部署资源进入训练。"},
                 },
             )
 
@@ -298,20 +355,15 @@ class TrainingManager:
             json.dumps(metrics, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
-        (run_artifact_dir / "policy_meta.json").write_text(
-            json.dumps(
-                {
-                    "algorithm": algorithm,
-                    "env_type": config["experiment"]["env_type"],
-                    "policy_path": str(policy_path),
-                    "evaluation_protocol": run.evaluation_protocol,
-                    "demo_fast_training": True,
-                    "demo_note": "Fast deterministic training stream for system demonstration when train.py is unavailable.",
-                },
-                ensure_ascii=False,
-                indent=2,
-            ),
-            encoding="utf-8",
+        self._write_run_metadata(
+            run=run,
+            run_artifact_dir=run_artifact_dir,
+            policy_path=policy_path,
+            extra={
+                "env_type": config["experiment"]["env_type"],
+                "demo_fast_training": True,
+                "demo_note": "Fast deterministic training stream for system demonstration when train.py is unavailable.",
+            },
         )
         self._write_demo_curve(eval_history, run_artifact_dir / "training_coverage_curve.png")
         self._publish_latest_artifacts(run_artifact_dir, latest_artifact_dir)
@@ -439,7 +491,7 @@ class TrainingManager:
 
             latest_artifact_dir = Path(config["logging"]["artifact_dir"])
             latest_artifact_dir.mkdir(parents=True, exist_ok=True)
-            run_artifact_dir = latest_artifact_dir / "runs" / f"{algorithm}_{scenario_name}_{run.run_id}"
+            run_artifact_dir = latest_artifact_dir / "runs" / _run_dir_name(run)
             run_artifact_dir.mkdir(parents=True, exist_ok=True)
             config["logging"]["artifact_dir"] = str(run_artifact_dir)
 
@@ -454,7 +506,7 @@ class TrainingManager:
                     {
                         "type": "log",
                         "payload": {
-                            "message": f"已加载场景设备配置：{len(custom_base_stations)} 个基站进入训练环境。"
+                            "message": f"已加载场景设备配置：{len(custom_base_stations)} 个基站作为待部署资源进入训练。"
                         },
                     },
                 )
@@ -488,12 +540,19 @@ class TrainingManager:
             metrics = trainer.train()
             run.metrics = metrics
             plot_training_metrics(metrics, run_artifact_dir / "training_coverage_curve.png", skip=1)
-            self._publish_latest_artifacts(run_artifact_dir, latest_artifact_dir)
 
             if env_type == "multimodal":
                 dataset_path = config["multimodal_env"]["dataset_path"]
                 architecture_path = run_artifact_dir / f"broadcast_architecture_{scenario_name}.json"
                 export_architecture(dataset_path, scenario_name, architecture_path)
+
+            policy_name = "dqn_policy.pt" if algorithm == "dqn" else f"{algorithm}_policy.pt"
+            self._write_run_metadata(
+                run=run,
+                run_artifact_dir=run_artifact_dir,
+                policy_path=run_artifact_dir / policy_name,
+            )
+            self._publish_latest_artifacts(run_artifact_dir, latest_artifact_dir)
 
             run.status = "completed"
             self._push_event(

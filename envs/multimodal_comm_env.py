@@ -508,7 +508,7 @@ class MultiModalCommEnv(gym.Env):
                 coverage_radius *= 0.65
                 max_users = max(1, int(max_users * 0.65))
                 max_throughput *= 0.65
-            if status == "offline":
+            if status in {"offline", "planned", "unknown"}:
                 covered_users = 0
             else:
                 distances = np.linalg.norm(self.user_positions - location, axis=1)
@@ -606,7 +606,8 @@ class MultiModalCommEnv(gym.Env):
     def _has_active_residual_network(self) -> bool:
         """Return whether this episode should expose residual-network context."""
         if self.custom_base_station_specs is not None:
-            return bool(self.custom_base_station_specs)
+            active_statuses = {"active", "degraded", "deployed"}
+            return any(str(spec.get("status") or "active").lower() in active_statuses for spec in self.custom_base_station_specs)
         return bool(self.scenario.has_residual_network)
 
     def _coverage_ratio(self) -> float:

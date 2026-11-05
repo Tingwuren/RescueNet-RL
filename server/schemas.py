@@ -268,6 +268,10 @@ class SimulationRequest(BaseModel):
 
 
 class SceneExport(BaseModel):
+    export_dir: Optional[str] = None
+    metadata_path: Optional[str] = None
+    created_at: Optional[float] = None
+    created_at_iso: Optional[str] = None
     disaster_scene_path: str
     deployment_scene_path: str
     deployment_plan_path: Optional[str] = None

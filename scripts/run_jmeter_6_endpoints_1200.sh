@@ -5,13 +5,13 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 USERS="${USERS:-1200}"
-RAMP="${RAMP:-1}"
+RAMP="${RAMP:-60}"
 LOOPS="${LOOPS:-1}"
-HOST="${HOST:-localhost}"
+HOST="${HOST:-127.0.0.1}"
 PORT="${PORT:-8000}"
 PROTOCOL="${PROTOCOL:-http}"
 TIMEOUT_MS="${TIMEOUT_MS:-30000}"
-PLAN="${PLAN:-jmeter/rescuenet_single_endpoint_1200.jmx}"
+PLAN="${PLAN:-jmeter/rescuenet_single_endpoint_paced_1200.jmx}"
 PREWARM="${PREWARM:-1}"
 TS="$(date +%Y%m%d_%H%M%S)"
 OUT_DIR="${OUT_DIR:-artifacts/load_tests/jmeter/separate_${USERS}_${TS}}"
@@ -27,9 +27,9 @@ run is ${USERS} concurrent users per endpoint.
 
 Options:
   --users N        Virtual users / threads per endpoint. Default: ${USERS}
-  --ramp N         Ramp-up seconds. Default: 1
+  --ramp N         Ramp-up seconds. Default: ${RAMP}
   --loops N        Loop count. Default: 1
-  --host HOST      Target host. Default: localhost
+  --host HOST      Target host. Default: ${HOST}
   --port PORT      Target port. Default: 8000
   --protocol P     http or https. Default: http
   --timeout MS     Connect and response timeout. Default: 30000
@@ -135,6 +135,9 @@ fi
 
 ulimit -n 65535 2>/dev/null || true
 export HEAP="${HEAP:--Xms1g -Xmx6g -XX:+UseG1GC -XX:-HeapDumpOnOutOfMemoryError}"
+# Prevent Git Bash/MSYS2 from rewriting JMeter properties like /api/health
+# into Windows paths such as D:/Program files/Git/api/health.
+export MSYS2_ARG_CONV_EXCL="${MSYS2_ARG_CONV_EXCL:-*}"
 
 NAMES=(
   "health"

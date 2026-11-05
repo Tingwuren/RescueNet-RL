@@ -10,7 +10,16 @@
         <h1>策略测试</h1>
       </div>
 
-      <button type="button" class="record-button" @click="historyModalOpen = true">测试记录</button>
+      <button
+        type="button"
+        class="record-button"
+        @click="
+          historyModalOpen = true;
+          void refreshTestOutputs();
+        "
+      >
+        测试记录
+      </button>
 
       <section class="map-shell" :style="{ top: `${mapPanelTop}px` }" aria-label="策略测试地图">
         <button
@@ -812,23 +821,24 @@ const currentScenario = computed(
 
 const disasterLabel = (type) => {
   const labels = {
-    flood: "暴雨",
-    rainstorm: "暴雨",
-    earthquake: "地震",
+    flood: "洪水孤岛通信恢复",
+    rainstorm: "洪水孤岛通信恢复",
+    earthquake: "地震灾后断链恢复",
     landslide: "泥石流",
-    typhoon: "台风",
+    typhoon: "台风灾后残余网络",
   };
   return labels[type] || formatScenarioName(type);
 };
 
 const scenarioLabel = (scenario) => {
   if (!scenario) return formatScenarioName(scenarioName.value);
-  return formatPlainDisasterName(
-    scenario.disaster_type,
-    scenario.source_scenario,
-    scenario.display_name,
-    scenario.name
-  ) || disasterLabel(scenario.disaster_type) || formatScenarioName(scenario.name);
+  return formatScenarioName(
+    scenario.name ||
+      scenario.source_scenario ||
+      scenario.display_name ||
+      scenario.disaster_scenario_label ||
+      scenario.disaster_type
+  ) || disasterLabel(scenario.disaster_type);
 };
 
 const algorithmLabel = (value) => algorithms.find((item) => item.value === value)?.label || value?.toUpperCase() || "--";
@@ -2843,33 +2853,105 @@ const appendStrategyUserNodeCount = (prefix, ...sources) => {
   appendTerminalEvent(buildUserNodeCountMessage(prefix, ...sources), { level: "SCENE" });
 };
 
+const historyTimestamp = (item) => {
+  const numeric = Number(item?.createdAt);
+  if (Number.isFinite(numeric) && numeric > 0) return numeric;
+  const parsed = Date.parse(item?.createdAt || "");
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const sortHistoryRows = (items) => [...items].sort((a, b) => historyTimestamp(b) - historyTimestamp(a));
+
+const normalizedPath = (value) => String(value || "").replace(/\\/g, "/");
+
+const historyMergeKey = (item) =>
+  normalizedPath(item?.deploymentScenePath) ||
+  normalizedPath(item?.disasterScenePath) ||
+  normalizedPath(item?.metadataPath) ||
+  String(item?.id || "");
+
+const mergeHistoryRows = (backendRows, localRows) => {
+  const rowsByKey = new Map();
+  for (const row of sortHistoryRows(localRows || [])) {
+    rowsByKey.set(historyMergeKey(row), { ...row, source: row.source || "local" });
+  }
+  for (const row of sortHistoryRows(backendRows || [])) {
+    const key = historyMergeKey(row);
+    const local = rowsByKey.get(key) || {};
+    rowsByKey.set(key, {
+      ...local,
+      ...row,
+      avgReward: local.avgReward ?? row.avgReward,
+      avgFinalCoverage: local.avgFinalCoverage ?? row.avgFinalCoverage,
+      broadcastRatio: local.broadcastRatio ?? row.broadcastRatio,
+      userCount: local.userCount ?? row.userCount,
+      deviceRows: local.deviceRows ?? row.deviceRows,
+      source: "backend",
+    });
+  }
+  return sortHistoryRows(Array.from(rowsByKey.values())).slice(0, 50);
+};
+
+const mapTestOutputToHistoryRow = (item) => ({
+  id: item?.id || item?.export_dir || item?.metadata_path,
+  scenarioName: item?.scenario_name || "",
+  scenarioLabel: item?.scenario_label || (item?.scenario_name ? formatScenarioName(item.scenario_name) : ""),
+  algorithm: item?.algorithm || "",
+  algorithmLabel: item?.algorithm ? algorithmLabel(item.algorithm) : "",
+  checkpointPath: "",
+  createdAt: Number(item?.created_at) > 0 ? Number(item.created_at) * 1000 : Date.parse(item?.created_at_iso || ""),
+  avgReward: item?.avg_reward,
+  avgFinalCoverage: item?.avg_final_coverage,
+  broadcastRatio: item?.broadcast_ratio,
+  userCount: item?.user_count,
+  metadataPath: item?.metadata_path,
+  exportDir: item?.export_dir,
+  disasterScenePath: item?.disaster_scene_path,
+  deploymentScenePath: item?.deployment_scene_path,
+  deploymentPlanPath: item?.deployment_plan_path,
+  deviceRows: [],
+  source: "backend",
+});
+
 const readHistory = () => {
   try {
     const raw = window.localStorage.getItem(TEST_HISTORY_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed) ? sortHistoryRows(parsed) : [];
   } catch {
     return [];
   }
 };
 
 const writeHistory = (items) => {
-  window.localStorage.setItem(TEST_HISTORY_KEY, JSON.stringify(items.slice(0, 50)));
+  window.localStorage.setItem(TEST_HISTORY_KEY, JSON.stringify(sortHistoryRows(items).slice(0, 50)));
   historyRows.value = readHistory();
+};
+
+const refreshTestOutputs = async () => {
+  const localRows = readHistory();
+  try {
+    const { data } = await axios.get(`${API_BASE}/test/outputs`, { timeout: SCENE_ACCESS_TIMEOUT_MS });
+    const backendRows = Array.isArray(data?.outputs) ? data.outputs.map(mapTestOutputToHistoryRow) : [];
+    historyRows.value = mergeHistoryRows(backendRows, localRows);
+  } catch (error) {
+    historyRows.value = localRows;
+  }
 };
 
 const persistTestHistory = (result) => {
   const report = Array.isArray(result?.reports) ? result.reports[0] : null;
   const finalState = report?.final_state || {};
   const sceneExport = result?.scene_export || {};
+  const createdAt = Number(sceneExport.created_at) > 0 ? Number(sceneExport.created_at) * 1000 : Date.now();
   const record = {
-    id: `${Date.now()}-${scenarioName.value}-${selectedAlgorithm.value}`,
+    id: `${createdAt}-${scenarioName.value}-${selectedAlgorithm.value}`,
     scenarioName: scenarioName.value,
     scenarioLabel: scenarioLabel(currentScenario.value),
     algorithm: selectedAlgorithm.value,
     algorithmLabel: algorithmLabel(selectedAlgorithm.value),
     checkpointPath: checkpointPath.value,
-    createdAt: new Date().toISOString(),
+    createdAt,
     avgReward: result?.avg_reward,
     avgFinalCoverage: result?.avg_final_coverage,
     broadcastRatio: finalState.broadcast_ratio,
@@ -2880,6 +2962,7 @@ const persistTestHistory = (result) => {
     deviceRows: finalState.user_details || [],
   };
   writeHistory([record, ...readHistory()]);
+  void refreshTestOutputs();
 };
 
 const syncCheckpointPath = () => {
@@ -2924,7 +3007,11 @@ const fetchScenarios = async () => {
 const fetchTrainingArtifacts = async () => {
   appendTerminalEvent("前端操作：加载训练权重列表。", { level: "ACTION" });
   const { data } = await axios.get(`${API_BASE}/train/artifacts`, { timeout: SCENE_ACCESS_TIMEOUT_MS });
-  trainingArtifacts.value = Array.isArray(data?.artifacts) ? data.artifacts : [];
+  trainingArtifacts.value = (Array.isArray(data?.artifacts) ? data.artifacts : []).sort((left, right) => {
+    const leftTime = Number(left.created_at || left.updated_at || 0);
+    const rightTime = Number(right.created_at || right.updated_at || 0);
+    return rightTime - leftTime;
+  });
   appendTerminalEvent(`后端响应：训练权重 ${trainingArtifacts.value.length} 条。`, { level: "BACKEND", source: "BACKEND" });
 };
 
@@ -3554,6 +3641,7 @@ const runSimulation = async () => {
 
 onMounted(async () => {
   historyRows.value = readHistory();
+  void refreshTestOutputs();
   isLoading.value = true;
   try {
     await Promise.all([fetchScenarios(), fetchTrainingArtifacts()]);

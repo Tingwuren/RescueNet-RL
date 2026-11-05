@@ -1328,7 +1328,11 @@ const filteredHistory = computed(() => {
   if (historyFilterScenario.value) {
     items = items.filter((r) => trainingScenarioName(r) === historyFilterScenario.value);
   }
-  return items;
+  return [...items].sort((left, right) => {
+    const leftTime = Number(left.created_at || left.updated_at || 0);
+    const rightTime = Number(right.created_at || right.updated_at || 0);
+    return rightTime - leftTime;
+  });
 });
 
 const totalHistoryPages = computed(() => Math.max(1, Math.ceil(filteredHistory.value.length / historyPageSize.value)));
@@ -1751,13 +1755,14 @@ const syncAccessDevice = async (index, options = {}) => {
   }
 };
 
-const buildTrainingBaseStations = (rows = accessDevices.value) =>
+const buildTrainingBaseStations = (rows = accessDevices.value, options = {}) =>
   rows.flatMap((row) =>
     Array.from({ length: Math.max(1, Number(row.count || 1)) }, (_, index) => {
       const profile = deviceProfileByValue(row.device);
       const x = (clampGridCoord(row.x, gridBounds.value.maxX) + index) % Math.max(1, gridBounds.value.rows);
       const y = (clampGridCoord(row.y, gridBounds.value.maxY) + index) % Math.max(1, gridBounds.value.cols);
       const deviceUid = index === 0 ? row.id : `${row.id}:copy:${index + 1}`;
+      const status = options.asPlanned ? "planned" : row.status || "active";
       return row.device
         ? {
             device_uid: deviceUid || null,
@@ -1766,7 +1771,7 @@ const buildTrainingBaseStations = (rows = accessDevices.value) =>
             mode: row.mode || defaultStationMode(profile),
             x,
             y,
-            status: row.status || "active",
+            status,
             device_name: displayText(row.deviceName) || null,
             station_type: row.stationType || row.device || null,
             station_label: row.stationLabel || deviceProfileLabel(profile) || null,
@@ -1856,7 +1861,8 @@ const fetchTrainingHistory = async () => {
       status: a.status || "completed",
       operator: a.operator || "系统",
       created_at: a.created_at || a.updated_at,
-      updated_at: a.updated_at,
+      updated_at: a.updated_at || a.created_at,
+      modified_at: a.modified_at,
       checkpoint_path: a.checkpoint_path,
       env_type: a.env_type,
       reward_mode: a.reward_mode,
@@ -2195,6 +2201,30 @@ const evaluationTerminalMessage = (payload = {}) => {
   return parts.join(" | ");
 };
 
+const recoveryStepTerminalMessage = (payload = {}) => {
+  const parts = [`Recovery E${formatInteger(payload.episode)}-S${formatInteger(payload.episode_step ?? payload.step)}`];
+  const stepText = trainingStepText(payload);
+  if (stepText) parts.push(stepText);
+  parts.push(`reward=${formatSignedTerminalMetric(payload.reward)}`);
+  if (payload.coverage != null) parts.push(`coverage=${formatPercent(payload.coverage)}`);
+  if (payload.broadcast != null) parts.push(`broadcast=${formatPercent(payload.broadcast)}`);
+  const hierarchyText = hierarchyTerminalText(payload.hierarchy);
+  if (hierarchyText) parts.push(hierarchyText);
+  if (payload.reason) parts.push(`reason=${payload.reason}`);
+  return parts.join(" | ");
+};
+
+const baselineTerminalMessage = (payload = {}) => {
+  const parts = ["初始灾损状态"];
+  if (payload.avg_coverage != null || payload.coverage != null) {
+    parts.push(`coverage=${formatPercent(payload.avg_coverage ?? payload.coverage)}`);
+  }
+  if (payload.avg_broadcast != null || payload.broadcast != null) {
+    parts.push(`broadcast=${formatPercent(payload.avg_broadcast ?? payload.broadcast)}`);
+  }
+  return parts.join(" | ");
+};
+
 const completedTerminalMessage = (payload = {}) => {
   const parts = ["训练完成"];
   const stepText = trainingStepText(payload);
@@ -2207,6 +2237,8 @@ const trainingStreamMessage = (payload) => {
   const eventPayload = payload?.payload || {};
   if (payload?.message) return payload.message;
   if (eventPayload?.message) return eventPayload.message;
+  if (payload?.type === "baseline") return baselineTerminalMessage(eventPayload);
+  if (payload?.type === "train") return recoveryStepTerminalMessage(eventPayload);
   if (payload?.type === "episode") return episodeTerminalMessage(eventPayload);
   if (payload?.type === "update") return updateTerminalMessage(eventPayload);
   if (payload?.type === "evaluation") return evaluationTerminalMessage(eventPayload);
@@ -2221,6 +2253,8 @@ const trainingStreamMessage = (payload) => {
 
 const trainingStreamLevel = (payload) => {
   const type = String(payload?.type || "EVENT").toLowerCase();
+  if (type === "baseline") return "BASE";
+  if (type === "train") return "STEP";
   if (type === "episode") return "EPISODE";
   if (type === "update") return "UPDATE";
   if (type === "evaluation") return "EVAL";
@@ -2282,7 +2316,7 @@ const subscribeToEvents = (runId) => {
 const startTraining = async () => {
   if (!selectedScenarioName.value) return;
 
-  const trainingBaseStations = buildTrainingBaseStations();
+  const trainingBaseStations = buildTrainingBaseStations(accessDevices.value, { asPlanned: true });
   isStarting.value = true;
   actionError.value = "";
   eventLog.value = [

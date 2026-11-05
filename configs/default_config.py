@@ -141,7 +141,7 @@ DEFAULT_CONFIG: Dict[str, Dict[str, Any]] = {
         "probe_broadcast_weight": 2.8,
         "probe_reward_weight": 0.4,
         "eval_use_planner_action": True,
-        "train_eval_use_planner_action": True,
+        "train_eval_use_planner_action": False,
         "train_eval_planner_warmup_steps": 8000,
         "train_eval_planner_warmup_power": 4.0,
         "prior_warmup_steps": 8000,
@@ -150,6 +150,7 @@ DEFAULT_CONFIG: Dict[str, Dict[str, Any]] = {
         "prior_warmup_power": 4.0,
         "reward_shaping_warmup_steps": 8000,
         "reward_shaping_warmup_power": 2.0,
+        "recovery_step_event_interval": 5,
     },
     "evaluation": {
         "protocol": "standard",
@@ -340,7 +341,7 @@ def apply_level4_algorithm_profile(
                 "probe_top_k": 0,
                 "probe_score_weight": 2.8,
                 "eval_use_planner_action": True,
-                "train_eval_use_planner_action": True,
+                "train_eval_use_planner_action": False,
             },
         )
         evaluation_cfg["algorithm_profile"] = profile_name

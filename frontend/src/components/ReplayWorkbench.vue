@@ -319,7 +319,9 @@ const refreshSessions = async () => {
   appendReplayTerminalLine("前端操作：刷新场景回放会话列表。", { level: "ACTION" });
   try {
     const payload = await fetchJson(`${API_BASE}/replay/sessions?limit=50`);
-    sessions.value = (payload?.sessions || []).map(normalizeSession);
+    sessions.value = (payload?.sessions || [])
+      .map(normalizeSession)
+      .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
     appendReplayTerminalLine(`后端响应：场景回放会话 ${sessions.value.length} 条。`, {
       level: "BACKEND",
       source: "BACKEND",

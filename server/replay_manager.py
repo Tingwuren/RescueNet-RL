@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import time
 import uuid
 from datetime import datetime
@@ -17,6 +18,7 @@ SESSION_SCHEMA_VERSION = "rescuenet.replay_session.v1"
 COORDINATE_SOURCE_VERSION = "deterministic_grid_cross_cell_v3"
 STATION_MIN_SPACING_FLOOR = 180.0
 STATION_MIN_SPACING_CEILING = 260.0
+REPLAY_SESSION_DIR_RE = re.compile(r"^rpl_(?P<date>\d{8})_(?P<time>\d{6})")
 
 
 class ReplaySessionManager:
@@ -85,7 +87,11 @@ class ReplaySessionManager:
                 continue
             if source and metadata.get("source") != source:
                 continue
-            sessions.append(self._public_metadata(metadata))
+            public = self._public_metadata(metadata)
+            public["created_at"] = self._session_created_at(metadata, metadata_path.parent)
+            public["created_at_iso"] = self._created_at_iso(public["created_at"], metadata.get("created_at_iso"))
+            public["modified_at"] = self._path_mtime(metadata_path)
+            sessions.append(public)
         sessions.sort(key=lambda item: float(item.get("created_at") or 0), reverse=True)
         return {"sessions": sessions[:limit], "total": len(sessions)}
 
@@ -1107,6 +1113,32 @@ class ReplaySessionManager:
             "id": metadata.get("replay_id") or metadata.get("id"),
             "session_dir": None,
         }
+
+    def _session_created_at(self, metadata: Dict[str, Any], session_dir: Path) -> float:
+        value = _finite_float(metadata.get("created_at"), 0.0)
+        if value > 0:
+            return value
+
+        replay_id = str(metadata.get("replay_id") or metadata.get("id") or session_dir.name)
+        match = REPLAY_SESSION_DIR_RE.match(replay_id) or REPLAY_SESSION_DIR_RE.match(session_dir.name)
+        if match:
+            try:
+                return datetime.strptime(match.group("date") + match.group("time"), "%Y%m%d%H%M%S").timestamp()
+            except ValueError:
+                pass
+
+        return self._path_mtime(session_dir / "metadata.json")
+
+    def _created_at_iso(self, created_at: float, fallback: Any = None) -> str:
+        if isinstance(fallback, str) and fallback:
+            return fallback
+        return datetime.fromtimestamp(created_at).isoformat(timespec="seconds") if created_at > 0 else ""
+
+    def _path_mtime(self, path: Path) -> float:
+        try:
+            return path.stat().st_mtime
+        except OSError:
+            return 0.0
 
     def _new_replay_id(self) -> str:
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
