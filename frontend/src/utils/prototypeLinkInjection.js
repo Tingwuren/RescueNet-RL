@@ -57,6 +57,7 @@ function formatDateTime(value) {
 
 function algorithmLabel(key) {
   const mapping = {
+    hmarl: "HMARL",
     ppo: "PPO（基线）",
     dqn: "DQN（大动作空间）",
     a3c: "A3C（多目标）",

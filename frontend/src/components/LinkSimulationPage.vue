@@ -369,11 +369,15 @@ const formatTime = (value) => {
   return `${String(minute).padStart(2, "0")}:${String(second).padStart(2, "0")}`;
 };
 
+const displayAlgorithmText = (value) => String(value || "--");
+
+const displaySessionTitle = (value) => displayAlgorithmText(value || "未命名回放");
+
 const appendTerminalLine = (message, options = {}) => {
   if (!message) return;
   terminalLines.value = appendSyncedTerminalLine(
     terminalLines.value,
-    message,
+    displayAlgorithmText(message),
     { level: options.level || "INFO", source: options.source || "LINK", timestamp: options.timestamp },
     500
   );
@@ -432,7 +436,7 @@ const normalizeSession = (session) => {
   return {
     ...session,
     id: session?.replay_id || session?.id || "",
-    title: session?.title || session?.replay_id || session?.id || "未命名回放",
+    title: displaySessionTitle(session?.title || session?.replay_id || session?.id || "未命名回放"),
     source: session?.source || "test",
     createdAt: finiteNumber(session?.created_at || session?.createdAt, 0),
     scenarioName: session?.scenario_name || session?.scenarioName || "",

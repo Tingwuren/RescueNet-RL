@@ -11,6 +11,7 @@
         @click="handleCanvasClick"
       ></canvas>
     </div>
+    <span class="map-attribution">Imagery: Esri, Vantor, Earthstar Geographics, GIS User Community</span>
 
     <header class="top-bar glass-panel">
       <div class="logo">
@@ -407,6 +408,10 @@ const displayDeviceText = (value) => {
   );
 };
 
+const displayAlgorithmText = (value) => String(value || "--");
+
+const displaySessionTitle = (value) => displayAlgorithmText(value || "未命名回放");
+
 const hashQueryReplayId = () => {
   if (typeof window === "undefined") return null;
   const queryText = window.location.hash.includes("?") ? window.location.hash.split("?").slice(1).join("?") : "";
@@ -418,7 +423,7 @@ const normalizeSession = (session) => {
   return {
     ...session,
     id: session?.replay_id || session?.id,
-    title: session?.title || session?.replay_id || "未命名回放",
+    title: displaySessionTitle(session?.title || session?.replay_id || "未命名回放"),
     source: session?.source || "test",
     createdAt: Number(session?.created_at || session?.createdAt || 0),
     scenarioName: session?.scenario_name || session?.scenarioName || "",
@@ -707,7 +712,7 @@ const phaseDotClass = computed(() => {
 const sessionSubtitle = computed(() => {
   if (loadingSessions.value) return "正在连接后端回放会话";
   if (!activeSession.value) return replayError.value || "连接后端回放会话后显示真实策略测试数据";
-  return `${sourceLabel(activeSession.value.source)} / ${String(activeSession.value.algorithm).toUpperCase()} / ${formatNumber(activeSession.value.nodeCountTotal)} 节点 / ${activeSession.value.frameCount} 帧`;
+  return `${sourceLabel(activeSession.value.source)} / ${displayAlgorithmText(activeSession.value.algorithm)} / ${formatNumber(activeSession.value.nodeCountTotal)} 节点 / ${activeSession.value.frameCount} 帧`;
 });
 
 const terminalSubtitle = computed(() => {
@@ -907,7 +912,7 @@ const sharedTerminalEntries = computed(() =>
     const level = String(line).match(/\[([A-Z_]+)\]/)?.[1] || "INFO";
     return {
       level: displayTerminalLevel(level),
-      text: displayDeviceText(line),
+      text: displayAlgorithmText(displayDeviceText(line)),
     };
   })
 );
@@ -1137,7 +1142,7 @@ function replayTerminalKey(text) {
 function appendReplayTerminalLine(message, options = {}) {
   if (!message) return;
   replayTerminalCleared.value = false;
-  appendSharedTerminalLine(displayDeviceText(message), {
+  appendSharedTerminalLine(displayAlgorithmText(displayDeviceText(message)), {
     level: options.level || "INFO",
     source: options.source || "REPLAY",
     timestamp: options.timestamp,
@@ -1154,7 +1159,7 @@ function appendReplayUserNodeCount(prefix, ...sources) {
 function syncReplayTerminalEntries(entries = []) {
   const pendingEntries = [];
   entries.forEach((entry) => {
-    const text = displayDeviceText(entry?.text);
+    const text = displayAlgorithmText(displayDeviceText(entry?.text));
     if (!text || text === "> SYSTEM INTIALIZED...") return;
     const key = replayTerminalKey(text);
     if (syncedReplayTerminalKeys.has(key)) return;
@@ -1324,10 +1329,8 @@ function mapViewport(width, height, bounds) {
   };
 }
 
-function cartoTileUrl(zoom, x, y) {
-  const subdomains = ["a", "b", "c", "d"];
-  const subdomain = subdomains[Math.abs(x + y) % subdomains.length];
-  return `https://${subdomain}.basemaps.cartocdn.com/dark_all/${zoom}/${x}/${y}.png`;
+function imageryTileUrl(zoom, x, y) {
+  return `https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${zoom}/${y}/${x}`;
 }
 
 function loadTileImage(url) {
@@ -1797,7 +1800,7 @@ function drawScenarioTileMap(ctx, x, y, width, height, timestamp) {
     const wrappedX = ((tileX % maxTile) + maxTile) % maxTile;
     for (let tileY = minTileY; tileY <= maxTileY; tileY += 1) {
       if (tileY < 0 || tileY >= maxTile) continue;
-      const tile = loadTileImage(cartoTileUrl(viewport.zoom, wrappedX, tileY));
+      const tile = loadTileImage(imageryTileUrl(viewport.zoom, wrappedX, tileY));
       if (!tile.ready || !tile.image) {
         pendingTiles = true;
         continue;
@@ -2623,7 +2626,7 @@ function jumpToEnd() {
   if (!activeSession.value) return;
   hasReplayStarted.value = true;
   stopPlayback({ refreshDetail: false });
-  appendReplayTerminalLine("前端操作：跳转到场景回放末帧。", { level: "ACTION" });
+  appendReplayTerminalLine("前端操作：跳转到场景回放最终恢复状态。", { level: "ACTION" });
   appendClientLog("SYSTEM", "SYS_FINISH", "进程自然结束，网络已收敛至恢复态。");
   frameIndex.value = maxFrameIndex.value;
 }
@@ -2831,6 +2834,20 @@ onBeforeUnmount(() => {
     #050810;
   color: #e8f7ff;
   font-family: "Microsoft YaHei", "PingFang SC", "Source Han Sans CN", sans-serif;
+}
+
+.map-attribution {
+  position: absolute;
+  left: 340px;
+  bottom: 300px;
+  z-index: 15;
+  max-width: calc(100% - 680px);
+  padding: 3px 6px;
+  background: rgba(2, 8, 23, 0.88);
+  color: #bdeefa;
+  font-size: 11px;
+  line-height: 16px;
+  pointer-events: none;
 }
 
 .replay-map {

@@ -95,6 +95,7 @@
               draggable="false"
             />
             <span class="device-tile-map__label">{{ mapLabel }}</span>
+            <span class="device-tile-map__attribution">Imagery: Esri, Vantor, Earthstar Geographics, GIS User Community</span>
           </div>
           <div class="device-map-layer" aria-label="用户与基站节点">
             <span
@@ -1085,7 +1086,7 @@ const mapTiles = computed(() => {
       if (tileY < 0 || tileY >= maxTile) continue;
       tiles.push({
         key: `${viewport.zoom}-${wrappedX}-${tileY}`,
-        url: cartoTileUrl(viewport.zoom, wrappedX, tileY),
+        url: imageryTileUrl(viewport.zoom, wrappedX, tileY),
         left: Math.round(tileX * tileSize - shiftedViewportLeft),
         top: Math.round(tileY * tileSize - viewport.top),
       });
@@ -1389,11 +1390,8 @@ const mapViewport = (width, height, bounds, zoomBoost = 0) => {
   };
 };
 
-const cartoTileUrl = (zoom, x, y) => {
-  const subdomains = ["a", "b", "c", "d"];
-  const subdomain = subdomains[Math.abs(x + y) % subdomains.length];
-  return `https://${subdomain}.basemaps.cartocdn.com/rastertiles/voyager/${zoom}/${x}/${y}.png`;
-};
+const imageryTileUrl = (zoom, x, y) =>
+  `https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${zoom}/${y}/${x}`;
 
 const isVisibleMapPoint = (x, y) =>
   x >= -DEVICE_MAP_CLIP_PADDING &&
@@ -2467,7 +2465,7 @@ button:disabled {
   inset: 0;
   z-index: 2;
   overflow: hidden;
-  background: #dbeafe;
+  background: transparent;
   pointer-events: none;
 }
 
@@ -2500,6 +2498,17 @@ button:disabled {
   inset: 0;
   z-index: 6;
   pointer-events: none;
+}
+
+.device-tile-map__attribution {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 3px 6px;
+  background: rgba(255, 255, 255, 0.88);
+  color: #334155;
+  font-size: 11px;
+  line-height: 16px;
 }
 
 .device-map-marker {

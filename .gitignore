@@ -62,3 +62,5 @@ Thumbs.db
 # Runtime logs
 /logs/
 ns-3.46.1/ns3_backend.log
+
+/video/

@@ -256,13 +256,17 @@ const hashQueryReplayId = () => {
   return new URLSearchParams(queryText).get("replay_id");
 };
 
+const displayAlgorithmText = (value) => String(value || "--");
+
+const displaySessionTitle = (value) => displayAlgorithmText(value || "未命名回放");
+
 const normalizeSession = (session) => {
   const summary = session?.summary || {};
   return {
     ...session,
     id: session?.replay_id || session?.id,
     replayId: session?.replay_id || session?.id,
-    title: session?.title || session?.replay_id || "未命名回放",
+    title: displaySessionTitle(session?.title || session?.replay_id || "未命名回放"),
     source: session?.source || "test",
     createdAt: Number(session?.created_at || session?.createdAt || 0),
     scenarioName: session?.scenario_name || session?.scenarioName || "",
@@ -538,7 +542,7 @@ const normalizeNodeType = (node) => {
 const summaryItems = computed(() => {
   if (!activeSession.value) return [];
   return [
-    { label: "算法", value: String(activeSession.value.algorithm || "--").toUpperCase() },
+    { label: "算法", value: displayAlgorithmText(activeSession.value.algorithm) },
     { label: "总奖励", value: Number(activeSession.value.summary?.totalReward || 0).toFixed(2) },
     { label: "终态覆盖", value: percentageText(activeSession.value.summary?.coverageRatio) },
     { label: "步数", value: String(activeSession.value.summary?.stepsTaken || 0) },
